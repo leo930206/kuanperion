@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.25] - 2026-10-13
+
+### Fixed
+
+- Farming now directly sends block-breaking actions every tick, improving harvesting while inventory, settings, or other GUI screens are open.
+
 ## [1.0.24] - 2026-10-13
 
 ### Changed

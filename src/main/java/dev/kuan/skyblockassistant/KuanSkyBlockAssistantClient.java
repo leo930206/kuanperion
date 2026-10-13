@@ -89,6 +89,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
+    private static BlockPos farmingAttackTarget = null;
+    private static boolean farmingAttackStarted = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
@@ -201,6 +203,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         LocalPlayer player = mc.player;
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
+        performFarmingAttack(mc, player);
         if (farmingLeftShiftTicks > 0) {
             farmingLeftShiftTicks--;
             applyFarmingInput(mc, DirectionKey.LEFT, true, false);
@@ -279,6 +282,40 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Minecraft.getInstance().player == null ? 0 : Minecraft.getInstance().player.tickCount;
     }
 
+    private static void performFarmingAttack(Minecraft mc, LocalPlayer player) {
+        setAttackKey(mc, true);
+        if (mc.level == null || mc.gameMode == null) return;
+        HitResult hit = player.pick(5.0, 0.0f, false);
+        if (!(hit instanceof BlockHitResult blockHit)) {
+            clearFarmingAttack(mc);
+            return;
+        }
+        BlockPos pos = blockHit.getBlockPos().immutable();
+        BlockState state = mc.level.getBlockState(pos);
+        if (state.isAir()) {
+            clearFarmingAttack(mc);
+            return;
+        }
+        Direction face = blockHit.getDirection();
+        if (!pos.equals(farmingAttackTarget)) {
+            clearFarmingAttack(mc);
+            farmingAttackTarget = pos;
+            farmingAttackStarted = false;
+        }
+        if (!farmingAttackStarted) {
+            mc.gameMode.startDestroyBlock(pos, face);
+            farmingAttackStarted = true;
+        }
+        mc.gameMode.continueDestroyBlock(pos, face);
+        player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    private static void clearFarmingAttack(Minecraft mc) {
+        farmingAttackTarget = null;
+        farmingAttackStarted = false;
+        try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
+    }
+
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
         applyFarmingInput(mc, reversedKey(crop, reversed), true, false);
     }
@@ -307,6 +344,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void releaseFarmingKeys(Minecraft mc) {
+        clearFarmingAttack(mc);
         setAttackKey(mc, false);
         if (mc == null || mc.options == null) return;
         mc.options.keyUp.setDown(false);
