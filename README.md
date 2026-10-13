@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.2`
+Current mod version: `1.0.3`
 
 ## Features
 
@@ -42,7 +42,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.2.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.3.jar
 ```
 
 ## Maintenance rule

@@ -20,7 +20,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
@@ -43,6 +42,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
     private static BlockPos lastTarget = null;
+    private static BlockPos activeTarget = null;
+    private static boolean activeTargetStarted = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping selectModeKey;
@@ -65,6 +66,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         while (toggleMiningKey.consumeClick()) {
             miningEnabled = !miningEnabled;
+            if (!miningEnabled) clearActiveTarget(mc);
             saveConfig();
             say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
         }
@@ -76,7 +78,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         handleRightClickSelection(mc);
         if (cooldown > 0) cooldown--;
-        if (miningEnabled && cooldown <= 0) mineBestTarget(mc);
+        if (miningEnabled) mineBestTarget(mc);
     }
 
     private static void handleRightClickSelection(Minecraft mc) {
@@ -98,8 +100,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void mineBestTarget(Minecraft mc) {
-        if (mc.player == null || mc.level == null || mc.gameMode == null || TARGET_BLOCKS.isEmpty()) return;
+        if (mc.player == null || mc.level == null || mc.gameMode == null || TARGET_BLOCKS.isEmpty()) {
+            clearActiveTarget(mc);
+            return;
+        }
         LocalPlayer player = mc.player;
+        if (activeTarget != null && mineActiveTarget(mc, player, activeTarget)) return;
+        if (cooldown > 0) return;
+
         BlockPos base = player.blockPosition();
         Candidate best = null;
         int r = Math.max(1, Math.min(8, scanRadius));
@@ -119,13 +127,38 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             lastTarget = null;
             return;
         }
-        if (rotateToTarget) lookAt(player, best.pos);
-        Direction face = faceFromPlayer(player, best.pos);
-        mc.gameMode.startDestroyBlock(best.pos, face);
-        mc.gameMode.continueDestroyBlock(best.pos, face);
+        activeTarget = best.pos;
+        activeTargetStarted = false;
+        mineActiveTarget(mc, player, activeTarget);
+    }
+
+    private static boolean mineActiveTarget(Minecraft mc, LocalPlayer player, BlockPos target) {
+        if (mc.level == null || mc.gameMode == null) return false;
+        int r = Math.max(1, Math.min(8, scanRadius));
+        double dist = player.distanceToSqr(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
+        BlockState state = mc.level.getBlockState(target);
+        if (state.isAir() || TARGET_BLOCKS.indexOf(blockId(state)) < 0 || dist > (r + 1.5) * (r + 1.5)) {
+            lastTarget = target;
+            clearActiveTarget(mc);
+            cooldown = Math.max(1, actionDelayTicks);
+            return false;
+        }
+
+        if (rotateToTarget) lookAt(player, target);
+        Direction face = faceFromPlayer(player, target);
+        if (!activeTargetStarted) {
+            mc.gameMode.startDestroyBlock(target, face);
+            activeTargetStarted = true;
+        }
+        mc.gameMode.continueDestroyBlock(target, face);
         player.swing(InteractionHand.MAIN_HAND);
-        lastTarget = best.pos;
-        cooldown = Math.max(1, actionDelayTicks);
+        return true;
+    }
+
+    private static void clearActiveTarget(Minecraft mc) {
+        activeTarget = null;
+        activeTargetStarted = false;
+        try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {
