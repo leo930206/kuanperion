@@ -168,6 +168,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return false;
         }
 
+        setAttackKey(mc, true);
         if (rotateToTarget && !lookAtSmooth(player, target)) return true;
         Direction face = faceFromPlayer(player, target);
         if (!activeTargetStarted) {
@@ -183,7 +184,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         activeTarget = null;
         activeTargetBlockId = null;
         activeTargetStarted = false;
+        setAttackKey(mc, false);
         try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
+    }
+
+    private static void setAttackKey(Minecraft mc, boolean down) {
+        try { if (mc != null && mc.options != null) mc.options.keyAttack.setDown(down); } catch (Throwable ignored) {}
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {

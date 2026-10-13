@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.6] - 2026-10-13
+
+### Fixed
+
+- Mining now holds the attack key while working on the active target so block breaking behaves like holding left click.
+
 ## [1.0.5] - 2026-10-13
 
 ### Fixed
