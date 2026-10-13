@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.28] - 2026-10-13
+
+### Fixed
+
+- Farming now uses Minecraft's native left-click attack flow (`startAttack` / `continueAttack`) instead of custom reach-based raycasting, matching manual harvest distance and hit behavior more closely.
+
 ## [1.0.27] - 2026-10-13
 
 ### Fixed
