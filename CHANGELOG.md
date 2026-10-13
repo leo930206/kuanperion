@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.30] - 2026-10-13
+
+### Removed
+
+- Removed the Mining HUD and all HUD position controls from settings.
+
 ## [1.0.29] - 2026-10-13
 
 ### Fixed

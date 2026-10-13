@@ -4,12 +4,9 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -38,8 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Locale;
 import java.lang.reflect.Method;
 
@@ -81,11 +76,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int rotationStepDegrees = 13;
     private static int actionDelayTicks = 3;
-    private static int hudX = 8;
-    private static int hudY = 8;
     private static int miningTicks = 0;
-    private static int totalMined = 0;
-    private static final Deque<Integer> MINED_TICKS = new ArrayDeque<>();
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
     private static boolean miningComboWasDown = false;
@@ -112,7 +103,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
         selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
-        HudElementRegistry.addLast(id("mining_hud"), KuanSkyBlockAssistantClient::renderMiningHud);
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
     }
@@ -133,7 +123,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             miningTicks++;
             mineBestTarget(mc);
         } else {
-            clearMiningStats();
+            miningTicks = 0;
         }
         if (farmingEnabled) {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
@@ -572,7 +562,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void markDepletedUntilRespawn(BlockPos pos, String expectedBlockId) {
         if (isAllowedTargetBlock(expectedBlockId)) {
             DEPLETED_TARGETS.put(pos.immutable(), expectedBlockId);
-            recordMinedBlock();
         }
         SKIPPED_TARGETS.remove(pos);
     }
@@ -661,36 +650,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (mc.player != null) mc.player.sendSystemMessage(Component.literal("[Kuan SBA] " + text).withStyle(ChatFormatting.AQUA));
     }
 
-    private static void recordMinedBlock() {
-        totalMined++;
-        MINED_TICKS.addLast(miningTicks);
-        trimMinedHistory();
-    }
-
-    private static void trimMinedHistory() {
-        int cutoff = miningTicks - 20 * 20;
-        while (!MINED_TICKS.isEmpty() && MINED_TICKS.peekFirst() < cutoff) MINED_TICKS.removeFirst();
-    }
-
-    private static void clearMiningStats() {
-        miningTicks = 0;
-        totalMined = 0;
-        MINED_TICKS.clear();
-    }
-
-    private static void renderMiningHud(GuiGraphicsExtractor graphics, DeltaTracker tickCounter) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        trimMinedHistory();
-        double seconds = Math.min(20.0, Math.max(1.0, miningTicks / 20.0));
-        double bps = MINED_TICKS.size() / seconds;
-        int x = Math.max(0, Math.min(hudX, graphics.guiWidth() - 96));
-        int y = Math.max(0, Math.min(hudY, graphics.guiHeight() - 24));
-        graphics.fill(x - 3, y - 3, x + 96, y + 21, 0x88000000);
-        graphics.text(mc.font, "Kuan SBA Mining", x, y, 0x55FFFF, true);
-        graphics.text(mc.font, String.format("%.2f blocks/s", bps), x, y + 10, miningEnabled ? 0x55FF55 : 0xAAAAAA, true);
-    }
-
     private static File configFile() {
         File dir = new File(Minecraft.getInstance().gameDirectory, "config");
         if (!dir.exists()) dir.mkdirs();
@@ -714,8 +673,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
         rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
         actionDelayTicks = parseInt(p.getProperty("actionDelayTicks"), 3, 1, 20);
-        hudX = parseInt(p.getProperty("hudX"), 8, 0, 10000);
-        hudY = parseInt(p.getProperty("hudY"), 8, 0, 10000);
         TARGET_BLOCKS.clear();
         String targets = p.getProperty("targets", "").trim();
         if (!targets.isEmpty()) for (String s : targets.split(",")) {
@@ -745,8 +702,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
-        p.setProperty("hudX", Integer.toString(hudX));
-        p.setProperty("hudY", Integer.toString(hudY));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
         p.setProperty("farmingMarkers", String.join(",", FARMING_MARKER_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuan Hypixel SkyBlock Assistant"); } catch (Throwable ignored) {}
@@ -848,13 +803,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("挖礦延遲: " + actionDelayTicks), this.font));
-            y += 28;
-            addRenderableWidget(Button.builder(Component.literal("HUD ←"), b -> { hudX = Math.max(0, hudX - 10); saveConfig(); rebuild(); }).bounds(x, y, 95, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("HUD →"), b -> { hudX += 10; saveConfig(); rebuild(); }).bounds(x + 105, y, 95, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("HUD ↑"), b -> { hudY = Math.max(0, hudY - 10); saveConfig(); rebuild(); }).bounds(x + 210, y, 95, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("HUD ↓"), b -> { hudY += 10; saveConfig(); rebuild(); }).bounds(x + 315, y, 95, 20).build());
-            y += 24;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("HUD 位置: " + hudX + ", " + hudY), this.font));
             y += 22;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("目標方塊清單（同距離時上面優先）：右鍵選取會加入或移到最新位置"), this.font));
             y += 18;
