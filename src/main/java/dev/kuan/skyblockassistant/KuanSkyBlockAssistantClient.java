@@ -52,6 +52,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int UNREACHABLE_SKIP_TICKS = 200;
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
+    private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
@@ -61,6 +62,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingTurnOnMarkers = true;
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
+    private static int farmingLeftShiftTicks = 0;
     private static int farmingStuckTicks = 0;
     private static double farmingLastX = 0.0;
     private static double farmingLastY = 0.0;
@@ -181,6 +183,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void resetFarmingRuntime(Minecraft mc) {
         farmingReverseLane = false;
         farmingStateTicks = 0;
+        farmingLeftShiftTicks = 0;
         farmingStuckTicks = 0;
         farmingStuckSampleTicks = 0;
         farmingMarkerIgnoreTicks = 0;
@@ -198,6 +201,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         LocalPlayer player = mc.player;
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
+        if (farmingLeftShiftTicks > 0) {
+            farmingLeftShiftTicks--;
+            setAttackKey(mc, false);
+            mc.options.keyUp.setDown(false);
+            mc.options.keyDown.setDown(false);
+            mc.options.keyLeft.setDown(true);
+            mc.options.keyRight.setDown(false);
+            mc.options.keyJump.setDown(false);
+            if (farmingLeftShiftTicks == 0) {
+                farmingReverseLane = !farmingReverseLane;
+                farmingMarkerIgnoreTicks = 30;
+                if (farmingAutoSetHome) player.connection.sendCommand("sethome");
+            }
+            return;
+        }
         if (farmingStateTicks > 0) {
             farmingStateTicks--;
             releaseFarmingKeys(mc);
@@ -218,7 +236,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (marker != null) {
             announceFarmingMarker(mc, marker);
             farmingMarkerIgnoreTicks = 30;
-            farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
+            if (farmingCrop == FarmingCrop.MUSHROOM && !farmingReverseLane) {
+                farmingLeftShiftTicks = MUSHROOM_LEFT_SHIFT_TICKS;
+            } else {
+                farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
+            }
             releaseFarmingKeys(mc);
             return;
         }
@@ -633,8 +655,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         MELON("Melon", 90.0f, 30.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         PUMPKIN("Pumpkin", 90.0f, 30.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", -180.0f, -45.0f, DirectionKey.BACK, DirectionKey.FORWARD, "#dirt"),
-        RED_MUSHROOM("Red Mush", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block"),
-        BROWN_MUSHROOM("Brown Mush", 115.0f, 0.0f, DirectionKey.BACK, DirectionKey.FORWARD, "minecraft:quartz_block");
+        MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");
 
         final String label;
         final float yaw;
@@ -655,7 +676,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         String findDefaultMarker(Minecraft mc, LocalPlayer player) {
             if (this == COCOA_BEAN) return firstNear(mc, player, 1, 0, 1, "minecraft:glowstone", markerBlock);
             if (this == SUGAR_CANE) return firstNear(mc, player, 1, 0, 0, markerBlock, "minecraft:sea_lantern");
-            if (this == MELON || this == PUMPKIN || this == CACTUS || this == RED_MUSHROOM || this == BROWN_MUSHROOM) {
+            if (this == MELON || this == PUMPKIN || this == CACTUS || this == MUSHROOM) {
                 return firstNear(mc, player, 1, 0, 1, markerBlock, "#ladder", "#trapdoor");
             }
             return firstNear(mc, player, 1, 0, 0, markerBlock, "#trapdoor");
@@ -666,8 +687,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
             if ("NETHERWART".equals(normalized)) normalized = "NETHER_WART";
             if ("COCOA".equals(normalized) || "COCOA_BEANS".equals(normalized)) normalized = "COCOA_BEAN";
-            if ("RED_MUSH".equals(normalized)) normalized = "RED_MUSHROOM";
-            if ("BROWN_MUSH".equals(normalized)) normalized = "BROWN_MUSHROOM";
+            if ("RED_MUSH".equals(normalized) || "RED_MUSHROOM".equals(normalized) || "BROWN_MUSH".equals(normalized) || "BROWN_MUSHROOM".equals(normalized)) normalized = "MUSHROOM";
             for (FarmingCrop crop : values()) if (crop.name().equals(normalized) || crop.label.toUpperCase(Locale.ROOT).replace(' ', '_').equals(normalized)) return crop;
             return WHEAT;
         }

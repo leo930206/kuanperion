@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.22] - 2026-10-13
+
+### Changed
+
+- Replaced separate Red/Brown Mushroom crop profiles with a single Mushroom profile.
+- Mushroom now shifts left briefly before reversing when a row marker is detected while moving forward.
+
 ## [1.0.21] - 2026-10-13
 
 ### Fixed
