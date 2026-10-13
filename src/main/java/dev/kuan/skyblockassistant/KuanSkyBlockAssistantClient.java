@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Locale;
-import java.lang.reflect.Method;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
@@ -98,10 +97,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
-    private static boolean farmingVanillaAttackStarted = false;
-    private static Method minecraftStartAttack = null;
-    private static Method minecraftContinueAttack = null;
-    private static Method minecraftPick = null;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
@@ -225,7 +220,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         LocalPlayer player = mc.player;
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingReturningToStart) {
-            clearFarmingAttack(mc);
             setAttackKey(mc, false);
             if (farmingStartDetection && isConfiguredBlockNear(mc, player, farmingStartBlock)) {
                 say(mc, "Farming 偵測到開始方塊：" + farmingStartBlock);
@@ -239,7 +233,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             }
             return;
         }
-        performFarmingAttack(mc, player);
+        setAttackKey(mc, true);
         if (farmingRightShiftTicks > 0) {
             farmingRightShiftTicks--;
             applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
@@ -269,7 +263,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (farmingEndDetection && isConfiguredBlockNear(mc, player, farmingEndBlock)) {
             say(mc, "Farming 偵測到結束方塊：" + farmingEndBlock + "，開始後退找開始方塊");
             farmingReturningToStart = true;
-            clearFarmingAttack(mc);
             applyFarmingInput(mc, DirectionKey.BACK, false, false);
             return;
         }
@@ -458,49 +451,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Minecraft.getInstance().player == null ? 0 : Minecraft.getInstance().player.tickCount;
     }
 
-    private static void performFarmingAttack(Minecraft mc, LocalPlayer player) {
-        setAttackKey(mc, true);
-        if (mc.level == null || mc.gameMode == null) return;
-        try {
-            ensureMinecraftAttackMethods();
-            minecraftPick.invoke(mc, 1.0f);
-            if (!farmingVanillaAttackStarted) {
-                minecraftStartAttack.invoke(mc);
-                farmingVanillaAttackStarted = true;
-            }
-            minecraftContinueAttack.invoke(mc, true);
-        } catch (Throwable ignored) {
-            // Keep the real key state down even if reflective vanilla attack access fails.
-        }
-    }
-
-    private static void clearFarmingAttack(Minecraft mc) {
-        farmingVanillaAttackStarted = false;
-        try {
-            if (mc != null) {
-                ensureMinecraftAttackMethods();
-                minecraftContinueAttack.invoke(mc, false);
-            }
-        } catch (Throwable ignored) {
-            try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignoredAgain) {}
-        }
-    }
-
-    private static void ensureMinecraftAttackMethods() throws NoSuchMethodException {
-        if (minecraftStartAttack == null) {
-            minecraftStartAttack = Minecraft.class.getDeclaredMethod("startAttack");
-            minecraftStartAttack.setAccessible(true);
-        }
-        if (minecraftContinueAttack == null) {
-            minecraftContinueAttack = Minecraft.class.getDeclaredMethod("continueAttack", boolean.class);
-            minecraftContinueAttack.setAccessible(true);
-        }
-        if (minecraftPick == null) {
-            minecraftPick = Minecraft.class.getDeclaredMethod("pick", float.class);
-            minecraftPick.setAccessible(true);
-        }
-    }
-
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
         applyFarmingInput(mc, reversedKey(crop, reversed), true, false);
     }
@@ -529,7 +479,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void releaseFarmingKeys(Minecraft mc) {
-        clearFarmingAttack(mc);
         setAttackKey(mc, false);
         if (mc == null || mc.options == null) return;
         mc.options.keyUp.setDown(false);

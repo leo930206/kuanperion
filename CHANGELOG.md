@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.33] - 2026-10-13
+
+### Changed
+
+- Reverted Farming harvesting to simple held attack-key behavior, removing forced vanilla attack reflection used for GUI/background harvesting attempts.
+
 ## [1.0.32] - 2026-10-13
 
 ### Fixed

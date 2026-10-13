@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.32`
+Current mod version: `1.0.33`
 
 ## Features
 
@@ -42,7 +42,7 @@ Current mod version: `1.0.32`
 - Farming auto-recovery watches the Hypixel sidebar for Garden/Hub/Lobby/Limbo/Island; when displaced it stops inputs, returns to SkyBlock/Garden, runs `/home`, then resumes harvesting.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
-- Farming directly applies player input and block-breaking actions every tick so it keeps trying to run while unfocused or while GUI/screens are open.
+- Farming holds the attack key and directly applies movement input every tick.
 
 ## Build
 
@@ -55,7 +55,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.32.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.33.jar
 ```
 
 ## Maintenance rule
