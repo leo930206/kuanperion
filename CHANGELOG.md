@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4] - 2026-10-13
+
+### Changed
+
+- Mining Assistant now freezes player movement while enabled.
+- Target rotation is now smoothed over multiple ticks instead of snapping instantly.
+
 ## [1.0.3] - 2026-10-13
 
 ### Fixed

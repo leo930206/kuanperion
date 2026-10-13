@@ -17,10 +17,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
@@ -38,6 +40,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectMode = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
+    private static final float ROTATION_STEP_DEGREES = 7.0f;
+    private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int actionDelayTicks = 3;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
@@ -55,6 +59,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
+        ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
     }
 
@@ -77,8 +82,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入，B 結束）" : "方塊選取模式：關");
         }
         handleRightClickSelection(mc);
+        freezeMovementIfMining(mc);
         if (cooldown > 0) cooldown--;
         if (miningEnabled) mineBestTarget(mc);
+    }
+
+    private static void freezeMovementIfMining(Minecraft mc) {
+        if (!miningEnabled || mc.player == null) return;
+        LocalPlayer player = mc.player;
+        if (player.input != null) player.input.keyPresses = Input.EMPTY;
+        Vec3 velocity = player.getDeltaMovement();
+        player.setDeltaMovement(0.0, velocity.y, 0.0);
+        player.setSprinting(false);
     }
 
     private static void handleRightClickSelection(Minecraft mc) {
@@ -144,7 +159,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return false;
         }
 
-        if (rotateToTarget) lookAt(player, target);
+        if (rotateToTarget && !lookAtSmooth(player, target)) return true;
         Direction face = faceFromPlayer(player, target);
         if (!activeTargetStarted) {
             mc.gameMode.startDestroyBlock(target, face);
@@ -171,18 +186,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return dz > 0 ? Direction.NORTH : Direction.SOUTH;
     }
 
-    private static void lookAt(LocalPlayer player, BlockPos pos) {
+    private static boolean lookAtSmooth(LocalPlayer player, BlockPos pos) {
         Vec3 eye = player.getEyePosition();
         double dx = pos.getX() + 0.5 - eye.x;
         double dy = pos.getY() + 0.5 - eye.y;
         double dz = pos.getZ() + 0.5 - eye.z;
         double h = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        float pitch = (float) (-Math.toDegrees(Math.atan2(dy, h)));
-        player.setYRot(yaw);
-        player.setXRot(pitch);
-        player.setYHeadRot(yaw);
-        player.setYBodyRot(yaw);
+        float targetYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, h)));
+        float yawDiff = Mth.wrapDegrees(targetYaw - player.getYRot());
+        float pitchDiff = Mth.wrapDegrees(targetPitch - player.getXRot());
+        float nextYaw = player.getYRot() + Mth.clamp(yawDiff, -ROTATION_STEP_DEGREES, ROTATION_STEP_DEGREES);
+        float nextPitch = player.getXRot() + Mth.clamp(pitchDiff, -ROTATION_STEP_DEGREES, ROTATION_STEP_DEGREES);
+        player.setYRot(nextYaw);
+        player.setXRot(Mth.clamp(nextPitch, -90.0f, 90.0f));
+        player.setYHeadRot(nextYaw);
+        player.setYBodyRot(nextYaw);
+        return Math.abs(yawDiff) <= ROTATION_DONE_EPSILON && Math.abs(pitchDiff) <= ROTATION_DONE_EPSILON;
     }
 
     private static String blockId(BlockState state) {
