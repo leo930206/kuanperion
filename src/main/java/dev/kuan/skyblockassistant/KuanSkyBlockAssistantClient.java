@@ -17,7 +17,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -138,7 +137,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (priority < 0) continue;
             double dist = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
             if (dist > (r + 1.5) * (r + 1.5)) continue;
-            if (!hasLineOfSight(mc, player, pos)) continue;
             Candidate c = new Candidate(pos, priority, dist);
             if (best == null || c.betterThan(best)) best = c;
         }
@@ -172,7 +170,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
 
         if (rotateToTarget && !lookAtSmooth(player, target)) return true;
-        if (!isCrosshairOnTarget(player, target, r + 1.5)) {
+        if (!isCrosshairOnTarget(mc, player, target, r + 1.5)) {
             lastTarget = target;
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
@@ -201,36 +199,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         try { if (mc != null && mc.options != null) mc.options.keyAttack.setDown(down); } catch (Throwable ignored) {}
     }
 
-    private static boolean hasLineOfSight(Minecraft mc, LocalPlayer player, BlockPos target) {
+    private static boolean isCrosshairOnTarget(Minecraft mc, LocalPlayer player, BlockPos target, double reach) {
         if (mc.level == null) return false;
-        Vec3 eye = player.getEyePosition();
-        Vec3 aim = aimPoint(player, target);
-        BlockHitResult hit = mc.level.clip(new ClipContext(eye, aim, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
-        return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(target);
-    }
-
-    private static boolean isCrosshairOnTarget(LocalPlayer player, BlockPos target, double reach) {
         HitResult hit = player.pick(reach, 0.0f, false);
         if (!(hit instanceof BlockHitResult blockHit) || !blockHit.getBlockPos().equals(target)) return false;
-        return isHitNearFaceCenter(blockHit, target);
-    }
-
-    private static boolean isHitNearFaceCenter(BlockHitResult hit, BlockPos target) {
-        double margin = 0.16;
-        Vec3 loc = hit.getLocation();
-        double lx = loc.x - target.getX();
-        double ly = loc.y - target.getY();
-        double lz = loc.z - target.getZ();
-        return switch (hit.getDirection().getAxis()) {
-            case X -> ly >= margin && ly <= 1.0 - margin && lz >= margin && lz <= 1.0 - margin;
-            case Y -> lx >= margin && lx <= 1.0 - margin && lz >= margin && lz <= 1.0 - margin;
-            case Z -> lx >= margin && lx <= 1.0 - margin && ly >= margin && ly <= 1.0 - margin;
-        };
-    }
-
-    private static Vec3 aimPoint(LocalPlayer player, BlockPos pos) {
-        Direction face = faceFromPlayer(player, pos);
-        return Vec3.atCenterOf(pos).add(face.getStepX() * 0.49, face.getStepY() * 0.49, face.getStepZ() * 0.49);
+        String aimedBlockId = blockId(mc.level.getBlockState(blockHit.getBlockPos()));
+        return TARGET_BLOCKS.contains(aimedBlockId);
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {
@@ -245,10 +219,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean lookAtSmooth(LocalPlayer player, BlockPos pos) {
         Vec3 eye = player.getEyePosition();
-        Vec3 aim = aimPoint(player, pos);
-        double dx = aim.x - eye.x;
-        double dy = aim.y - eye.y;
-        double dz = aim.z - eye.z;
+        double dx = pos.getX() + 0.5 - eye.x;
+        double dy = pos.getY() + 0.5 - eye.y;
+        double dz = pos.getZ() + 0.5 - eye.z;
         double h = Math.sqrt(dx * dx + dz * dz);
         float targetYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
         float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, h)));

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.13] - 2026-10-13
+
+### Changed
+
+- Simplified mining validation: after rotating, the mod only mines if the crosshair is on the selected candidate block and that block type is in the target list.
+- Removed extra line-of-sight and edge-center rejection logic that caused valid targets to be skipped.
+
 ## [1.0.12] - 2026-10-13
 
 ### Fixed
