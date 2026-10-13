@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -43,12 +44,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Locale;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final List<String> FARMING_MARKER_BLOCKS = new ArrayList<>();
+    private static final String PEST_WEBHOOK_URL = "https://discord.com/api/webhooks/1559574265798590556/12cS4VM94fwYJhVqnkztXgrhpGu4Pd7WJ_zZA-6ffX1zS5H6sKAZymtA37QAyPRIeS4f";
+    private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static String farmingStartBlock = "";
     private static String farmingEndBlock = "";
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
@@ -66,6 +77,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingTurnOnMarkers = true;
     private static boolean farmingStartDetection = true;
     private static boolean farmingEndDetection = true;
+    private static boolean pestNotificationEnabled = false;
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
     private static int farmingLeftShiftTicks = 0;
@@ -94,6 +106,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectComboWasDown = false;
     private static String lastFarmingMarkerMessage = "";
     private static int lastFarmingMarkerMessageTick = 0;
+    private static String lastPestMessage = "";
+    private static int lastPestMessageTick = 0;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -112,6 +126,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleReceivedMessage(message));
+        ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
 
     private static Identifier id(String path) {
@@ -734,6 +750,48 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (mc.player != null) mc.player.sendSystemMessage(Component.literal("[Kuan SBA] " + text).withStyle(ChatFormatting.AQUA));
     }
 
+    private static void handleReceivedMessage(Component message) {
+        if (!pestNotificationEnabled || message == null) return;
+        String text = StringUtil.stripColor(message.getString());
+        Matcher matcher = PEST_MESSAGE_PATTERN.matcher(text);
+        if (!matcher.find()) return;
+        int now = farmingTicksNow();
+        if (text.equals(lastPestMessage) && now - lastPestMessageTick < 200) return;
+        lastPestMessage = text;
+        lastPestMessageTick = now;
+        String plot = matcher.group(1);
+        sendPestDiscordNotification(plot, text);
+    }
+
+    private static void sendPestDiscordNotification(String plot, String rawMessage) {
+        String content = "害蟲出現！Plot " + plot + "\n" + rawMessage;
+        String json = "{\"content\":\"" + jsonEscape(content) + "\"}";
+        HttpRequest request = HttpRequest.newBuilder(URI.create(PEST_WEBHOOK_URL))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding());
+    }
+
+    private static String jsonEscape(String s) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '\\' -> out.append("\\\\");
+                case '"' -> out.append("\\\"");
+                case '\n' -> out.append("\\n");
+                case '\r' -> out.append("\\r");
+                case '\t' -> out.append("\\t");
+                default -> {
+                    if (c < 0x20) out.append(String.format("\\u%04x", (int)c));
+                    else out.append(c);
+                }
+            }
+        }
+        return out.toString();
+    }
+
     private static File configFile() {
         File dir = new File(Minecraft.getInstance().gameDirectory, "config");
         if (!dir.exists()) dir.mkdirs();
@@ -750,6 +808,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingTurnOnMarkers = Boolean.parseBoolean(p.getProperty("farmingTurnOnMarkers", "true"));
         farmingStartDetection = Boolean.parseBoolean(p.getProperty("farmingStartDetection", "true"));
         farmingEndDetection = Boolean.parseBoolean(p.getProperty("farmingEndDetection", "true"));
+        pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
         farmingStartBlock = p.getProperty("farmingStartBlock", "").trim();
         farmingEndBlock = p.getProperty("farmingEndBlock", "").trim();
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
@@ -780,6 +839,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingTurnOnMarkers", Boolean.toString(farmingTurnOnMarkers));
         p.setProperty("farmingStartDetection", Boolean.toString(farmingStartDetection));
         p.setProperty("farmingEndDetection", Boolean.toString(farmingEndDetection));
+        p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("farmingStartBlock", farmingStartBlock == null ? "" : farmingStartBlock);
         p.setProperty("farmingEndBlock", farmingEndBlock == null ? "" : farmingEndBlock);
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
@@ -873,9 +933,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static final class SettingsScreen extends Screen {
         private final Screen parent;
+        private final boolean cropDropdownOpen;
         SettingsScreen(Screen parent) {
+            this(parent, false);
+        }
+        SettingsScreen(Screen parent, boolean cropDropdownOpen) {
             super(Component.literal("Kuan Hypixel SkyBlock Assistant"));
             this.parent = parent;
+            this.cropDropdownOpen = cropDropdownOpen;
         }
 
         @Override
@@ -920,10 +985,20 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Farming ────────"), this.font));
             y += 20;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("作物 ◀"), b -> { cycleCrop(-1); saveConfig(); rebuild(); }).bounds(x + 145, y, 70, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("作物 ▶"), b -> { cycleCrop(1); saveConfig(); rebuild(); }).bounds(x + 225, y, 70, 20).build());
-            addRenderableWidget(new StringWidget(x + 305, y + 5, 115, 12, Component.literal(farmingCrop.label), this.font));
+            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new SettingsScreen(parent, !cropDropdownOpen))).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
+            if (cropDropdownOpen) {
+                int cropY = y;
+                FarmingCrop[] crops = FarmingCrop.values();
+                for (int i = 0; i < crops.length; i++) {
+                    final FarmingCrop crop = crops[i];
+                    int col = i / 5;
+                    int row = i % 5;
+                    addRenderableWidget(Button.builder(Component.literal(crop.label), b -> { farmingCrop = crop; resetFarmingRuntime(Minecraft.getInstance()); saveConfig(); rebuild(); }).bounds(x + 145 + col * 145, cropY + row * 22, 130, 20).build());
+                }
+                y += 5 * 22 + 6;
+            }
             addRenderableWidget(Button.builder(toggleMsg("換行偵測", farmingTurnOnMarkers), b -> { farmingTurnOnMarkers = !farmingTurnOnMarkers; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("開始偵測", farmingStartDetection), b -> { farmingStartDetection = !farmingStartDetection; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("結束偵測", farmingEndDetection), b -> { farmingEndDetection = !farmingEndDetection; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
@@ -965,13 +1040,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 case END -> "請右鍵第一個要作為結束方塊的方塊";
                 default -> "";
             });
-        }
-
-        private void cycleCrop(int delta) {
-            FarmingCrop[] crops = FarmingCrop.values();
-            int next = (farmingCrop.ordinal() + delta + crops.length) % crops.length;
-            farmingCrop = crops[next];
-            resetFarmingRuntime(Minecraft.getInstance());
         }
 
         private void move(int idx, int delta) {

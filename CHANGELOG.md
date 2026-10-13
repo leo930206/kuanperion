@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.34] - 2026-10-13
+
+### Added
+
+- Added a Farming crop dropdown selector and a Discord pest notification toggle for Hypixel pest chat messages.
+
+### Changed
+
+- Replaced the previous Farming crop previous/next buttons plus crop label with one crop selector button.
+
 ## [1.0.33] - 2026-10-13
 
 ### Changed
