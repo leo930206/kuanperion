@@ -1,0 +1,55 @@
+# Kuan Hypixel SkyBlock Assistant
+
+Client-side Fabric mod for Minecraft `26.2`, made for Kuan's private SkyBlock-like server.
+
+Current mod version: `1.0.0`
+
+## Features
+
+### Mining Assistant
+
+- Scan nearby loaded blocks around the player.
+- Select one or more target block types in-game.
+- Prioritize selected block types from the settings screen.
+- Automatically rotate toward and mine the best matching target.
+- Avoid repeatedly targeting the same block position.
+- Configurable scan radius and mining delay.
+
+## Keybinds
+
+| Key | Action |
+| --- | --- |
+| `Right Shift` | Open settings screen |
+| `B` | Toggle block selection mode |
+| `M` | Toggle Mining Assistant |
+
+## Selecting mining blocks
+
+1. Press `B` to enter block selection mode. This clears the previous target list.
+2. Aim at a block and right-click it to add its block type.
+3. Repeat for multiple block types.
+4. Press `B` again to leave selection mode.
+5. Open settings with `Right Shift` to reorder priorities.
+
+## Build
+
+This repository uses the Minecraft/Fabric jars already installed by PrismLauncher.
+
+```bash
+./scripts/build.sh
+```
+
+Output:
+
+```text
+build/libs/kuan-hypixel-skyblock-assistant-1.0.0.jar
+```
+
+## Maintenance rule
+
+For every update:
+
+1. Bump the mod version in `src/main/resources/fabric.mod.json`.
+2. Update this README if behavior, controls, build steps, or setup changed.
+3. Add a human-readable entry to `CHANGELOG.md`.
+4. Commit and push to GitHub.
