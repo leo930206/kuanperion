@@ -42,7 +42,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectMode = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
-    private static final float ROTATION_STEP_DEGREES = 7.0f;
+    private static final float ROTATION_STEP_DEGREES = 13.0f;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int actionDelayTicks = 3;
     private static int cooldown = 0;
@@ -204,14 +204,33 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean hasLineOfSight(Minecraft mc, LocalPlayer player, BlockPos target) {
         if (mc.level == null) return false;
         Vec3 eye = player.getEyePosition();
-        Vec3 center = Vec3.atCenterOf(target);
-        BlockHitResult hit = mc.level.clip(new ClipContext(eye, center, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        Vec3 aim = aimPoint(player, target);
+        BlockHitResult hit = mc.level.clip(new ClipContext(eye, aim, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
         return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(target);
     }
 
     private static boolean isCrosshairOnTarget(LocalPlayer player, BlockPos target, double reach) {
         HitResult hit = player.pick(reach, 0.0f, false);
-        return hit instanceof BlockHitResult blockHit && blockHit.getBlockPos().equals(target);
+        if (!(hit instanceof BlockHitResult blockHit) || !blockHit.getBlockPos().equals(target)) return false;
+        return isHitNearFaceCenter(blockHit, target);
+    }
+
+    private static boolean isHitNearFaceCenter(BlockHitResult hit, BlockPos target) {
+        double margin = 0.24;
+        Vec3 loc = hit.getLocation();
+        double lx = loc.x - target.getX();
+        double ly = loc.y - target.getY();
+        double lz = loc.z - target.getZ();
+        return switch (hit.getDirection().getAxis()) {
+            case X -> ly >= margin && ly <= 1.0 - margin && lz >= margin && lz <= 1.0 - margin;
+            case Y -> lx >= margin && lx <= 1.0 - margin && lz >= margin && lz <= 1.0 - margin;
+            case Z -> lx >= margin && lx <= 1.0 - margin && ly >= margin && ly <= 1.0 - margin;
+        };
+    }
+
+    private static Vec3 aimPoint(LocalPlayer player, BlockPos pos) {
+        Direction face = faceFromPlayer(player, pos);
+        return Vec3.atCenterOf(pos).add(face.getStepX() * 0.501, face.getStepY() * 0.501, face.getStepZ() * 0.501);
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {
@@ -226,9 +245,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean lookAtSmooth(LocalPlayer player, BlockPos pos) {
         Vec3 eye = player.getEyePosition();
-        double dx = pos.getX() + 0.5 - eye.x;
-        double dy = pos.getY() + 0.5 - eye.y;
-        double dz = pos.getZ() + 0.5 - eye.z;
+        Vec3 aim = aimPoint(player, pos);
+        double dx = aim.x - eye.x;
+        double dy = aim.y - eye.y;
+        double dz = aim.z - eye.z;
         double h = Math.sqrt(dx * dx + dz * dz);
         float targetYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
         float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, h)));

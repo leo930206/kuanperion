@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.9] - 2026-10-13
+
+### Changed
+
+- Increased smooth rotation speed from `7°/tick` to `13°/tick`.
+- Mining now aims at the visible face center of the target block.
+
+### Fixed
+
+- Mining will not start if the crosshair hits the target block too close to an edge, reducing accidental mining of adjacent blocks such as bedrock.
+
 ## [1.0.8] - 2026-10-13
 
 ### Fixed

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "kuan-hypixel-skyblock-assistant",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "name": "Kuan Hypixel SkyBlock Assistant",
   "description": "Hypixel SkyBlock assistant for mining and farming",
   "authors": ["Kuan", "Claudian"],
