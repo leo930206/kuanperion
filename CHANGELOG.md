@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.29] - 2026-10-13
+
+### Fixed
+
+- Farming now starts the vanilla attack once and then only continues it each tick, matching held left-click behavior instead of repeated clicking.
+
 ## [1.0.28] - 2026-10-13
 
 ### Fixed

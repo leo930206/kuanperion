@@ -96,7 +96,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
-    private static int farmingVanillaAttackTicks = 0;
+    private static boolean farmingVanillaAttackStarted = false;
     private static Method minecraftStartAttack = null;
     private static Method minecraftContinueAttack = null;
     private static KeyMapping settingsKey;
@@ -343,8 +343,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (mc.level == null || mc.gameMode == null) return;
         try {
             ensureMinecraftAttackMethods();
-            farmingVanillaAttackTicks++;
-            if (farmingVanillaAttackTicks % 4 == 1) minecraftStartAttack.invoke(mc);
+            if (!farmingVanillaAttackStarted) {
+                minecraftStartAttack.invoke(mc);
+                farmingVanillaAttackStarted = true;
+            }
             minecraftContinueAttack.invoke(mc, true);
         } catch (Throwable ignored) {
             // Keep the real key state down even if reflective vanilla attack access fails.
@@ -352,7 +354,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void clearFarmingAttack(Minecraft mc) {
-        farmingVanillaAttackTicks = 0;
+        farmingVanillaAttackStarted = false;
         try {
             if (mc != null) {
                 ensureMinecraftAttackMethods();
