@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.27] - 2026-10-13
+
+### Fixed
+
+- Reduced Farming direct block-breaking reach so automated harvesting matches manual left-click reach more closely and avoids hitting farther rows.
+
 ## [1.0.26] - 2026-10-13
 
 ### Added

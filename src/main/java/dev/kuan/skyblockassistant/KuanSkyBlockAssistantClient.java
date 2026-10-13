@@ -55,6 +55,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
+    private static final double FARMING_ATTACK_REACH = 4.35;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
@@ -339,7 +340,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void performFarmingAttack(Minecraft mc, LocalPlayer player) {
         setAttackKey(mc, true);
         if (mc.level == null || mc.gameMode == null) return;
-        HitResult hit = player.pick(5.0, 0.0f, false);
+        HitResult hit = player.pick(FARMING_ATTACK_REACH, 0.0f, false);
         if (!(hit instanceof BlockHitResult blockHit)) {
             clearFarmingAttack(mc);
             return;
