@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.16] - 2026-10-13
+
+### Fixed
+
+- After a mined target changes to bedrock or another block, that position is treated as depleted and ignored until the original target block respawns.
+- Removed the old last-target retry behavior that could cause the miner to keep revisiting depleted bedrock positions.
+
 ## [1.0.15] - 2026-10-13
 
 ### Fixed

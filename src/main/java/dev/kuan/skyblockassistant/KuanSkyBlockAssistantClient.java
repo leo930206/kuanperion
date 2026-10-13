@@ -41,6 +41,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
+    private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
     private static final int UNREACHABLE_SKIP_TICKS = 40;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
@@ -51,7 +52,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int actionDelayTicks = 3;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
-    private static BlockPos lastTarget = null;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -138,10 +138,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         int r = Math.max(1, Math.min(8, scanRadius));
         for (BlockPos p0 : BlockPos.betweenClosed(base.offset(-r, -r, -r), base.offset(r, r, r))) {
             BlockPos pos = p0.immutable();
-            if (pos.equals(lastTarget) || SKIPPED_TARGETS.containsKey(pos)) continue;
+            if (SKIPPED_TARGETS.containsKey(pos)) continue;
             BlockState state = mc.level.getBlockState(pos);
             if (state.isAir()) continue;
             String id = blockId(state);
+            String waitingFor = DEPLETED_TARGETS.get(pos);
+            if (waitingFor != null) {
+                if (!waitingFor.equals(id)) continue;
+                DEPLETED_TARGETS.remove(pos);
+            }
             if (!isAllowedTargetBlock(id)) continue;
             int priority = TARGET_BLOCKS.indexOf(id);
             if (priority < 0) continue;
@@ -150,10 +155,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             Candidate c = new Candidate(pos, priority, dist);
             if (best == null || c.betterThan(best)) best = c;
         }
-        if (best == null) {
-            lastTarget = null;
-            return;
-        }
+        if (best == null) return;
         activeTarget = best.pos;
         activeTargetBlockId = blockId(mc.level.getBlockState(activeTarget));
         activeTargetStarted = false;
@@ -167,13 +169,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         BlockState state = mc.level.getBlockState(target);
         String currentBlockId = blockId(state);
         if (activeTargetBlockId != null && !activeTargetBlockId.equals(currentBlockId)) {
-            lastTarget = target;
+            markDepletedUntilRespawn(target, activeTargetBlockId);
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
             return false;
         }
         if (state.isAir() || dist > (r + 1.5) * (r + 1.5)) {
-            lastTarget = target;
+            if (state.isAir() && activeTargetBlockId != null) markDepletedUntilRespawn(target, activeTargetBlockId);
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
             return false;
@@ -182,7 +184,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (rotateToTarget && !lookAtSmooth(player, target)) return true;
         if (!isCrosshairOnTarget(mc, player, target, r + 1.5)) {
             skipTarget(target);
-            lastTarget = target;
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
             return false;
@@ -212,6 +213,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void skipTarget(BlockPos pos) {
         SKIPPED_TARGETS.put(pos.immutable(), UNREACHABLE_SKIP_TICKS);
+    }
+
+    private static void markDepletedUntilRespawn(BlockPos pos, String expectedBlockId) {
+        if (isAllowedTargetBlock(expectedBlockId)) DEPLETED_TARGETS.put(pos.immutable(), expectedBlockId);
+        SKIPPED_TARGETS.remove(pos);
     }
 
     private static void tickSkippedTargets() {
