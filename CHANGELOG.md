@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.31] - 2026-10-13
+
+### Added
+
+- Added Farming auto-recovery for Hub, Lobby, Limbo, and Island displacement using Hypixel sidebar detection.
+- Auto-recovery now stops inputs, runs `/lobby` then `/play sb` from Limbo, returns to Garden, runs `/home`, and resumes Farming.
+
 ## [1.0.30] - 2026-10-13
 
 ### Removed

@@ -24,12 +24,19 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
+import net.minecraft.util.StringUtil;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.DisplaySlot;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -65,6 +72,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingLeftShiftTicks = 0;
     private static int farmingRightShiftTicks = 0;
     private static boolean farmingReturningToStart = false;
+    private static boolean farmingAutoRecovering = false;
+    private static boolean farmingRecoveryHomeSent = false;
+    private static int farmingRecoveryScanTicks = 0;
+    private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
     private static int farmingStuckTicks = 0;
     private static double farmingLastX = 0.0;
     private static double farmingLastY = 0.0;
@@ -176,6 +187,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void stopFarming(Minecraft mc, boolean announce) {
         farmingEnabled = false;
+        farmingAutoRecovering = false;
+        farmingRecoveryHomeSent = false;
+        FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
         if (announce) say(mc, "Farming：關");
     }
@@ -189,6 +203,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStuckTicks = 0;
         farmingStuckSampleTicks = 0;
         farmingMarkerIgnoreTicks = 0;
+        farmingAutoRecovering = false;
+        farmingRecoveryHomeSent = false;
+        farmingRecoveryScanTicks = 0;
+        FARMING_COMMAND_QUEUE.clear();
         if (mc.player != null) {
             farmingLastX = mc.player.getX();
             farmingLastY = mc.player.getY();
@@ -201,6 +219,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             releaseFarmingKeys(mc);
             return;
         }
+        tickFarmingCommandQueue(mc);
+        if (handleFarmingAutoRecovery(mc)) return;
         LocalPlayer player = mc.player;
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingReturningToStart) {
@@ -279,6 +299,115 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (moved < 1.0) farmingStuckTicks = 12;
         }
         if (farmingStuckTicks-- > 0) applyFarmingInput(mc, reversedKey(farmingCrop, farmingReverseLane), true, true);
+    }
+
+    private static boolean handleFarmingAutoRecovery(Minecraft mc) {
+        farmingRecoveryScanTicks++;
+        if (farmingRecoveryScanTicks < 40 && !farmingAutoRecovering) return false;
+        farmingRecoveryScanTicks = 0;
+        FarmingLocation location = detectFarmingLocation(mc);
+        if (!farmingAutoRecovering && location != FarmingLocation.GARDEN && location != FarmingLocation.UNKNOWN) {
+            farmingAutoRecovering = true;
+            farmingRecoveryHomeSent = false;
+            FARMING_COMMAND_QUEUE.clear();
+            releaseFarmingKeys(mc);
+            say(mc, "Farming 偵測到離開 Garden：" + location.label + "，嘗試回 Garden");
+            if (location == FarmingLocation.LIMBO) {
+                enqueueFarmingCommand("lobby", 20);
+                enqueueFarmingCommand("play sb", 100);
+                enqueueFarmingCommand("warp garden", 180);
+            } else if (location == FarmingLocation.LOBBY) {
+                enqueueFarmingCommand("play sb", 20);
+                enqueueFarmingCommand("warp garden", 120);
+            } else if (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND) {
+                enqueueFarmingCommand("warp garden", 20);
+            }
+            return true;
+        }
+        if (farmingAutoRecovering) {
+            releaseFarmingKeys(mc);
+            if (location == FarmingLocation.GARDEN && FARMING_COMMAND_QUEUE.isEmpty()) {
+                if (!farmingRecoveryHomeSent) {
+                    sendCommand(mc, "home");
+                    farmingRecoveryHomeSent = true;
+                    enqueueFarmingCommand("__resume__", 60);
+                    say(mc, "Farming 已回到 Garden，輸入 /home 後準備恢復採集");
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static void tickFarmingCommandQueue(Minecraft mc) {
+        if (FARMING_COMMAND_QUEUE.isEmpty()) return;
+        QueuedCommand current = FARMING_COMMAND_QUEUE.peekFirst();
+        current.ticks--;
+        if (current.ticks > 0) return;
+        FARMING_COMMAND_QUEUE.removeFirst();
+        if ("__resume__".equals(current.command)) {
+            farmingAutoRecovering = false;
+            farmingRecoveryHomeSent = false;
+            resetFarmingRuntime(mc);
+            say(mc, "Farming 恢復採集");
+        } else {
+            sendCommand(mc, current.command);
+        }
+    }
+
+    private static void enqueueFarmingCommand(String command, int delayTicks) {
+        FARMING_COMMAND_QUEUE.addLast(new QueuedCommand(command, Math.max(1, delayTicks)));
+    }
+
+    private static void sendCommand(Minecraft mc, String command) {
+        try { if (mc.player != null) mc.player.connection.sendCommand(command); } catch (Throwable ignored) {}
+    }
+
+    private static FarmingLocation detectFarmingLocation(Minecraft mc) {
+        if (mc.player == null || mc.level == null) return FarmingLocation.UNKNOWN;
+        List<String> lines = sidebarLines(mc);
+        if (containsLine(lines, "The Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
+        if (containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
+        if (containsLine(lines, "Village") && !containsLine(lines, "Dwarven")) return FarmingLocation.HUB;
+        if (containsLine(lines, "HYPIXEL") || containsLine(lines, "PROTOTYPE")) return FarmingLocation.LOBBY;
+        if (containsLine(lines, "Limbo") || looksLikeLimbo(mc)) return FarmingLocation.LIMBO;
+        return FarmingLocation.UNKNOWN;
+    }
+
+    private static boolean containsLine(List<String> lines, String needle) {
+        for (String line : lines) if (line.contains(needle)) return true;
+        return false;
+    }
+
+    private static List<String> sidebarLines(Minecraft mc) {
+        List<String> lines = new ArrayList<>();
+        try {
+            Scoreboard scoreboard = mc.level.getScoreboard();
+            Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
+            if (objective == null) return lines;
+            lines.add(cleanSidebarText(objective.getDisplayName().getString()));
+            for (PlayerScoreEntry score : scoreboard.listPlayerScores(objective)) {
+                if (score == null || score.isHidden()) continue;
+                String text = score.display() != null ? score.display().getString() : score.owner();
+                lines.add(cleanSidebarText(text));
+            }
+        } catch (Throwable ignored) {}
+        return lines;
+    }
+
+    private static String cleanSidebarText(String text) {
+        if (text == null) return "";
+        return StringUtil.stripColor(text).replaceAll("[^A-Za-z ]", "").trim();
+    }
+
+    private static boolean looksLikeLimbo(Minecraft mc) {
+        try {
+            if (!(mc.hitResult instanceof BlockHitResult bhr)) return false;
+            String id = blockId(mc.level.getBlockState(bhr.getBlockPos()));
+            return id.contains("sign") && mc.player.getMainHandItem().isEmpty();
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static void setSelectedFarmingBlock(Minecraft mc, FarmingSelectMode mode, String name) {
@@ -709,6 +838,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static int parseInt(String s, int fallback, int min, int max) {
         try { return Math.max(min, Math.min(max, Integer.parseInt(s))); } catch (Throwable ignored) { return fallback; }
+    }
+
+    private enum FarmingLocation {
+        UNKNOWN("未知"), GARDEN("Garden"), HUB("Hub"), LOBBY("Lobby"), LIMBO("Limbo"), ISLAND("Island");
+        final String label;
+        FarmingLocation(String label) { this.label = label; }
+    }
+
+    private static final class QueuedCommand {
+        final String command;
+        int ticks;
+        QueuedCommand(String command, int ticks) { this.command = command; this.ticks = ticks; }
     }
 
     private enum DirectionKey { FORWARD, BACK, LEFT, RIGHT }
