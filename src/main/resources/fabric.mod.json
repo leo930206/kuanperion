@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "kuan-hypixel-skyblock-assistant",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Kuan Hypixel SkyBlock Assistant",
-  "description": "Mining/Farming assistant for Kuan's private SkyBlock-like server.",
+  "description": "Hypixel SkyBlock assistant for mining and farming",
   "authors": ["Kuan", "Claudian"],
   "environment": "client",
   "entrypoints": {

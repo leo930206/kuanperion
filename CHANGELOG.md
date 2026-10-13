@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-10-13
+
+### Changed
+
+- Updated the mod description to: "Hypixel SkyBlock assistant for mining and farming".
+
 ## [1.0.0] - 2026-10-13
 
 ### Added
