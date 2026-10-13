@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.38] - 2026-10-13
+
+### Added
+
+- Farming auto-recovery now also triggers from the Hypixel chat message `Evacuating to Hub...`.
+
 ## [1.0.37] - 2026-10-13
 
 ### Fixed

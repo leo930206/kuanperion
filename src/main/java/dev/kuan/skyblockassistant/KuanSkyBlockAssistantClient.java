@@ -322,21 +322,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingRecoveryScanTicks = 0;
         FarmingLocation location = detectFarmingLocation(mc);
         if (!farmingAutoRecovering && location != FarmingLocation.GARDEN && location != FarmingLocation.UNKNOWN) {
-            farmingAutoRecovering = true;
-            farmingRecoveryHomeSent = false;
-            FARMING_COMMAND_QUEUE.clear();
-            releaseFarmingKeys(mc);
-            say(mc, "Farming 偵測到離開 Garden：" + location.label + "，嘗試回 Garden");
-            if (location == FarmingLocation.LIMBO) {
-                enqueueFarmingCommand("lobby", 20);
-                enqueueFarmingCommand("play sb", 100);
-                enqueueFarmingCommand("warp garden", 180);
-            } else if (location == FarmingLocation.LOBBY) {
-                enqueueFarmingCommand("play sb", 20);
-                enqueueFarmingCommand("warp garden", 120);
-            } else if (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND) {
-                enqueueFarmingCommand("warp garden", 20);
-            }
+            startFarmingAutoRecovery(mc, location, 20);
             return true;
         }
         if (farmingAutoRecovering) {
@@ -352,6 +338,26 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return true;
         }
         return false;
+    }
+
+    private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
+        farmingAutoRecovering = true;
+        farmingRecoveryHomeSent = false;
+        farmingRecoveryScanTicks = 0;
+        FARMING_COMMAND_QUEUE.clear();
+        releaseFarmingKeys(mc);
+        say(mc, "Farming 偵測到離開 Garden：" + location.label + "，嘗試回 Garden");
+        int delay = Math.max(1, firstDelayTicks);
+        if (location == FarmingLocation.LIMBO) {
+            enqueueFarmingCommand("lobby", delay);
+            enqueueFarmingCommand("play sb", 100);
+            enqueueFarmingCommand("warp garden", 180);
+        } else if (location == FarmingLocation.LOBBY) {
+            enqueueFarmingCommand("play sb", delay);
+            enqueueFarmingCommand("warp garden", 120);
+        } else if (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND) {
+            enqueueFarmingCommand("warp garden", delay);
+        }
     }
 
     private static void tickFarmingCommandQueue(Minecraft mc) {
@@ -756,8 +762,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void handleReceivedMessage(Component message) {
-        if (!pestNotificationEnabled || pestWebhookUrl.isBlank() || message == null) return;
+        if (message == null) return;
         String text = StringUtil.stripColor(message.getString());
+        if (text.contains("Evacuating to Hub") && farmingEnabled && farmingEnabledThisSession && !farmingAutoRecovering) {
+            startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.HUB, 80);
+            return;
+        }
+        if (!pestNotificationEnabled || pestWebhookUrl.isBlank()) return;
         Matcher matcher = PEST_MESSAGE_PATTERN.matcher(text);
         if (!matcher.find()) return;
         int now = farmingTicksNow();
