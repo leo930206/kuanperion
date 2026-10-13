@@ -46,6 +46,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
+    private static final List<String> FARMING_MARKER_BLOCKS = new ArrayList<>();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
     private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
     private static final int UNREACHABLE_SKIP_TICKS = 200;
@@ -54,6 +55,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
+    private static boolean farmingMarkerSelectMode = false;
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
     private static boolean farmingTurnOnMarkers = true;
@@ -79,6 +81,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean miningComboWasDown = false;
     private static boolean farmingComboWasDown = false;
     private static boolean selectComboWasDown = false;
+    private static String lastFarmingMarkerMessage = "";
+    private static int lastFarmingMarkerMessageTick = 0;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -203,7 +207,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         setAttackKey(mc, true);
         pressFarmingMoveKeys(mc, farmingCrop, farmingReverseLane);
-        if (farmingTurnOnMarkers && farmingCrop.shouldTurn(mc, player)) {
+        String marker = farmingTurnOnMarkers ? findFarmingMarkerBlock(mc, player) : null;
+        if (marker != null) {
+            announceFarmingMarker(mc, marker);
             farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
             releaseFarmingKeys(mc);
             return;
@@ -218,6 +224,34 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (moved < 1.0) farmingStuckTicks = 12;
         }
         mc.options.keyJump.setDown(farmingStuckTicks-- > 0);
+    }
+
+    private static String findFarmingMarkerBlock(Minecraft mc, LocalPlayer player) {
+        if (!FARMING_MARKER_BLOCKS.isEmpty()) return findConfiguredFarmingMarker(mc, player);
+        return farmingCrop.findDefaultMarker(mc, player);
+    }
+
+    private static String findConfiguredFarmingMarker(Minecraft mc, LocalPlayer player) {
+        if (mc.level == null) return null;
+        BlockPos base = player.blockPosition();
+        for (int y = 0; y <= 1; y++) for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+            String id = blockId(mc.level.getBlockState(base.offset(dx, y, dz)));
+            if (FARMING_MARKER_BLOCKS.contains(id)) return id;
+        }
+        return null;
+    }
+
+    private static void announceFarmingMarker(Minecraft mc, String marker) {
+        int now = farmingTicksNow();
+        if (!marker.equals(lastFarmingMarkerMessage) || now - lastFarmingMarkerMessageTick > 40) {
+            say(mc, "Farming 偵測到換行方塊：" + marker);
+            lastFarmingMarkerMessage = marker;
+            lastFarmingMarkerMessageTick = now;
+        }
+    }
+
+    private static int farmingTicksNow() {
+        return Minecraft.getInstance().player == null ? 0 : Minecraft.getInstance().player.tickCount;
     }
 
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
@@ -281,7 +315,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void handleRightClickSelection(Minecraft mc) {
-        if (!selectMode || mc.player == null || mc.level == null || mc.getWindow() == null) {
+        if ((!selectMode && !farmingMarkerSelectMode) || mc.player == null || mc.level == null || mc.getWindow() == null) {
             rightWasDown = false;
             return;
         }
@@ -290,10 +324,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             BlockState state = mc.level.getBlockState(bhr.getBlockPos());
             String name = blockId(state);
             if (!state.isAir() && isAllowedTargetBlock(name)) {
-                TARGET_BLOCKS.remove(name);
-                TARGET_BLOCKS.add(name);
-                saveConfig();
-                say(mc, "已更新目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
+                if (farmingMarkerSelectMode) {
+                    FARMING_MARKER_BLOCKS.remove(name);
+                    FARMING_MARKER_BLOCKS.add(name);
+                    saveConfig();
+                    say(mc, "已更新 Farming 偵測方塊 #" + FARMING_MARKER_BLOCKS.size() + "：" + name);
+                } else {
+                    TARGET_BLOCKS.remove(name);
+                    TARGET_BLOCKS.add(name);
+                    saveConfig();
+                    say(mc, "已更新 Mining 目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
+                }
             } else if ("minecraft:bedrock".equals(name)) {
                 say(mc, "Bedrock 不可設為目標方塊");
             }
@@ -542,6 +583,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             String id = s.trim();
             if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id)) TARGET_BLOCKS.add(id);
         }
+        FARMING_MARKER_BLOCKS.clear();
+        String farmingMarkers = p.getProperty("farmingMarkers", "").trim();
+        if (!farmingMarkers.isEmpty()) for (String s : farmingMarkers.split(",")) {
+            String id = s.trim();
+            if (!id.isBlank() && isAllowedTargetBlock(id) && !FARMING_MARKER_BLOCKS.contains(id)) FARMING_MARKER_BLOCKS.add(id);
+        }
     }
 
     private static void saveConfig() {
@@ -558,6 +605,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("hudX", Integer.toString(hudX));
         p.setProperty("hudY", Integer.toString(hudY));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
+        p.setProperty("farmingMarkers", String.join(",", FARMING_MARKER_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuan Hypixel SkyBlock Assistant"); } catch (Throwable ignored) {}
     }
 
@@ -596,13 +644,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             this.markerBlock = markerBlock;
         }
 
-        boolean shouldTurn(Minecraft mc, LocalPlayer player) {
-            if (this == COCOA_BEAN) return isBlockNear(mc, player, "minecraft:glowstone", 1, 0, 1) || isBlockNear(mc, player, markerBlock, 1, 0, 1);
-            if (this == SUGAR_CANE) return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "minecraft:sea_lantern", 1, 0, 0);
+        String findDefaultMarker(Minecraft mc, LocalPlayer player) {
+            if (this == COCOA_BEAN) return firstNear(mc, player, 1, 0, 1, "minecraft:glowstone", markerBlock);
+            if (this == SUGAR_CANE) return firstNear(mc, player, 1, 0, 0, markerBlock, "minecraft:sea_lantern");
             if (this == MELON || this == PUMPKIN || this == CACTUS || this == RED_MUSHROOM || this == BROWN_MUSHROOM) {
-                return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "#ladder", 1, 0, 1) || isBlockNear(mc, player, "#trapdoor", 1, 0, 0);
+                return firstNear(mc, player, 1, 0, 1, markerBlock, "#ladder", "#trapdoor");
             }
-            return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "#trapdoor", 0, 0, 0);
+            return firstNear(mc, player, 1, 0, 0, markerBlock, "#trapdoor");
         }
 
         static FarmingCrop fromConfig(String value) {
@@ -615,6 +663,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             for (FarmingCrop crop : values()) if (crop.name().equals(normalized) || crop.label.toUpperCase(Locale.ROOT).replace(' ', '_').equals(normalized)) return crop;
             return WHEAT;
         }
+    }
+
+    private static String firstNear(Minecraft mc, LocalPlayer player, int radius, int yMin, int yMax, String... expectedBlocks) {
+        for (String expected : expectedBlocks) if (isBlockNear(mc, player, expected, radius, yMin, yMax)) return expected;
+        return null;
     }
 
     private record Candidate(BlockPos pos, int priority, double dist) {
@@ -687,7 +740,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("換行偵測", farmingTurnOnMarkers), b -> { farmingTurnOnMarkers = !farmingTurnOnMarkers; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動 /sethome", farmingAutoSetHome), b -> { farmingAutoSetHome = !farmingAutoSetHome; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("Shift+F 開關"), this.font));
+            y += 28;
+            addRenderableWidget(Button.builder(toggleMsg("偵測方塊", farmingMarkerSelectMode), b -> { farmingMarkerSelectMode = !farmingMarkerSelectMode; selectMode = false; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("清空偵測方塊"), b -> { FARMING_MARKER_BLOCKS.clear(); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("右鍵方塊加入"), this.font));
             y += 24;
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("偵測方塊: " + farmingMarkerSummary()), this.font));
+            y += 18;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("作物: Wheat/Potato/Carrot/Wart/Cactus/Cane/Melon/Pumpkin/Cocoa/Mushroom"), this.font));
             y = this.height - 34;
             addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, y, 130, 20).build());
@@ -695,6 +754,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
         private Component toggleMsg(String label, boolean on) {
             return Component.literal(label + "：" + (on ? "開" : "關"));
+        }
+
+        private String farmingMarkerSummary() {
+            if (FARMING_MARKER_BLOCKS.isEmpty()) return "使用作物預設";
+            if (FARMING_MARKER_BLOCKS.size() == 1) return FARMING_MARKER_BLOCKS.get(0);
+            return FARMING_MARKER_BLOCKS.get(FARMING_MARKER_BLOCKS.size() - 1) + " 等 " + FARMING_MARKER_BLOCKS.size() + " 個";
         }
 
         private void cycleCrop(int delta) {

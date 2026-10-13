@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.20] - 2026-10-13
+
+### Added
+
+- Added configurable Farming detection blocks from the settings screen.
+- Added chat notifications when Farming detects a row-switch marker block.
+
+### Changed
+
+- Farming uses custom detection blocks when configured, otherwise it falls back to crop defaults.
+
 ## [1.0.19] - 2026-10-13
 
 ### Changed
