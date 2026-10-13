@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.10] - 2026-10-13
+
+### Changed
+
+- Reworked the Mining settings layout into four rows.
+- Added configurable rotation speed controls in the settings screen.
+
 ## [1.0.9] - 2026-10-13
 
 ### Changed

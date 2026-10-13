@@ -42,8 +42,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectMode = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
-    private static final float ROTATION_STEP_DEGREES = 13.0f;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
+    private static int rotationStepDegrees = 13;
     private static int actionDelayTicks = 3;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
@@ -254,8 +254,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, h)));
         float yawDiff = Mth.wrapDegrees(targetYaw - player.getYRot());
         float pitchDiff = Mth.wrapDegrees(targetPitch - player.getXRot());
-        float nextYaw = player.getYRot() + Mth.clamp(yawDiff, -ROTATION_STEP_DEGREES, ROTATION_STEP_DEGREES);
-        float nextPitch = player.getXRot() + Mth.clamp(pitchDiff, -ROTATION_STEP_DEGREES, ROTATION_STEP_DEGREES);
+        float nextYaw = player.getYRot() + Mth.clamp(yawDiff, -rotationStepDegrees, rotationStepDegrees);
+        float nextPitch = player.getXRot() + Mth.clamp(pitchDiff, -rotationStepDegrees, rotationStepDegrees);
         player.setYRot(nextYaw);
         player.setXRot(Mth.clamp(nextPitch, -90.0f, 90.0f));
         player.setYHeadRot(nextYaw);
@@ -285,6 +285,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         miningEnabled = Boolean.parseBoolean(p.getProperty("miningEnabled", "false"));
         rotateToTarget = Boolean.parseBoolean(p.getProperty("rotateToTarget", "true"));
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
+        rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
         actionDelayTicks = parseInt(p.getProperty("actionDelayTicks"), 3, 1, 20);
         TARGET_BLOCKS.clear();
         String targets = p.getProperty("targets", "").trim();
@@ -296,6 +297,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("miningEnabled", Boolean.toString(miningEnabled));
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
         p.setProperty("scanRadius", Integer.toString(scanRadius));
+        p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuan Hypixel SkyBlock Assistant"); } catch (Throwable ignored) {}
@@ -329,11 +331,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 95, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 110, y, 95, 20).build());
-            addRenderableWidget(new StringWidget(x + 220, y + 5, 62, 12, Component.literal("半徑: " + scanRadius), this.font));
-            addRenderableWidget(Button.builder(Component.literal("延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x + 290, y, 60, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 360, y, 60, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("偵測半徑: " + scanRadius), this.font));
+            y += 28;
+            addRenderableWidget(Button.builder(Component.literal("轉動速度 -"), b -> { rotationStepDegrees = Math.max(1, rotationStepDegrees - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("轉動速度 +"), b -> { rotationStepDegrees = Math.min(40, rotationStepDegrees + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("轉動速度: " + rotationStepDegrees), this.font));
+            y += 28;
+            addRenderableWidget(Button.builder(Component.literal("挖礦延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("挖礦延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("挖礦延遲: " + actionDelayTicks), this.font));
             y += 26;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("目標方塊優先級（上面優先）：右鍵選取會加入或移到最新位置"), this.font));
             y += 18;
