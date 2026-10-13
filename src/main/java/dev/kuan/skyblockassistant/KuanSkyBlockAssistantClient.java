@@ -216,7 +216,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean isHitNearFaceCenter(BlockHitResult hit, BlockPos target) {
-        double margin = 0.24;
+        double margin = 0.16;
         Vec3 loc = hit.getLocation();
         double lx = loc.x - target.getX();
         double ly = loc.y - target.getY();
@@ -230,7 +230,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static Vec3 aimPoint(LocalPlayer player, BlockPos pos) {
         Direction face = faceFromPlayer(player, pos);
-        return Vec3.atCenterOf(pos).add(face.getStepX() * 0.501, face.getStepY() * 0.501, face.getStepZ() * 0.501);
+        return Vec3.atCenterOf(pos).add(face.getStepX() * 0.49, face.getStepY() * 0.49, face.getStepZ() * 0.49);
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {

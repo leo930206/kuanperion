@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.12] - 2026-10-13
+
+### Fixed
+
+- Fixed Mining idling after line-of-sight checks by aiming slightly inside the visible block face instead of outside it.
+- Slightly relaxed the face-center hit margin so valid targets are less likely to be rejected.
+
 ## [1.0.11] - 2026-10-13
 
 ### Changed
