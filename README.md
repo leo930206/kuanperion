@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.16`
+Current mod version: `1.0.17`
 
 ## Features
 
@@ -10,10 +10,12 @@ Current mod version: `1.0.16`
 
 - Scan nearby loaded blocks around the player.
 - Select one or more target block types in-game.
-- Prioritize selected block types from the settings screen.
-- Automatically rotate toward and mine the best matching target.
-- Avoid repeatedly targeting the same block position.
-- Configurable scan radius and mining delay.
+- Always choose the nearest currently visible selected block that is not bedrock.
+- Rotate toward the locked target block position and mine only if the crosshair confirms that exact block.
+- Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
+- Continue mining while game menus/inventories are open and disables pause-on-lost-focus while mining.
+- Configurable scan radius, rotation speed, mining delay, and HUD position.
+- HUD shows recent average blocks mined per second.
 
 ## Keybinds
 
@@ -29,7 +31,7 @@ Current mod version: `1.0.16`
 2. Aim at a block and right-click it to add its block type. If it already exists, it is moved to the newest position instead of duplicated.
 3. Repeat for multiple block types.
 4. Press `B` again to leave selection mode.
-5. Open settings with `'` to reorder priorities.
+5. Open settings with `'` to reorder the list. Mining picks nearest first; list order only breaks ties.
 
 ## Build
 
@@ -42,7 +44,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.16.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.17.jar
 ```
 
 ## Maintenance rule

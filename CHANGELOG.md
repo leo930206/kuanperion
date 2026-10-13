@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.17] - 2026-10-13
+
+### Added
+
+- Added a Mining HUD showing recent average blocks mined per second, with position controls in settings.
+
+### Changed
+
+- Mining now always selects the nearest currently visible selected block that is not bedrock; target list order only breaks distance ties.
+- Mining locks the selected block position, rotates to its center, and mines only if the crosshair confirms that exact block.
+- Failed/unreachable candidates are skipped longer to prevent immediate back-and-forth jitter.
+- Mining disables pause-on-lost-focus while enabled and continues running through in-game menus/inventories where the server accepts mining packets.
+
 ## [1.0.16] - 2026-10-13
 
 ### Fixed
