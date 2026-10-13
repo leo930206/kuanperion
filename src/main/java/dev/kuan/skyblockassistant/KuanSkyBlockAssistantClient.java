@@ -47,6 +47,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean rightWasDown = false;
     private static BlockPos lastTarget = null;
     private static BlockPos activeTarget = null;
+    private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
@@ -143,6 +144,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return;
         }
         activeTarget = best.pos;
+        activeTargetBlockId = blockId(mc.level.getBlockState(activeTarget));
         activeTargetStarted = false;
         mineActiveTarget(mc, player, activeTarget);
     }
@@ -152,7 +154,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         int r = Math.max(1, Math.min(8, scanRadius));
         double dist = player.distanceToSqr(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
         BlockState state = mc.level.getBlockState(target);
-        if (state.isAir() || TARGET_BLOCKS.indexOf(blockId(state)) < 0 || dist > (r + 1.5) * (r + 1.5)) {
+        String currentBlockId = blockId(state);
+        if (activeTargetBlockId != null && !activeTargetBlockId.equals(currentBlockId)) {
+            lastTarget = target;
+            clearActiveTarget(mc);
+            cooldown = Math.max(1, actionDelayTicks);
+            return false;
+        }
+        if (state.isAir() || dist > (r + 1.5) * (r + 1.5)) {
             lastTarget = target;
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
@@ -172,6 +181,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void clearActiveTarget(Minecraft mc) {
         activeTarget = null;
+        activeTargetBlockId = null;
         activeTargetStarted = false;
         try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
     }
