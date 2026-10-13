@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.32] - 2026-10-13
+
+### Fixed
+
+- Farming now refreshes Minecraft's native crosshair target before continuing the vanilla held-left-click attack flow, improving harvesting while inventory or other screens are open.
+
 ## [1.0.31] - 2026-10-13
 
 ### Added

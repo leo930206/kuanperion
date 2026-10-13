@@ -101,6 +101,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingVanillaAttackStarted = false;
     private static Method minecraftStartAttack = null;
     private static Method minecraftContinueAttack = null;
+    private static Method minecraftPick = null;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
@@ -462,6 +463,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (mc.level == null || mc.gameMode == null) return;
         try {
             ensureMinecraftAttackMethods();
+            minecraftPick.invoke(mc, 1.0f);
             if (!farmingVanillaAttackStarted) {
                 minecraftStartAttack.invoke(mc);
                 farmingVanillaAttackStarted = true;
@@ -492,6 +494,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (minecraftContinueAttack == null) {
             minecraftContinueAttack = Minecraft.class.getDeclaredMethod("continueAttack", boolean.class);
             minecraftContinueAttack.setAccessible(true);
+        }
+        if (minecraftPick == null) {
+            minecraftPick = Minecraft.class.getDeclaredMethod("pick", float.class);
+            minecraftPick.setAccessible(true);
         }
     }
 
