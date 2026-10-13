@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.26] - 2026-10-13
+
+### Added
+
+- Added separate Farming start and end detection blocks with independent toggles.
+- Added one-shot block-pick buttons for row, start, and end Farming detection blocks.
+- End detection now backs up until the start block is detected, shifts right once, then resumes normal forward harvesting.
+
+### Changed
+
+- Reworked the Farming settings marker UI into two rows of three controls and removed the long crop help line.
+
 ## [1.0.25] - 2026-10-13
 
 ### Fixed
