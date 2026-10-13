@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.24] - 2026-10-13
+
+### Changed
+
+- Farming now directly applies player movement input every tick so harvesting keeps running through focus changes and open GUI/screens as much as the client/server allow.
+
 ## [1.0.23] - 2026-10-13
 
 ### Changed

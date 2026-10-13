@@ -203,12 +203,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingLeftShiftTicks > 0) {
             farmingLeftShiftTicks--;
-            setAttackKey(mc, true);
-            mc.options.keyUp.setDown(false);
-            mc.options.keyDown.setDown(false);
-            mc.options.keyLeft.setDown(true);
-            mc.options.keyRight.setDown(false);
-            mc.options.keyJump.setDown(false);
+            applyFarmingInput(mc, DirectionKey.LEFT, true, false);
             if (farmingLeftShiftTicks == 0) {
                 farmingReverseLane = !farmingReverseLane;
                 farmingMarkerIgnoreTicks = 30;
@@ -253,7 +248,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingStuckSampleTicks = 0;
             if (moved < 1.0) farmingStuckTicks = 12;
         }
-        mc.options.keyJump.setDown(farmingStuckTicks-- > 0);
+        if (farmingStuckTicks-- > 0) applyFarmingInput(mc, reversedKey(farmingCrop, farmingReverseLane), true, true);
     }
 
     private static String findFarmingMarkerBlock(Minecraft mc, LocalPlayer player) {
@@ -285,17 +280,29 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
-        if (mc.options == null) return;
-        mc.options.keyUp.setDown(false);
-        mc.options.keyDown.setDown(false);
-        mc.options.keyLeft.setDown(false);
-        mc.options.keyRight.setDown(false);
-        DirectionKey key = reversed ? crop.reverseKey : crop.forwardKey;
-        switch (key) {
-            case FORWARD -> mc.options.keyUp.setDown(true);
-            case BACK -> mc.options.keyDown.setDown(true);
-            case LEFT -> mc.options.keyLeft.setDown(true);
-            case RIGHT -> mc.options.keyRight.setDown(true);
+        applyFarmingInput(mc, reversedKey(crop, reversed), true, false);
+    }
+
+    private static DirectionKey reversedKey(FarmingCrop crop, boolean reversed) {
+        return reversed ? crop.reverseKey : crop.forwardKey;
+    }
+
+    private static void applyFarmingInput(Minecraft mc, DirectionKey key, boolean attack, boolean jump) {
+        if (mc == null || mc.options == null) return;
+        boolean forward = key == DirectionKey.FORWARD;
+        boolean back = key == DirectionKey.BACK;
+        boolean left = key == DirectionKey.LEFT;
+        boolean right = key == DirectionKey.RIGHT;
+        setAttackKey(mc, attack);
+        mc.options.keyUp.setDown(forward);
+        mc.options.keyDown.setDown(back);
+        mc.options.keyLeft.setDown(left);
+        mc.options.keyRight.setDown(right);
+        mc.options.keyJump.setDown(jump);
+        mc.options.keyShift.setDown(false);
+        if (mc.player != null && mc.player.input != null) {
+            mc.player.input.keyPresses = new Input(forward, back, left, right, jump, false, false);
+            mc.player.setSprinting(false);
         }
     }
 
@@ -308,6 +315,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         mc.options.keyRight.setDown(false);
         mc.options.keyJump.setDown(false);
         mc.options.keyShift.setDown(false);
+        if (mc.player != null && mc.player.input != null) mc.player.input.keyPresses = Input.EMPTY;
     }
 
     private static void lookAtFixed(LocalPlayer player, float yaw, float pitch) {
