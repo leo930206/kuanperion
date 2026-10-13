@@ -78,9 +78,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         while (selectModeKey.consumeClick()) {
             selectMode = !selectMode;
-            if (selectMode) TARGET_BLOCKS.clear();
             saveConfig();
-            say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入，B 結束）" : "方塊選取模式：關");
+            say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入/更新，B 結束）" : "方塊選取模式：關");
         }
         handleRightClickSelection(mc);
         freezeMovementIfMining(mc);
@@ -106,10 +105,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (down && !rightWasDown && mc.hitResult instanceof BlockHitResult bhr) {
             BlockState state = mc.level.getBlockState(bhr.getBlockPos());
             String name = blockId(state);
-            if (!state.isAir() && !TARGET_BLOCKS.contains(name)) {
+            if (!state.isAir()) {
+                TARGET_BLOCKS.remove(name);
                 TARGET_BLOCKS.add(name);
                 saveConfig();
-                say(mc, "已加入目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
+                say(mc, "已更新目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
             }
         }
         rightWasDown = down;
@@ -284,16 +284,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("Mining Assistant"), this.font));
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { miningEnabled = !miningEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; if (selectMode) TARGET_BLOCKS.clear(); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 95, 20).build());
-            addRenderableWidget(new StringWidget(x + 100, y + 5, 80, 12, Component.literal("半徑: " + scanRadius), this.font));
-            addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 180, y, 95, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 110, y, 95, 20).build());
+            addRenderableWidget(new StringWidget(x + 220, y + 5, 62, 12, Component.literal("半徑: " + scanRadius), this.font));
             addRenderableWidget(Button.builder(Component.literal("延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x + 290, y, 60, 20).build());
             addRenderableWidget(Button.builder(Component.literal("延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 360, y, 60, 20).build());
             y += 26;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("目標方塊優先級（上面優先）：右鍵選取會覆蓋後重新加入"), this.font));
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("目標方塊優先級（上面優先）：右鍵選取會加入或移到最新位置"), this.font));
             y += 18;
             int maxRows = Math.min(8, TARGET_BLOCKS.size());
             for (int i = 0; i < maxRows; i++) {

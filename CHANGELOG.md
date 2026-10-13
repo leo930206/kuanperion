@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.7] - 2026-10-13
+
+### Changed
+
+- Block selection mode no longer clears existing targets when enabled.
+- Re-selecting an existing block moves it to the newest position without creating duplicates.
+- Reordered the scan radius controls to show minus, plus, then current radius.
+
 ## [1.0.6] - 2026-10-13
 
 ### Fixed

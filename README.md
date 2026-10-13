@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.6`
+Current mod version: `1.0.7`
 
 ## Features
 
@@ -25,8 +25,8 @@ Current mod version: `1.0.6`
 
 ## Selecting mining blocks
 
-1. Press `B` to enter block selection mode. This clears the previous target list.
-2. Aim at a block and right-click it to add its block type.
+1. Press `B` to enter block selection mode. Existing targets are kept.
+2. Aim at a block and right-click it to add its block type. If it already exists, it is moved to the newest position instead of duplicated.
 3. Repeat for multiple block types.
 4. Press `B` again to leave selection mode.
 5. Open settings with `'` to reorder priorities.
@@ -42,7 +42,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.6.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.7.jar
 ```
 
 ## Maintenance rule
