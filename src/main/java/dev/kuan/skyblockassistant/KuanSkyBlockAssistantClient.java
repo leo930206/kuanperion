@@ -66,6 +66,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double farmingLastY = 0.0;
     private static double farmingLastZ = 0.0;
     private static int farmingStuckSampleTicks = 0;
+    private static int farmingMarkerIgnoreTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -182,6 +183,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStateTicks = 0;
         farmingStuckTicks = 0;
         farmingStuckSampleTicks = 0;
+        farmingMarkerIgnoreTicks = 0;
         if (mc.player != null) {
             farmingLastX = mc.player.getX();
             farmingLastY = mc.player.getY();
@@ -207,9 +209,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         setAttackKey(mc, true);
         pressFarmingMoveKeys(mc, farmingCrop, farmingReverseLane);
-        String marker = farmingTurnOnMarkers ? findFarmingMarkerBlock(mc, player) : null;
+        String marker = null;
+        if (farmingMarkerIgnoreTicks > 0) {
+            farmingMarkerIgnoreTicks--;
+        } else if (farmingTurnOnMarkers) {
+            marker = findFarmingMarkerBlock(mc, player);
+        }
         if (marker != null) {
             announceFarmingMarker(mc, marker);
+            farmingMarkerIgnoreTicks = 30;
             farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
             releaseFarmingKeys(mc);
             return;

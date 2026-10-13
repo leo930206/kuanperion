@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.21] - 2026-10-13
+
+### Fixed
+
+- Fixed Farming repeatedly re-triggering the same marker before moving away, which caused it to idle at row-switch blocks.
+
 ## [1.0.20] - 2026-10-13
 
 ### Added
