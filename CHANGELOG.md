@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.37] - 2026-10-13
+
+### Fixed
+
+- Prevented stale saved Farming enabled state from triggering auto-recovery immediately after joining a server.
+- Improved Farming auto-recovery location detection for Hub/Lobby/Limbo and checks Limbo before generic lobby text.
+
 ## [1.0.36] - 2026-10-13
 
 ### Changed

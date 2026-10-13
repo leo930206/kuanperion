@@ -71,6 +71,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
+    private static boolean farmingEnabledThisSession = false;
     private static FarmingSelectMode farmingSelectMode = FarmingSelectMode.NONE;
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
@@ -191,6 +192,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             miningEnabled = false;
             clearActiveTarget(mc);
             farmingEnabled = true;
+            farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
             say(mc, "Farming：開（" + farmingCrop.label + "）");
@@ -200,6 +202,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void stopFarming(Minecraft mc, boolean announce) {
         farmingEnabled = false;
+        farmingEnabledThisSession = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         FARMING_COMMAND_QUEUE.clear();
@@ -313,6 +316,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
+        if (!farmingEnabledThisSession) return false;
         farmingRecoveryScanTicks++;
         if (farmingRecoveryScanTicks < 40 && !farmingAutoRecovering) return false;
         farmingRecoveryScanTicks = 0;
@@ -377,11 +381,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static FarmingLocation detectFarmingLocation(Minecraft mc) {
         if (mc.player == null || mc.level == null) return FarmingLocation.UNKNOWN;
         List<String> lines = sidebarLines(mc);
-        if (containsLine(lines, "The Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
-        if (containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
-        if (containsLine(lines, "Village") && !containsLine(lines, "Dwarven")) return FarmingLocation.HUB;
-        if (containsLine(lines, "HYPIXEL") || containsLine(lines, "PROTOTYPE")) return FarmingLocation.LOBBY;
         if (containsLine(lines, "Limbo") || looksLikeLimbo(mc)) return FarmingLocation.LIMBO;
+        if (containsLine(lines, "The Garden") || containsLine(lines, "Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
+        if (containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
+        if (containsLine(lines, "SkyBlock Hub") || containsLine(lines, "Hub") || containsLine(lines, "Village") || containsLine(lines, "Auction House") || containsLine(lines, "Bazaar Alley")) return FarmingLocation.HUB;
+        if (containsLine(lines, "HYPIXEL") || containsLine(lines, "PROTOTYPE") || containsLine(lines, "LOBBY") || containsLine(lines, "Lobby")) return FarmingLocation.LOBBY;
         return FarmingLocation.UNKNOWN;
     }
 
@@ -804,8 +808,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void loadConfig() {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(configFile())) { p.load(in); } catch (Throwable ignored) {}
-        miningEnabled = Boolean.parseBoolean(p.getProperty("miningEnabled", "false"));
-        farmingEnabled = Boolean.parseBoolean(p.getProperty("farmingEnabled", "false"));
+        // Runtime toggles should not auto-resume on client/server join; otherwise recovery can fire while just entering Hypixel.
+        miningEnabled = false;
+        farmingEnabled = false;
+        farmingEnabledThisSession = false;
         farmingCrop = FarmingCrop.fromConfig(p.getProperty("farmingCrop", "WHEAT"));
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         farmingTurnOnMarkers = Boolean.parseBoolean(p.getProperty("farmingTurnOnMarkers", "true"));
@@ -836,8 +842,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void saveConfig() {
         Properties p = new Properties();
-        p.setProperty("miningEnabled", Boolean.toString(miningEnabled));
-        p.setProperty("farmingEnabled", Boolean.toString(farmingEnabled));
+        p.setProperty("miningEnabled", "false");
+        p.setProperty("farmingEnabled", "false");
         p.setProperty("farmingCrop", farmingCrop.name());
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("farmingTurnOnMarkers", Boolean.toString(farmingTurnOnMarkers));
