@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.18] - 2026-10-13
+
+### Added
+
+- Added the first Farming Assistant port inspired by the old `bobscript` Forge mod.
+- Added crop profiles for Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Melon, Pumpkin, Cocoa Bean, Red Mushroom, and Brown Mushroom.
+- Added Farming settings for crop selection, marker-based row switching, and optional `/sethome`.
+- Added `N` as the default Farming toggle key.
+
+### Changed
+
+- Mining and Farming now turn each other off so only one automation mode runs at a time.
+
 ## [1.0.17] - 2026-10-13
 
 ### Added

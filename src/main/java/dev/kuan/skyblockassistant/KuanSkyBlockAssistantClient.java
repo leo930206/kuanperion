@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Locale;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
@@ -48,8 +49,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
     private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
     private static final int UNREACHABLE_SKIP_TICKS = 200;
+    private static final int FARM_TURN_STOP_TICKS = 4;
+    private static final int FARM_TURN_RESUME_TICKS = 10;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
+    private static boolean farmingEnabled = false;
+    private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
+    private static boolean farmingAutoSetHome = false;
+    private static boolean farmingTurnOnMarkers = true;
+    private static boolean farmingReverseLane = false;
+    private static int farmingStateTicks = 0;
+    private static int farmingStuckTicks = 0;
+    private static double farmingLastX = 0.0;
+    private static double farmingLastY = 0.0;
+    private static double farmingLastZ = 0.0;
+    private static int farmingStuckSampleTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -67,6 +81,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean activeTargetStarted = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
+    private static KeyMapping toggleFarmingKey;
     private static KeyMapping selectModeKey;
 
     @Override
@@ -75,6 +90,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         KeyMapping.Category category = KeyMapping.Category.register(id("keys"));
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
+        toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_N, category));
         selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
         HudElementRegistry.addLast(id("mining_hud"), KuanSkyBlockAssistantClient::renderMiningHud);
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
@@ -89,10 +105,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         while (toggleMiningKey.consumeClick()) {
             miningEnabled = !miningEnabled;
+            if (miningEnabled) stopFarming(mc, false);
             if (!miningEnabled) clearActiveTarget(mc);
             saveConfig();
             say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
         }
+        while (toggleFarmingKey.consumeClick()) toggleFarming(mc);
         while (selectModeKey.consumeClick()) {
             selectMode = !selectMode;
             saveConfig();
@@ -109,6 +127,128 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         } else {
             clearMiningStats();
         }
+        if (farmingEnabled) {
+            if (mc.options != null) mc.options.pauseOnLostFocus = false;
+            tickFarming(mc);
+        }
+    }
+
+    private static void toggleFarming(Minecraft mc) {
+        if (farmingEnabled) {
+            stopFarming(mc, true);
+        } else {
+            miningEnabled = false;
+            clearActiveTarget(mc);
+            farmingEnabled = true;
+            resetFarmingRuntime(mc);
+            if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
+            say(mc, "Farming：開（" + farmingCrop.label + "）");
+        }
+        saveConfig();
+    }
+
+    private static void stopFarming(Minecraft mc, boolean announce) {
+        farmingEnabled = false;
+        releaseFarmingKeys(mc);
+        if (announce) say(mc, "Farming：關");
+    }
+
+    private static void resetFarmingRuntime(Minecraft mc) {
+        farmingReverseLane = false;
+        farmingStateTicks = 0;
+        farmingStuckTicks = 0;
+        farmingStuckSampleTicks = 0;
+        if (mc.player != null) {
+            farmingLastX = mc.player.getX();
+            farmingLastY = mc.player.getY();
+            farmingLastZ = mc.player.getZ();
+        }
+    }
+
+    private static void tickFarming(Minecraft mc) {
+        if (mc.player == null || mc.level == null || mc.options == null) {
+            releaseFarmingKeys(mc);
+            return;
+        }
+        LocalPlayer player = mc.player;
+        lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
+        if (farmingStateTicks > 0) {
+            farmingStateTicks--;
+            releaseFarmingKeys(mc);
+            if (farmingStateTicks == FARM_TURN_RESUME_TICKS) {
+                farmingReverseLane = !farmingReverseLane;
+                if (farmingAutoSetHome) player.connection.sendCommand("sethome");
+            }
+            return;
+        }
+        setAttackKey(mc, true);
+        pressFarmingMoveKeys(mc, farmingCrop, farmingReverseLane);
+        if (farmingTurnOnMarkers && farmingCrop.shouldTurn(mc, player)) {
+            farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
+            releaseFarmingKeys(mc);
+            return;
+        }
+        farmingStuckSampleTicks++;
+        if (farmingStuckSampleTicks >= 60) {
+            double moved = player.distanceToSqr(farmingLastX, farmingLastY, farmingLastZ);
+            farmingLastX = player.getX();
+            farmingLastY = player.getY();
+            farmingLastZ = player.getZ();
+            farmingStuckSampleTicks = 0;
+            if (moved < 1.0) farmingStuckTicks = 12;
+        }
+        mc.options.keyJump.setDown(farmingStuckTicks-- > 0);
+    }
+
+    private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
+        if (mc.options == null) return;
+        mc.options.keyUp.setDown(false);
+        mc.options.keyDown.setDown(false);
+        mc.options.keyLeft.setDown(false);
+        mc.options.keyRight.setDown(false);
+        DirectionKey key = reversed ? crop.reverseKey : crop.forwardKey;
+        switch (key) {
+            case FORWARD -> mc.options.keyUp.setDown(true);
+            case BACK -> mc.options.keyDown.setDown(true);
+            case LEFT -> mc.options.keyLeft.setDown(true);
+            case RIGHT -> mc.options.keyRight.setDown(true);
+        }
+    }
+
+    private static void releaseFarmingKeys(Minecraft mc) {
+        setAttackKey(mc, false);
+        if (mc == null || mc.options == null) return;
+        mc.options.keyUp.setDown(false);
+        mc.options.keyDown.setDown(false);
+        mc.options.keyLeft.setDown(false);
+        mc.options.keyRight.setDown(false);
+        mc.options.keyJump.setDown(false);
+        mc.options.keyShift.setDown(false);
+    }
+
+    private static void lookAtFixed(LocalPlayer player, float yaw, float pitch) {
+        player.setYRot(yaw);
+        player.setXRot(Mth.clamp(pitch, -90.0f, 90.0f));
+        player.setYHeadRot(yaw);
+        player.setYBodyRot(yaw);
+    }
+
+    private static boolean isBlockNear(Minecraft mc, LocalPlayer player, String expected, int radius, int yMin, int yMax) {
+        if (mc.level == null) return false;
+        BlockPos base = player.blockPosition();
+        for (int y = yMin; y <= yMax; y++) for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+            if (blockMatches(blockId(mc.level.getBlockState(base.offset(dx, y, dz))), expected)) return true;
+        }
+        return false;
+    }
+
+    private static boolean blockMatches(String actual, String expected) {
+        if (actual == null || expected == null) return false;
+        if (actual.equals(expected)) return true;
+        if ("#trapdoor".equals(expected)) return actual.endsWith("_trapdoor") || actual.endsWith(":trapdoor");
+        if ("#ladder".equals(expected)) return actual.equals("minecraft:ladder");
+        if ("#dirt".equals(expected)) return actual.equals("minecraft:dirt") || actual.equals("minecraft:grass_block");
+        return false;
     }
 
     private static void freezeMovementIfMining(Minecraft mc) {
@@ -365,6 +505,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(configFile())) { p.load(in); } catch (Throwable ignored) {}
         miningEnabled = Boolean.parseBoolean(p.getProperty("miningEnabled", "false"));
+        farmingEnabled = Boolean.parseBoolean(p.getProperty("farmingEnabled", "false"));
+        farmingCrop = FarmingCrop.fromConfig(p.getProperty("farmingCrop", "WHEAT"));
+        farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
+        farmingTurnOnMarkers = Boolean.parseBoolean(p.getProperty("farmingTurnOnMarkers", "true"));
+        if (miningEnabled && farmingEnabled) farmingEnabled = false;
         rotateToTarget = Boolean.parseBoolean(p.getProperty("rotateToTarget", "true"));
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
         rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
@@ -382,6 +527,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void saveConfig() {
         Properties p = new Properties();
         p.setProperty("miningEnabled", Boolean.toString(miningEnabled));
+        p.setProperty("farmingEnabled", Boolean.toString(farmingEnabled));
+        p.setProperty("farmingCrop", farmingCrop.name());
+        p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
+        p.setProperty("farmingTurnOnMarkers", Boolean.toString(farmingTurnOnMarkers));
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
@@ -394,6 +543,58 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static int parseInt(String s, int fallback, int min, int max) {
         try { return Math.max(min, Math.min(max, Integer.parseInt(s))); } catch (Throwable ignored) { return fallback; }
+    }
+
+    private enum DirectionKey { FORWARD, BACK, LEFT, RIGHT }
+
+    private enum FarmingCrop {
+        WHEAT("Wheat", -90.0f, 6.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
+        POTATO("Potato", -90.0f, 6.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
+        CARROT("Carrot", 90.0f, 6.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        NETHER_WART("Nether Wart", 90.0f, 6.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        SUGAR_CANE("Sugar Cane", 135.0f, 0.0f, DirectionKey.BACK, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        MELON("Melon", 90.0f, 30.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        PUMPKIN("Pumpkin", 90.0f, 30.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
+        COCOA_BEAN("Cocoa Bean", -180.0f, -45.0f, DirectionKey.BACK, DirectionKey.FORWARD, "#dirt"),
+        RED_MUSHROOM("Red Mush", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block"),
+        BROWN_MUSHROOM("Brown Mush", 115.0f, 0.0f, DirectionKey.BACK, DirectionKey.FORWARD, "minecraft:quartz_block");
+
+        final String label;
+        final float yaw;
+        final float pitch;
+        final DirectionKey forwardKey;
+        final DirectionKey reverseKey;
+        final String markerBlock;
+
+        FarmingCrop(String label, float yaw, float pitch, DirectionKey forwardKey, DirectionKey reverseKey, String markerBlock) {
+            this.label = label;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.forwardKey = forwardKey;
+            this.reverseKey = reverseKey;
+            this.markerBlock = markerBlock;
+        }
+
+        boolean shouldTurn(Minecraft mc, LocalPlayer player) {
+            if (this == COCOA_BEAN) return isBlockNear(mc, player, "minecraft:glowstone", 1, 0, 1) || isBlockNear(mc, player, markerBlock, 1, 0, 1);
+            if (this == SUGAR_CANE) return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "minecraft:sea_lantern", 1, 0, 0);
+            if (this == MELON || this == PUMPKIN || this == CACTUS || this == RED_MUSHROOM || this == BROWN_MUSHROOM) {
+                return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "#ladder", 1, 0, 1) || isBlockNear(mc, player, "#trapdoor", 1, 0, 0);
+            }
+            return isBlockNear(mc, player, markerBlock, 1, 0, 0) || isBlockNear(mc, player, "#trapdoor", 0, 0, 0);
+        }
+
+        static FarmingCrop fromConfig(String value) {
+            if (value == null) return WHEAT;
+            String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+            if ("NETHERWART".equals(normalized)) normalized = "NETHER_WART";
+            if ("COCOA".equals(normalized) || "COCOA_BEANS".equals(normalized)) normalized = "COCOA_BEAN";
+            if ("RED_MUSH".equals(normalized)) normalized = "RED_MUSHROOM";
+            if ("BROWN_MUSH".equals(normalized)) normalized = "BROWN_MUSHROOM";
+            for (FarmingCrop crop : values()) if (crop.name().equals(normalized) || crop.label.toUpperCase(Locale.ROOT).replace(' ', '_').equals(normalized)) return crop;
+            return WHEAT;
+        }
     }
 
     private record Candidate(BlockPos pos, int priority, double dist) {
@@ -416,7 +617,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int y = 28;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Mining ────────"), this.font));
             y += 22;
-            addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { miningEnabled = !miningEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { miningEnabled = !miningEnabled; if (miningEnabled) stopFarming(Minecraft.getInstance(), false); if (!miningEnabled) clearActiveTarget(Minecraft.getInstance()); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
@@ -458,13 +659,29 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 12;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Farming ────────"), this.font));
             y += 20;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("Farming 功能尚未設定"), this.font));
+            addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("作物 ◀"), b -> { cycleCrop(-1); saveConfig(); rebuild(); }).bounds(x + 145, y, 70, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("作物 ▶"), b -> { cycleCrop(1); saveConfig(); rebuild(); }).bounds(x + 225, y, 70, 20).build());
+            addRenderableWidget(new StringWidget(x + 305, y + 5, 115, 12, Component.literal(farmingCrop.label), this.font));
+            y += 28;
+            addRenderableWidget(Button.builder(toggleMsg("換行偵測", farmingTurnOnMarkers), b -> { farmingTurnOnMarkers = !farmingTurnOnMarkers; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("自動 /sethome", farmingAutoSetHome), b -> { farmingAutoSetHome = !farmingAutoSetHome; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("N 開關 Farming"), this.font));
+            y += 24;
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("作物: Wheat/Potato/Carrot/Wart/Cactus/Cane/Melon/Pumpkin/Cocoa/Mushroom"), this.font));
             y = this.height - 34;
             addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, y, 130, 20).build());
         }
 
         private Component toggleMsg(String label, boolean on) {
             return Component.literal(label + "：" + (on ? "開" : "關"));
+        }
+
+        private void cycleCrop(int delta) {
+            FarmingCrop[] crops = FarmingCrop.values();
+            int next = (farmingCrop.ordinal() + delta + crops.length) % crops.length;
+            farmingCrop = crops[next];
+            resetFarmingRuntime(Minecraft.getInstance());
         }
 
         private void move(int idx, int delta) {

@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.17`
+Current mod version: `1.0.18`
 
 ## Features
 
@@ -24,6 +24,7 @@ Current mod version: `1.0.17`
 | `'` | Open Setting |
 | `B` | Toggle block selection mode |
 | `M` | Toggle Mining Assistant |
+| `N` | Toggle Farming Assistant |
 
 ## Selecting mining blocks
 
@@ -32,6 +33,14 @@ Current mod version: `1.0.17`
 3. Repeat for multiple block types.
 4. Press `B` again to leave selection mode.
 5. Open settings with `'` to reorder the list. Mining picks nearest first; list order only breaks ties.
+
+### Farming Assistant
+
+- Crop profiles ported from the old `bobscript` Forge mod: Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Melon, Pumpkin, Cocoa Bean, Red Mushroom, and Brown Mushroom.
+- Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
+- Optional marker-based row switching using common legacy farm markers such as quartz blocks, trapdoors, ladders, sea lanterns, dirt, and glowstone.
+- Optional `/sethome` on start/turn.
+- First Fabric port; per-farm tuning may still be needed for your Garden layout.
 
 ## Build
 
@@ -44,7 +53,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.17.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.18.jar
 ```
 
 ## Maintenance rule
