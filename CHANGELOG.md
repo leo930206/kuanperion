@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2] - 2026-10-13
+
+### Changed
+
+- Renamed the keybind category to "Kuan Hypixel SkyBlock Assistant".
+- Renamed keybind actions to "Select Blocks", "Open Setting", and "Toggle Auto Mining".
+- Changed the default settings key from `Right Shift` to `'`.
+
 ## [1.0.1] - 2026-10-13
 
 ### Changed

@@ -1,6 +1,7 @@
 {
-  "key.kuan_sba.settings": "Open Kuan SBA Settings",
-  "key.kuan_sba.toggle_mining": "Toggle Kuan SBA Mining",
-  "key.kuan_sba.select_blocks": "Kuan SBA Select Blocks",
+  "key.kuan_sba.settings": "Open Setting",
+  "key.kuan_sba.toggle_mining": "Toggle Auto Mining",
+  "key.kuan_sba.select_blocks": "Select Blocks",
+  "key.category.kuan-hypixel-skyblock-assistant.keys": "Kuan Hypixel SkyBlock Assistant",
   "category.kuan-hypixel-skyblock-assistant.keys": "Kuan Hypixel SkyBlock Assistant"
 }
