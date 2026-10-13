@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.11] - 2026-10-13
+
+### Changed
+
+- Split the settings screen into visibly separated Mining and Farming sections.
+- Removed the bottom Clear Targets button and centered the Done button.
+
 ## [1.0.10] - 2026-10-13
 
 ### Changed

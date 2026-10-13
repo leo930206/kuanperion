@@ -325,7 +325,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         protected void init() {
             int x = (this.width - 420) / 2;
             int y = 28;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("Mining Assistant"), this.font));
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Mining ────────"), this.font));
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { miningEnabled = !miningEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
@@ -355,10 +355,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 addRenderableWidget(Button.builder(Component.literal("刪"), b -> { TARGET_BLOCKS.remove(idx); saveConfig(); rebuild(); }).bounds(x + 320, y, 45, 20).build());
                 y += 24;
             }
-            if (TARGET_BLOCKS.size() > maxRows) addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("... 還有 " + (TARGET_BLOCKS.size() - maxRows) + " 個"), this.font));
+            if (TARGET_BLOCKS.size() > maxRows) {
+                addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("... 還有 " + (TARGET_BLOCKS.size() - maxRows) + " 個"), this.font));
+                y += 18;
+            }
+            y += 12;
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Farming ────────"), this.font));
+            y += 20;
+            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("Farming 功能尚未設定"), this.font));
             y = this.height - 34;
-            addRenderableWidget(Button.builder(Component.literal("清空目標"), b -> { TARGET_BLOCKS.clear(); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, y, 130, 20).build());
         }
 
         private Component toggleMsg(String label, boolean on) {
