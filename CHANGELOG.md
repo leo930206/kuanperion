@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.23] - 2026-10-13
+
+### Changed
+
+- Mushroom now shifts left before reversing from both forward and backward row marker detections.
+- Mushroom keeps holding attack while performing the left-shift row change.
+
 ## [1.0.22] - 2026-10-13
 
 ### Changed

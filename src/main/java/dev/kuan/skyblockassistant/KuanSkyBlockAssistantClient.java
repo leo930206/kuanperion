@@ -203,7 +203,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingLeftShiftTicks > 0) {
             farmingLeftShiftTicks--;
-            setAttackKey(mc, false);
+            setAttackKey(mc, true);
             mc.options.keyUp.setDown(false);
             mc.options.keyDown.setDown(false);
             mc.options.keyLeft.setDown(true);
@@ -236,7 +236,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (marker != null) {
             announceFarmingMarker(mc, marker);
             farmingMarkerIgnoreTicks = 30;
-            if (farmingCrop == FarmingCrop.MUSHROOM && !farmingReverseLane) {
+            if (farmingCrop == FarmingCrop.MUSHROOM) {
                 farmingLeftShiftTicks = MUSHROOM_LEFT_SHIFT_TICKS;
             } else {
                 farmingStateTicks = FARM_TURN_STOP_TICKS + FARM_TURN_RESUME_TICKS;
