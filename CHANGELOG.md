@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8] - 2026-10-13
+
+### Fixed
+
+- Mining now only selects blocks with a clear line of sight.
+- Before mining, the crosshair must be pointing at the exact target block; obstructed targets are skipped.
+
 ## [1.0.7] - 2026-10-13
 
 ### Changed

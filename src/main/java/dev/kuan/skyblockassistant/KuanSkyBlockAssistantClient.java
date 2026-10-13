@@ -17,10 +17,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -136,6 +138,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (priority < 0) continue;
             double dist = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
             if (dist > (r + 1.5) * (r + 1.5)) continue;
+            if (!hasLineOfSight(mc, player, pos)) continue;
             Candidate c = new Candidate(pos, priority, dist);
             if (best == null || c.betterThan(best)) best = c;
         }
@@ -168,8 +171,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return false;
         }
 
-        setAttackKey(mc, true);
         if (rotateToTarget && !lookAtSmooth(player, target)) return true;
+        if (!isCrosshairOnTarget(player, target, r + 1.5)) {
+            lastTarget = target;
+            clearActiveTarget(mc);
+            cooldown = Math.max(1, actionDelayTicks);
+            return false;
+        }
+        setAttackKey(mc, true);
         Direction face = faceFromPlayer(player, target);
         if (!activeTargetStarted) {
             mc.gameMode.startDestroyBlock(target, face);
@@ -190,6 +199,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void setAttackKey(Minecraft mc, boolean down) {
         try { if (mc != null && mc.options != null) mc.options.keyAttack.setDown(down); } catch (Throwable ignored) {}
+    }
+
+    private static boolean hasLineOfSight(Minecraft mc, LocalPlayer player, BlockPos target) {
+        if (mc.level == null) return false;
+        Vec3 eye = player.getEyePosition();
+        Vec3 center = Vec3.atCenterOf(target);
+        BlockHitResult hit = mc.level.clip(new ClipContext(eye, center, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(target);
+    }
+
+    private static boolean isCrosshairOnTarget(LocalPlayer player, BlockPos target, double reach) {
+        HitResult hit = player.pick(reach, 0.0f, false);
+        return hit instanceof BlockHitResult blockHit && blockHit.getBlockPos().equals(target);
     }
 
     private static Direction faceFromPlayer(LocalPlayer player, BlockPos pos) {
