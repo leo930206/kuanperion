@@ -30,13 +30,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
+    private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
+    private static final int UNREACHABLE_SKIP_TICKS = 40;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean rotateToTarget = true;
@@ -84,6 +89,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         handleRightClickSelection(mc);
         freezeMovementIfMining(mc);
+        tickSkippedTargets();
         if (cooldown > 0) cooldown--;
         if (miningEnabled) mineBestTarget(mc);
     }
@@ -130,7 +136,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         int r = Math.max(1, Math.min(8, scanRadius));
         for (BlockPos p0 : BlockPos.betweenClosed(base.offset(-r, -r, -r), base.offset(r, r, r))) {
             BlockPos pos = p0.immutable();
-            if (pos.equals(lastTarget)) continue;
+            if (pos.equals(lastTarget) || SKIPPED_TARGETS.containsKey(pos)) continue;
             BlockState state = mc.level.getBlockState(pos);
             if (state.isAir()) continue;
             int priority = TARGET_BLOCKS.indexOf(blockId(state));
@@ -171,6 +177,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
         if (rotateToTarget && !lookAtSmooth(player, target)) return true;
         if (!isCrosshairOnTarget(mc, player, target, r + 1.5)) {
+            skipTarget(target);
             lastTarget = target;
             clearActiveTarget(mc);
             cooldown = Math.max(1, actionDelayTicks);
@@ -197,6 +204,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void setAttackKey(Minecraft mc, boolean down) {
         try { if (mc != null && mc.options != null) mc.options.keyAttack.setDown(down); } catch (Throwable ignored) {}
+    }
+
+    private static void skipTarget(BlockPos pos) {
+        SKIPPED_TARGETS.put(pos.immutable(), UNREACHABLE_SKIP_TICKS);
+    }
+
+    private static void tickSkippedTargets() {
+        Iterator<Map.Entry<BlockPos, Integer>> it = SKIPPED_TARGETS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<BlockPos, Integer> e = it.next();
+            int next = e.getValue() - 1;
+            if (next <= 0) it.remove(); else e.setValue(next);
+        }
     }
 
     private static boolean isCrosshairOnTarget(Minecraft mc, LocalPlayer player, BlockPos target, double reach) {

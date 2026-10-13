@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.14] - 2026-10-13
+
+### Fixed
+
+- Targets that cannot be mined after rotating are temporarily skipped, preventing repeated back-and-forth jitter between unreachable blocks.
+
 ## [1.0.13] - 2026-10-13
 
 ### Changed
