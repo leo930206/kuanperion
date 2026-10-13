@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.36] - 2026-10-13
+
+### Changed
+
+- Removed the hard-coded Discord pest webhook URL from code and added an in-game settings field saved to the local config file.
+
 ## [1.0.35] - 2026-10-13
 
 ### Changed

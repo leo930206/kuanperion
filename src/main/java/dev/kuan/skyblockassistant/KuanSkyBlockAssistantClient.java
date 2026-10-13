@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -57,7 +58,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final List<String> FARMING_MARKER_BLOCKS = new ArrayList<>();
-    private static final String PEST_WEBHOOK_URL = "https://discord.com/api/webhooks/1559574265798590556/12cS4VM94fwYJhVqnkztXgrhpGu4Pd7WJ_zZA-6ffX1zS5H6sKAZymtA37QAyPRIeS4f";
     private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static String farmingStartBlock = "";
@@ -78,6 +78,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingStartDetection = true;
     private static boolean farmingEndDetection = true;
     private static boolean pestNotificationEnabled = false;
+    private static String pestWebhookUrl = "";
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
     private static int farmingLeftShiftTicks = 0;
@@ -751,7 +752,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void handleReceivedMessage(Component message) {
-        if (!pestNotificationEnabled || message == null) return;
+        if (!pestNotificationEnabled || pestWebhookUrl.isBlank() || message == null) return;
         String text = StringUtil.stripColor(message.getString());
         Matcher matcher = PEST_MESSAGE_PATTERN.matcher(text);
         if (!matcher.find()) return;
@@ -764,13 +765,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void sendPestDiscordNotification(String plot, String rawMessage) {
-        String content = "害蟲出現！Plot " + plot + "\n" + rawMessage;
-        String json = "{\"content\":\"" + jsonEscape(content) + "\"}";
-        HttpRequest request = HttpRequest.newBuilder(URI.create(PEST_WEBHOOK_URL))
-                .header("Content-Type", "application/json; charset=utf-8")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                .build();
-        HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding());
+        try {
+            String content = "害蟲出現！Plot " + plot + "\n" + rawMessage;
+            String json = "{\"content\":\"" + jsonEscape(content) + "\"}";
+            HttpRequest request = HttpRequest.newBuilder(URI.create(pestWebhookUrl.trim()))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
+            HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding()).exceptionally(err -> null);
+        } catch (Throwable ignored) {}
     }
 
     private static String jsonEscape(String s) {
@@ -809,6 +812,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStartDetection = Boolean.parseBoolean(p.getProperty("farmingStartDetection", "true"));
         farmingEndDetection = Boolean.parseBoolean(p.getProperty("farmingEndDetection", "true"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
+        pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
         farmingStartBlock = p.getProperty("farmingStartBlock", "").trim();
         farmingEndBlock = p.getProperty("farmingEndBlock", "").trim();
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
@@ -840,6 +844,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingStartDetection", Boolean.toString(farmingStartDetection));
         p.setProperty("farmingEndDetection", Boolean.toString(farmingEndDetection));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
+        p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
         p.setProperty("farmingStartBlock", farmingStartBlock == null ? "" : farmingStartBlock);
         p.setProperty("farmingEndBlock", farmingEndBlock == null ? "" : farmingEndBlock);
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
@@ -987,6 +992,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new SettingsScreen(parent, !cropDropdownOpen))).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            y += 28;
+            addRenderableWidget(new StringWidget(x, y + 5, 90, 12, Component.literal("Webhook:"), this.font));
+            EditBox webhookBox = new EditBox(this.font, x + 90, y, 330, 20, Component.literal("Discord Webhook URL"));
+            webhookBox.setMaxLength(300);
+            webhookBox.setValue(pestWebhookUrl == null ? "" : pestWebhookUrl);
+            webhookBox.setSuggestion("Discord webhook URL");
+            webhookBox.setResponder(value -> { pestWebhookUrl = value.trim(); saveConfig(); });
+            addRenderableWidget(webhookBox);
             y += 28;
             if (cropDropdownOpen) {
                 int cropY = y;
