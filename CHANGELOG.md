@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.19] - 2026-10-13
+
+### Changed
+
+- Changed automation hotkeys to `Shift+M` for Mining, `Shift+F` for Farming, and `Shift+B` for Mining block selection mode.
+
 ## [1.0.18] - 2026-10-13
 
 ### Added

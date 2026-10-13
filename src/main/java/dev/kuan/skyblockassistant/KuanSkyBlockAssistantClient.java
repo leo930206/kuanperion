@@ -76,6 +76,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final Deque<Integer> MINED_TICKS = new ArrayDeque<>();
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
+    private static boolean miningComboWasDown = false;
+    private static boolean farmingComboWasDown = false;
+    private static boolean selectComboWasDown = false;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -90,7 +93,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         KeyMapping.Category category = KeyMapping.Category.register(id("keys"));
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
-        toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_N, category));
+        toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
         selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
         HudElementRegistry.addLast(id("mining_hud"), KuanSkyBlockAssistantClient::renderMiningHud);
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
@@ -103,19 +106,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void tick(Minecraft mc) {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
-        while (toggleMiningKey.consumeClick()) {
-            miningEnabled = !miningEnabled;
-            if (miningEnabled) stopFarming(mc, false);
-            if (!miningEnabled) clearActiveTarget(mc);
-            saveConfig();
-            say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
-        }
-        while (toggleFarmingKey.consumeClick()) toggleFarming(mc);
-        while (selectModeKey.consumeClick()) {
-            selectMode = !selectMode;
-            saveConfig();
-            say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入/更新，B 結束）" : "方塊選取模式：關");
-        }
+        handleShiftHotkeys(mc);
         handleRightClickSelection(mc);
         freezeMovementIfMining(mc);
         if (miningEnabled && mc.options != null) mc.options.pauseOnLostFocus = false;
@@ -131,6 +122,35 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
             tickFarming(mc);
         }
+    }
+
+    private static void handleShiftHotkeys(Minecraft mc) {
+        if (mc.getWindow() == null) return;
+        long handle = mc.getWindow().handle();
+        boolean shift = GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        boolean miningCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_M) == GLFW.GLFW_PRESS;
+        boolean farmingCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
+        boolean selectCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_B) == GLFW.GLFW_PRESS;
+        if (miningCombo && !miningComboWasDown) toggleMining(mc);
+        if (farmingCombo && !farmingComboWasDown) toggleFarming(mc);
+        if (selectCombo && !selectComboWasDown) toggleSelectMode(mc);
+        miningComboWasDown = miningCombo;
+        farmingComboWasDown = farmingCombo;
+        selectComboWasDown = selectCombo;
+    }
+
+    private static void toggleMining(Minecraft mc) {
+        miningEnabled = !miningEnabled;
+        if (miningEnabled) stopFarming(mc, false);
+        if (!miningEnabled) clearActiveTarget(mc);
+        saveConfig();
+        say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
+    }
+
+    private static void toggleSelectMode(Minecraft mc) {
+        selectMode = !selectMode;
+        saveConfig();
+        say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入/更新，Shift+B 結束）" : "方塊選取模式：關");
     }
 
     private static void toggleFarming(Minecraft mc) {
@@ -617,7 +637,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int y = 28;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Mining ────────"), this.font));
             y += 22;
-            addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { miningEnabled = !miningEnabled; if (miningEnabled) stopFarming(Minecraft.getInstance(), false); if (!miningEnabled) clearActiveTarget(Minecraft.getInstance()); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
@@ -666,7 +686,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 28;
             addRenderableWidget(Button.builder(toggleMsg("換行偵測", farmingTurnOnMarkers), b -> { farmingTurnOnMarkers = !farmingTurnOnMarkers; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動 /sethome", farmingAutoSetHome), b -> { farmingAutoSetHome = !farmingAutoSetHome; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("N 開關 Farming"), this.font));
+            addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("Shift+F 開關"), this.font));
             y += 24;
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("作物: Wheat/Potato/Carrot/Wart/Cactus/Cane/Melon/Pumpkin/Cocoa/Mushroom"), this.font));
             y = this.height - 34;
