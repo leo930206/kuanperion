@@ -112,11 +112,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (down && !rightWasDown && mc.hitResult instanceof BlockHitResult bhr) {
             BlockState state = mc.level.getBlockState(bhr.getBlockPos());
             String name = blockId(state);
-            if (!state.isAir()) {
+            if (!state.isAir() && isAllowedTargetBlock(name)) {
                 TARGET_BLOCKS.remove(name);
                 TARGET_BLOCKS.add(name);
                 saveConfig();
                 say(mc, "已更新目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
+            } else if ("minecraft:bedrock".equals(name)) {
+                say(mc, "Bedrock 不可設為目標方塊");
             }
         }
         rightWasDown = down;
@@ -139,7 +141,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (pos.equals(lastTarget) || SKIPPED_TARGETS.containsKey(pos)) continue;
             BlockState state = mc.level.getBlockState(pos);
             if (state.isAir()) continue;
-            int priority = TARGET_BLOCKS.indexOf(blockId(state));
+            String id = blockId(state);
+            if (!isAllowedTargetBlock(id)) continue;
+            int priority = TARGET_BLOCKS.indexOf(id);
             if (priority < 0) continue;
             double dist = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
             if (dist > (r + 1.5) * (r + 1.5)) continue;
@@ -256,6 +260,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Math.abs(yawDiff) <= ROTATION_DONE_EPSILON && Math.abs(pitchDiff) <= ROTATION_DONE_EPSILON;
     }
 
+    private static boolean isAllowedTargetBlock(String id) {
+        return id != null && !id.equals("minecraft:bedrock") && !id.equals("minecraft:air") && !id.equals("unknown");
+    }
+
     private static String blockId(BlockState state) {
         Block block = state.getBlock();
         Identifier id = BuiltInRegistries.BLOCK.getKey(block);
@@ -282,7 +290,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         actionDelayTicks = parseInt(p.getProperty("actionDelayTicks"), 3, 1, 20);
         TARGET_BLOCKS.clear();
         String targets = p.getProperty("targets", "").trim();
-        if (!targets.isEmpty()) for (String s : targets.split(",")) if (!s.isBlank()) TARGET_BLOCKS.add(s.trim());
+        if (!targets.isEmpty()) for (String s : targets.split(",")) {
+            String id = s.trim();
+            if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id)) TARGET_BLOCKS.add(id);
+        }
     }
 
     private static void saveConfig() {

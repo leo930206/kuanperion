@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.15] - 2026-10-13
+
+### Fixed
+
+- Bedrock is now hard-blocked from target selection, saved target lists, and mining scans.
+- Existing saved `minecraft:bedrock` targets are automatically ignored when config loads.
+
 ## [1.0.14] - 2026-10-13
 
 ### Fixed
