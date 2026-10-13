@@ -1015,7 +1015,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
 
         private Component toggleMsg(String label, boolean on) {
-            return Component.literal(label + "：" + (on ? "開" : "關"));
+            return Component.literal(label + "：")
+                    .withStyle(ChatFormatting.WHITE)
+                    .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
 
         private String farmingMarkerSummary() {

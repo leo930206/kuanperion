@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.35] - 2026-10-13
+
+### Changed
+
+- Updated all settings toggle buttons to show 開啟/關閉, with green enabled text and red disabled text while keeping labels white.
+
 ## [1.0.34] - 2026-10-13
 
 ### Added
