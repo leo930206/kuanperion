@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.40`
+Current mod version: `1.0.41`
 
 ## Features
 
@@ -43,6 +43,7 @@ Current mod version: `1.0.40`
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick.
+- Farming pauses movement/attack while player inventory or chat is open, then continues when closed without turning Farming off.
 - Farming settings use a crop dropdown and include an optional Discord pest notification toggle plus local webhook URL field for Hypixel pest chat messages.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 
@@ -57,7 +58,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.40.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.41.jar
 ```
 
 ## Maintenance rule

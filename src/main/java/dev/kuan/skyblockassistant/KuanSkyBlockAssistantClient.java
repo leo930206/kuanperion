@@ -11,7 +11,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -253,6 +256,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         tickFarmingCommandQueue(mc);
         if (handleFarmingAutoRecovery(mc)) return;
+        if (isFarmingPauseScreen(mc.gui.screen())) {
+            releaseFarmingKeys(mc);
+            return;
+        }
         LocalPlayer player = mc.player;
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingReturningToStart) {
@@ -540,6 +547,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static int farmingTicksNow() {
         return Minecraft.getInstance().player == null ? 0 : Minecraft.getInstance().player.tickCount;
+    }
+
+    private static boolean isFarmingPauseScreen(Screen screen) {
+        return screen instanceof ChatScreen
+                || screen instanceof InventoryScreen
+                || screen instanceof CreativeModeInventoryScreen;
     }
 
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {

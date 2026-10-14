@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.41] - 2026-10-14
+
+### Added
+
+- Farming now pauses movement and attack while the player inventory or chat screen is open, then resumes automatically after closing the screen.
+
 ## [1.0.40] - 2026-10-14
 
 ### Added
