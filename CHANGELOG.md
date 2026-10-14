@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.39] - 2026-10-14
+
+### Changed
+
+- Reworked Farming auto-recovery to require a confirmed Garden state before Island/Hub/Lobby/Limbo recovery can trigger.
+- Recovery now closes Farming before sending return commands and reopens Farming after returning to Garden and running `/home`.
+- Added separate settings toggles for Island, Hub, Lobby, and Limbo return flows.
+
 ## [1.0.38] - 2026-10-13
 
 ### Added

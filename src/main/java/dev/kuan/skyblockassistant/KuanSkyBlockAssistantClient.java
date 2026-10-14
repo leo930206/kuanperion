@@ -79,6 +79,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingStartDetection = true;
     private static boolean farmingEndDetection = true;
     private static boolean pestNotificationEnabled = false;
+    private static boolean islandReturnEnabled = true;
+    private static boolean hubReturnEnabled = true;
+    private static boolean lobbyReturnEnabled = true;
+    private static boolean limboReturnEnabled = true;
     private static String pestWebhookUrl = "";
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
@@ -87,7 +91,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingReturningToStart = false;
     private static boolean farmingAutoRecovering = false;
     private static boolean farmingRecoveryHomeSent = false;
+    private static boolean farmingWasInGarden = false;
+    private static boolean farmingResumeAfterRecovery = false;
     private static int farmingRecoveryScanTicks = 0;
+    private static int limboChatSeenTick = -100000;
+    private static int lobbyEvacSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
     private static int farmingStuckTicks = 0;
     private static double farmingLastX = 0.0;
@@ -150,7 +158,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         } else {
             miningTicks = 0;
         }
-        if (farmingEnabled) {
+        if (farmingAutoRecovering) {
+            if (mc.options != null) mc.options.pauseOnLostFocus = false;
+            tickFarmingCommandQueue(mc);
+            handleFarmingAutoRecovery(mc);
+        } else if (farmingEnabled) {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
             tickFarming(mc);
         }
@@ -205,6 +217,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingEnabledThisSession = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
+        farmingWasInGarden = false;
+        farmingResumeAfterRecovery = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
         if (announce) say(mc, "Farming：關");
@@ -221,6 +235,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingMarkerIgnoreTicks = 0;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
+        farmingWasInGarden = false;
+        farmingResumeAfterRecovery = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         if (mc.player != null) {
@@ -317,14 +333,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
         if (!farmingEnabledThisSession) return false;
-        farmingRecoveryScanTicks++;
-        if (farmingRecoveryScanTicks < 40 && !farmingAutoRecovering) return false;
-        farmingRecoveryScanTicks = 0;
         FarmingLocation location = detectFarmingLocation(mc);
-        if (!farmingAutoRecovering && location != FarmingLocation.GARDEN && location != FarmingLocation.UNKNOWN) {
-            startFarmingAutoRecovery(mc, location, 20);
-            return true;
-        }
         if (farmingAutoRecovering) {
             releaseFarmingKeys(mc);
             if (location == FarmingLocation.GARDEN && FARMING_COMMAND_QUEUE.isEmpty()) {
@@ -332,21 +341,35 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     sendCommand(mc, "home");
                     farmingRecoveryHomeSent = true;
                     enqueueFarmingCommand("__resume__", 60);
-                    say(mc, "Farming 已回到 Garden，輸入 /home 後準備恢復採集");
+                    say(mc, "Farming 已回到 Garden，輸入 /home 後準備重新開啟 Farming");
                 }
             }
+            return true;
+        }
+        farmingRecoveryScanTicks++;
+        if (farmingRecoveryScanTicks < 20) return false;
+        farmingRecoveryScanTicks = 0;
+        if (location == FarmingLocation.GARDEN) {
+            farmingWasInGarden = true;
+            return false;
+        }
+        if (farmingWasInGarden && shouldAutoReturn(location)) {
+            startFarmingAutoRecovery(mc, location, location == FarmingLocation.LOBBY ? 80 : 20);
             return true;
         }
         return false;
     }
 
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
+        if (!shouldAutoReturn(location)) return;
         farmingAutoRecovering = true;
+        farmingResumeAfterRecovery = true;
+        farmingEnabled = false;
         farmingRecoveryHomeSent = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        say(mc, "Farming 偵測到離開 Garden：" + location.label + "，嘗試回 Garden");
+        say(mc, "Farming 偵測到離開 Garden：" + location.label + "，已關閉 Farming 並嘗試回 Garden");
         int delay = Math.max(1, firstDelayTicks);
         if (location == FarmingLocation.LIMBO) {
             enqueueFarmingCommand("lobby", delay);
@@ -358,6 +381,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         } else if (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND) {
             enqueueFarmingCommand("warp garden", delay);
         }
+        saveConfig();
+    }
+
+    private static boolean shouldAutoReturn(FarmingLocation location) {
+        return (location == FarmingLocation.ISLAND && islandReturnEnabled)
+                || (location == FarmingLocation.HUB && hubReturnEnabled)
+                || (location == FarmingLocation.LOBBY && lobbyReturnEnabled)
+                || (location == FarmingLocation.LIMBO && limboReturnEnabled);
     }
 
     private static void tickFarmingCommandQueue(Minecraft mc) {
@@ -369,8 +400,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if ("__resume__".equals(current.command)) {
             farmingAutoRecovering = false;
             farmingRecoveryHomeSent = false;
+            farmingEnabled = farmingResumeAfterRecovery;
+            farmingEnabledThisSession = farmingResumeAfterRecovery;
             resetFarmingRuntime(mc);
-            say(mc, "Farming 恢復採集");
+            farmingWasInGarden = true;
+            farmingResumeAfterRecovery = false;
+            saveConfig();
+            say(mc, farmingEnabled ? "Farming 已重新開啟並恢復採集" : "Farming 回復流程完成");
         } else {
             sendCommand(mc, current.command);
         }
@@ -387,12 +423,26 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static FarmingLocation detectFarmingLocation(Minecraft mc) {
         if (mc.player == null || mc.level == null) return FarmingLocation.UNKNOWN;
         List<String> lines = sidebarLines(mc);
-        if (containsLine(lines, "Limbo") || looksLikeLimbo(mc)) return FarmingLocation.LIMBO;
+        int now = farmingTicksNow();
+        if (lines.isEmpty() && now - limboChatSeenTick <= 600) return FarmingLocation.LIMBO;
+        if (isHoldingGameMenu(mc) && now - lobbyEvacSeenTick <= 600) return FarmingLocation.LOBBY;
         if (containsLine(lines, "The Garden") || containsLine(lines, "Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
-        if (containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
-        if (containsLine(lines, "SkyBlock Hub") || containsLine(lines, "Hub") || containsLine(lines, "Village") || containsLine(lines, "Auction House") || containsLine(lines, "Bazaar Alley")) return FarmingLocation.HUB;
-        if (containsLine(lines, "HYPIXEL") || containsLine(lines, "PROTOTYPE") || containsLine(lines, "LOBBY") || containsLine(lines, "Lobby")) return FarmingLocation.LOBBY;
+        if (containsLine(lines, "Private Island") && containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
+        if (containsLine(lines, "Hub")) return FarmingLocation.HUB;
         return FarmingLocation.UNKNOWN;
+    }
+
+    private static boolean isHoldingGameMenu(Minecraft mc) {
+        try {
+            if (mc.player == null) return false;
+            var stack = mc.player.getMainHandItem();
+            if (stack == null || stack.isEmpty()) return false;
+            String name = StringUtil.stripColor(stack.getHoverName().getString());
+            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            return name.contains("Game Menu") || (id != null && id.toString().equals("minecraft:nether_star"));
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static boolean containsLine(List<String> lines, String needle) {
@@ -764,14 +814,24 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void handleReceivedMessage(Component message) {
         if (message == null) return;
         String text = StringUtil.stripColor(message.getString());
-        if (text.contains("Evacuating to Hub") && farmingEnabled && farmingEnabledThisSession && !farmingAutoRecovering) {
-            startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.HUB, 80);
-            return;
+        int now = farmingTicksNow();
+        if (text.contains("/limbo for more information")) {
+            limboChatSeenTick = now;
+            if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && limboReturnEnabled && sidebarLines(Minecraft.getInstance()).isEmpty()) {
+                startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO, 20);
+                return;
+            }
+        }
+        if (text.contains("Evacuating to Hub")) {
+            lobbyEvacSeenTick = now;
+            if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && lobbyReturnEnabled && isHoldingGameMenu(Minecraft.getInstance())) {
+                startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LOBBY, 80);
+                return;
+            }
         }
         if (!pestNotificationEnabled || pestWebhookUrl.isBlank()) return;
         Matcher matcher = PEST_MESSAGE_PATTERN.matcher(text);
         if (!matcher.find()) return;
-        int now = farmingTicksNow();
         if (text.equals(lastPestMessage) && now - lastPestMessageTick < 200) return;
         lastPestMessage = text;
         lastPestMessageTick = now;
@@ -829,6 +889,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStartDetection = Boolean.parseBoolean(p.getProperty("farmingStartDetection", "true"));
         farmingEndDetection = Boolean.parseBoolean(p.getProperty("farmingEndDetection", "true"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
+        islandReturnEnabled = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"));
+        hubReturnEnabled = Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"));
+        lobbyReturnEnabled = Boolean.parseBoolean(p.getProperty("lobbyReturnEnabled", "true"));
+        limboReturnEnabled = Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
         farmingStartBlock = p.getProperty("farmingStartBlock", "").trim();
         farmingEndBlock = p.getProperty("farmingEndBlock", "").trim();
@@ -861,6 +925,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingStartDetection", Boolean.toString(farmingStartDetection));
         p.setProperty("farmingEndDetection", Boolean.toString(farmingEndDetection));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
+        p.setProperty("islandReturnEnabled", Boolean.toString(islandReturnEnabled));
+        p.setProperty("hubReturnEnabled", Boolean.toString(hubReturnEnabled));
+        p.setProperty("lobbyReturnEnabled", Boolean.toString(lobbyReturnEnabled));
+        p.setProperty("limboReturnEnabled", Boolean.toString(limboReturnEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
         p.setProperty("farmingStartBlock", farmingStartBlock == null ? "" : farmingStartBlock);
         p.setProperty("farmingEndBlock", farmingEndBlock == null ? "" : farmingEndBlock);
@@ -1017,6 +1085,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             webhookBox.setSuggestion("Discord webhook URL");
             webhookBox.setResponder(value -> { pestWebhookUrl = value.trim(); saveConfig(); });
             addRenderableWidget(webhookBox);
+            y += 28;
+            addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 98, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Hub 回傳", hubReturnEnabled), b -> { hubReturnEnabled = !hubReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 107, y, 98, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Lobby 回傳", lobbyReturnEnabled), b -> { lobbyReturnEnabled = !lobbyReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 214, y, 98, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 98, 20).build());
             y += 28;
             if (cropDropdownOpen) {
                 int cropY = y;
