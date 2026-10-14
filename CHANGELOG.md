@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.40] - 2026-10-14
+
+### Added
+
+- Added Garden void-fall recovery: when Farming is active in Garden and chat says `You fell into the void`, Farming closes, runs `/home`, then reopens.
+
 ## [1.0.39] - 2026-10-14
 
 ### Changed

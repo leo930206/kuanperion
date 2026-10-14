@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.39`
+Current mod version: `1.0.40`
 
 ## Features
 
@@ -39,7 +39,7 @@ Current mod version: `1.0.39`
 - Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
 - Configurable marker-based row switching: use the Farming settings 「偵測方塊」 button, then right-click a block to add it as a row-switch marker. If no custom marker is set, crop defaults such as quartz blocks, trapdoors, ladders, sea lanterns, dirt, and glowstone are used.
 - Farming supports separate row, start, and end detection blocks. End detection makes Farming stop harvesting, back up until the start block is found, shift right once, then resume forward harvesting.
-- Farming auto-recovery has separate Island/Hub/Lobby/Limbo return toggles. After Farming has been confirmed in Garden, matching recovery conditions close Farming, return to Garden, run `/home`, then reopen Farming.
+- Farming auto-recovery has separate Island/Hub/Lobby/Limbo return toggles. After Farming has been confirmed in Garden, matching recovery conditions close Farming, return to Garden, run `/home`, then reopen Farming. Garden void-fall chat detection also closes Farming, runs `/home`, and reopens Farming.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick.
@@ -57,7 +57,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.39.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.40.jar
 ```
 
 ## Maintenance rule

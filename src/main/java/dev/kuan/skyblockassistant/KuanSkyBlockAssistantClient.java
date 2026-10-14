@@ -391,6 +391,20 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 || (location == FarmingLocation.LIMBO && limboReturnEnabled);
     }
 
+    private static void startFarmingHomeRecovery(Minecraft mc, String reason) {
+        farmingAutoRecovering = true;
+        farmingResumeAfterRecovery = true;
+        farmingEnabled = false;
+        farmingRecoveryHomeSent = true;
+        farmingRecoveryScanTicks = 0;
+        FARMING_COMMAND_QUEUE.clear();
+        releaseFarmingKeys(mc);
+        say(mc, "Farming 偵測到" + reason + "，已關閉 Farming，執行 /home 後會重新開啟");
+        enqueueFarmingCommand("home", 20);
+        enqueueFarmingCommand("__resume__", 80);
+        saveConfig();
+    }
+
     private static void tickFarmingCommandQueue(Minecraft mc) {
         if (FARMING_COMMAND_QUEUE.isEmpty()) return;
         QueuedCommand current = FARMING_COMMAND_QUEUE.peekFirst();
@@ -815,6 +829,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (message == null) return;
         String text = StringUtil.stripColor(message.getString());
         int now = farmingTicksNow();
+        if (text.contains("You fell into the void") && farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && detectFarmingLocation(Minecraft.getInstance()) == FarmingLocation.GARDEN) {
+            startFarmingHomeRecovery(Minecraft.getInstance(), "掉入虛空");
+            return;
+        }
         if (text.contains("/limbo for more information")) {
             limboChatSeenTick = now;
             if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && limboReturnEnabled && sidebarLines(Minecraft.getInstance()).isEmpty()) {
