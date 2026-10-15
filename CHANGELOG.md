@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.47] - 2026-10-15
+
+### Changed
+
+- Removed the `Shift+B` Mining block-selection shortcut and its keybinding entry.
+- Mining block selection can now only be started from the settings screen. It selects one right-clicked block and then ends automatically, matching the Farming block-selection flow.
+
 ## [1.0.46] - 2026-10-15
 
 ### Changed

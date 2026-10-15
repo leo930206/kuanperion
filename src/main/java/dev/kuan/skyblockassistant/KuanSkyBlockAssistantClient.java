@@ -118,7 +118,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean rightWasDown = false;
     private static boolean miningComboWasDown = false;
     private static boolean farmingComboWasDown = false;
-    private static boolean selectComboWasDown = false;
     private static String lastFarmingMarkerMessage = "";
     private static int lastFarmingMarkerMessageTick = 0;
     private static String lastPestMessage = "";
@@ -129,7 +128,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
-    private static KeyMapping selectModeKey;
 
     @Override
     public void onInitializeClient() {
@@ -138,7 +136,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
-        selectModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.select_blocks", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleReceivedMessage(message));
@@ -179,13 +176,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         boolean shift = GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
         boolean miningCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_M) == GLFW.GLFW_PRESS;
         boolean farmingCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
-        boolean selectCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_B) == GLFW.GLFW_PRESS;
         if (miningCombo && !miningComboWasDown) toggleMining(mc);
         if (farmingCombo && !farmingComboWasDown) toggleFarming(mc);
-        if (selectCombo && !selectComboWasDown) toggleSelectMode(mc);
         miningComboWasDown = miningCombo;
         farmingComboWasDown = farmingCombo;
-        selectComboWasDown = selectCombo;
     }
 
     private static void toggleMining(Minecraft mc) {
@@ -194,12 +188,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (!miningEnabled) clearActiveTarget(mc);
         saveConfig();
         say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
-    }
-
-    private static void toggleSelectMode(Minecraft mc) {
-        selectMode = !selectMode;
-        saveConfig();
-        say(mc, selectMode ? "方塊選取模式：開（右鍵方塊加入/更新，Shift+B 結束）" : "方塊選取模式：關");
     }
 
     private static void toggleFarming(Minecraft mc) {
@@ -708,8 +696,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 } else {
                     TARGET_BLOCKS.remove(name);
                     TARGET_BLOCKS.add(name);
+                    selectMode = false;
                     saveConfig();
-                    say(mc, "已更新 Mining 目標方塊 #" + TARGET_BLOCKS.size() + "：" + name);
+                    say(mc, "已更新 Mining 目標方塊 #" + TARGET_BLOCKS.size() + "：" + name + "（選取結束）");
                 }
             } else if ("minecraft:bedrock".equals(name)) {
                 say(mc, "Bedrock 不可設為目標方塊");
@@ -1216,7 +1205,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addSectionTitle("Mining", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("選擇方塊"), b -> beginMiningBlockPick()).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
@@ -1278,6 +1267,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (id == null || id.isBlank()) return "未設定";
             String s = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : id;
             return s.length() > 18 ? s.substring(0, 18) : s;
+        }
+
+        private void beginMiningBlockPick() {
+            selectMode = true;
+            farmingSelectMode = FarmingSelectMode.NONE;
+            saveConfig();
+            Minecraft.getInstance().setScreenAndShow(parent);
+            say(Minecraft.getInstance(), "請右鍵第一個要加入 Mining 目標清單的方塊");
         }
 
         private void beginFarmingBlockPick(FarmingSelectMode mode) {
