@@ -111,6 +111,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingCropDetected = false;
     private static BlockPos farmingCropProbePos = null;
     private static String farmingCropProbeBlock = "";
+    private static Direction farmingCropProbeFace = Direction.UP;
     private static int farmingCropProbeTicks = 0;
     private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
     private static double pumpkinMelonStepStartX = 0.0;
@@ -236,6 +237,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingResumeAfterRecovery = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
+        try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
         if (announce) sayAutoState(mc, "Farming", false);
     }
 
@@ -251,6 +253,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingCropDetected = false;
         farmingCropProbePos = null;
         farmingCropProbeBlock = "";
+        farmingCropProbeFace = Direction.UP;
         farmingCropProbeTicks = 0;
         pumpkinMelonState = PumpkinMelonState.INACTIVE;
         pumpkinMelonStepTicks = 0;
@@ -714,9 +717,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingCropProbeTicks++;
         if (farmingCropProbePos != null) {
             setAttackKey(mc, true);
+            if (mc.gameMode != null) {
+                mc.gameMode.continueDestroyBlock(farmingCropProbePos, farmingCropProbeFace);
+            }
             if (farmingCropProbeTicks < 20) return true;
             String current = blockId(mc.level.getBlockState(farmingCropProbePos));
             if (!current.equals(farmingCropProbeBlock)) {
+                try { if (mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
                 FarmingCrop detected = FarmingCrop.fromBlockId(farmingCropProbeBlock);
                 if (detected == null) {
                     say(mc, feature("Farming"), plain(" 無法辨識作物："), blockName(farmingCropProbeBlock), error("，已關閉"));
@@ -758,16 +765,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 return true;
             }
         } else {
-            HitResult hit = player.pick(5.0, 0.0f, false);
+            HitResult hit = mc.hitResult instanceof BlockHitResult ? mc.hitResult : player.pick(5.0, 0.0f, false);
             if (hit instanceof BlockHitResult blockHit) {
                 BlockPos pos = blockHit.getBlockPos().immutable();
                 String id = blockId(mc.level.getBlockState(pos));
-                if (FarmingCrop.fromBlockId(id) != null) {
+                if (isAllowedTargetBlock(id)) {
                     farmingCropProbePos = pos;
                     farmingCropProbeBlock = id;
+                    farmingCropProbeFace = blockHit.getDirection();
                     farmingCropProbeTicks = 0;
                     say(mc, feature("Farming"), plain(" 正在辨識前方作物："), blockName(id));
                     setAttackKey(mc, true);
+                    if (mc.gameMode != null) mc.gameMode.startDestroyBlock(pos, farmingCropProbeFace);
                 }
             }
         }

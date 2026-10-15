@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.56] - 2026-10-16
+
+### Fixed
+
+- Fixed crop auto-detection doing nothing when the aimed block was not already in the known crop-ID list. Farming now captures any aimed non-air block first and reports its ID.
+- Crop probing now combines a continuously held attack key with Minecraft's direct start/continue-destroy actions for one second, ensuring the initial crop is actually hit and broken before identification.
+
 ## [1.0.55] - 2026-10-16
 
 ### Added
