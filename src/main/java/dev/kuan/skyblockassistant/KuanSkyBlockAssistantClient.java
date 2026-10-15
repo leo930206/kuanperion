@@ -1145,7 +1145,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static Component success(String text) { return Component.literal(text).withColor(COLOR_SUCCESS); }
     private static Component error(String text) { return Component.literal(text).withColor(COLOR_ERROR); }
     private static Component warning(String text) { return Component.literal(text).withColor(COLOR_WARNING); }
-    private static Component blockName(String text) { return Component.literal(text).withColor(COLOR_BLOCK); }
+    private static Component blockName(String text) {
+        String display = text != null && text.startsWith("minecraft:") ? text.substring("minecraft:".length()) : text;
+        return Component.literal(display == null ? "" : display).withColor(COLOR_BLOCK);
+    }
     private static Component locationName(String text) { return Component.literal(text).withColor(COLOR_LOCATION); }
     private static Component commandName(String text) { return Component.literal(text).withColor(COLOR_COMMAND); }
     private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(true)); }

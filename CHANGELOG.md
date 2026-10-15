@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.58] - 2026-10-16
+
+### Changed
+
+- All block names in Kuan HSBA chat messages now hide the `minecraft:` namespace, for example `minecraft:red_mushroom` is displayed as `red_mushroom`.
+- Confirmed all module-generated status and detection messages continue to use the standard `[Kuan HSBA]` prefix; long messages may visually wrap onto a second Minecraft chat line.
+
 ## [1.0.57] - 2026-10-16
 
 ### Changed
