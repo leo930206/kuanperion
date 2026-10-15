@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.54] - 2026-10-16
+
+### Added
+
+- Added a saved `工具偵測` toggle in place of the obsolete crop-selection button.
+- After automatic crop identification, enabled tool detection now verifies the held item name before Farming continues. Mushroom requires `Fungi Cutter`, Melon requires `Melon Dicer`, and Pumpkin requires `Pumpkin Dicer`; Mk. suffixes and other name decorations do not affect the base-name match.
+- Tool mismatches now close Farming and report the detected crop, required tool, and currently held item in the standard `[Kuan HSBA]` chat format.
+
+### Removed
+
+- Removed the manual crop-selection popup because Farming now always detects the crop automatically.
+
 ## [1.0.53] - 2026-10-16
 
 ### Added

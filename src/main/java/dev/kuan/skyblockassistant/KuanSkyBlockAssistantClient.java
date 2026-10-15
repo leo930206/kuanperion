@@ -8,7 +8,6 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
@@ -24,8 +23,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -83,6 +80,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
+    private static boolean farmingToolDetectionEnabled = false;
     private static boolean islandReturnEnabled = true;
     private static boolean hubReturnEnabled = true;
     private static boolean lobbyReturnEnabled = true;
@@ -720,6 +718,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     saveConfig();
                     return true;
                 }
+                String expectedTool = expectedToolForCropBlock(farmingCropProbeBlock);
+                if (farmingToolDetectionEnabled && expectedTool != null) {
+                    String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
+                    if (!heldTool.toLowerCase(Locale.ROOT).contains(expectedTool.toLowerCase(Locale.ROOT))) {
+                        say(mc, feature("Farming"), error(" 工具錯誤："), cropName(detected.label), plain(" 需要 "),
+                                warning(expectedTool), plain("，目前拿著："), blockName(heldTool.isBlank() ? "空手" : heldTool));
+                        stopFarming(mc, false);
+                        saveConfig();
+                        return true;
+                    }
+                    say(mc, feature("Farming"), success(" 工具確認："), warning(expectedTool));
+                }
                 farmingCrop = detected;
                 farmingCropDetected = true;
                 farmingReverseLane = false;
@@ -762,6 +772,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             saveConfig();
         }
         return true;
+    }
+
+    private static String expectedToolForCropBlock(String cropBlockId) {
+        if (cropBlockId == null) return null;
+        return switch (cropBlockId) {
+            case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
+                 "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> "Fungi Cutter";
+            case "minecraft:melon" -> "Melon Dicer";
+            case "minecraft:pumpkin" -> "Pumpkin Dicer";
+            default -> null;
+        };
     }
 
     private static String findFarmingMarkerBlock(Minecraft mc, LocalPlayer player) {
@@ -1212,6 +1233,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingCrop = FarmingCrop.fromConfig(p.getProperty("farmingCrop", "WHEAT"));
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
+        farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
         islandReturnEnabled = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"));
         hubReturnEnabled = Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"));
         lobbyReturnEnabled = Boolean.parseBoolean(p.getProperty("lobbyReturnEnabled", "true"));
@@ -1238,6 +1260,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingCrop", farmingCrop.name());
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
+        p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("islandReturnEnabled", Boolean.toString(islandReturnEnabled));
         p.setProperty("hubReturnEnabled", Boolean.toString(hubReturnEnabled));
         p.setProperty("lobbyReturnEnabled", Boolean.toString(lobbyReturnEnabled));
@@ -1395,20 +1418,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return firstNear(mc, player, 1, 0, 0, markerBlock, "#trapdoor");
         }
 
-        ItemStack icon() {
-            return new ItemStack(switch (this) {
-                case WHEAT -> Items.WHEAT;
-                case POTATO -> Items.POTATO;
-                case CARROT -> Items.CARROT;
-                case NETHER_WART -> Items.NETHER_WART;
-                case CACTUS -> Items.CACTUS;
-                case SUGAR_CANE -> Items.SUGAR_CANE;
-                case PUMPKIN_MELON -> Items.PUMPKIN;
-                case COCOA_BEAN -> Items.COCOA_BEANS;
-                case MUSHROOM -> Items.RED_MUSHROOM;
-            });
-        }
-
         static FarmingCrop fromBlockId(String id) {
             if (id == null) return null;
             return switch (id) {
@@ -1465,7 +1474,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addSectionTitle("Farming", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new CropSelectionScreen(this))).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
@@ -1591,63 +1600,4 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(parent); }
         @Override public boolean isPauseScreen() { return false; }
     }
-    private static final class CropSelectionScreen extends Screen {
-        private static final int PANEL_WIDTH = 344;
-        private static final int PANEL_HEIGHT = 188;
-        private static final int BUTTON_WIDTH = 156;
-        private static final int BUTTON_HEIGHT = 24;
-        private final SettingsScreen settings;
-        private int panelX;
-        private int panelY;
-
-        CropSelectionScreen(SettingsScreen settings) {
-            super(Component.literal("選擇作物"));
-            this.settings = settings;
-        }
-
-        @Override
-        protected void init() {
-            panelX = (this.width - PANEL_WIDTH) / 2;
-            panelY = (this.height - PANEL_HEIGHT) / 2;
-            FarmingCrop[] crops = FarmingCrop.values();
-            for (int i = 0; i < crops.length; i++) {
-                FarmingCrop crop = crops[i];
-                int col = i % 2;
-                int row = i / 2;
-                int buttonX = panelX + 10 + col * (BUTTON_WIDTH + 12);
-                int buttonY = panelY + 32 + row * 29;
-                Component label = Component.literal("    " + crop.label)
-                        .withStyle(crop == farmingCrop ? ChatFormatting.GREEN : ChatFormatting.WHITE);
-                addRenderableWidget(Button.builder(label, b -> selectCrop(crop))
-                        .bounds(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT).build());
-            }
-        }
-
-        private void selectCrop(FarmingCrop crop) {
-            farmingCrop = crop;
-            resetFarmingRuntime(Minecraft.getInstance());
-            saveConfig();
-            Minecraft.getInstance().setScreenAndShow(new SettingsScreen(settings.parent));
-        }
-
-        @Override
-        public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            graphics.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, 0xFF6A6A6A);
-            graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xF0101010);
-            graphics.centeredText(this.font, "選擇作物", this.width / 2, panelY + 11, 0xFFFFFF);
-            super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-            FarmingCrop[] crops = FarmingCrop.values();
-            for (int i = 0; i < crops.length; i++) {
-                int col = i % 2;
-                int row = i / 2;
-                int buttonX = panelX + 10 + col * (BUTTON_WIDTH + 12);
-                int buttonY = panelY + 32 + row * 29;
-                graphics.item(crops[i].icon(), buttonX + 7, buttonY + 4);
-            }
-        }
-
-        @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(new SettingsScreen(settings.parent)); }
-        @Override public boolean isPauseScreen() { return false; }
-    }
-
 }

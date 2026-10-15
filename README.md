@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.53`
+Current mod version: `1.0.54`
 
 ## Features
 
@@ -40,13 +40,14 @@ Current mod version: `1.0.53`
 - Configurable marker-based row switching: use the Farming settings 「偵測方塊」 button, then right-click a block to add it as a row-switch marker. If no custom marker is set, crop defaults such as quartz blocks, trapdoors, ladders, sea lanterns, dirt, and glowstone are used.
 - Row, start, and end detection settings are shared by every crop; the removed harvest-block detector is no longer shown or enforced. Each crop may still react differently to the same three shared blocks.
 - Every Farming start first attacks the crop under the crosshair, identifies the broken block, automatically switches to the matching crop profile, and saves the detected crop. Mushroom additionally uses red/brown color to choose its initial direction.
+- The former crop-selection button is replaced by `工具偵測`. When enabled, the detected crop must match the held tool name before Farming continues. Supported mappings currently include Mushroom → `Fungi Cutter`, Melon → `Melon Dicer`, and Pumpkin → `Pumpkin Dicer`; `Mk. I`, `Mk. II`, and `Mk. III` suffixes are accepted because matching uses the base name.
 - Pumpkim & Melon uses a fixed west-facing view at yaw `90.0` and pitch `-57.0`, holds attack throughout harvesting and row changes, and follows its dedicated two-marker zigzag state machine. At the first marker it continues one block in its current lateral direction before moving forward to find the second marker. Every state transition is reported in chat for verification. During the end-to-start return run it releases attack, ignores row markers, then moves back one block, left one block, and forward one block before restarting leftward harvesting.
 - Farming auto-recovery has separate Island/Hub/Lobby/Limbo return toggles. Lobby recovery detects the held `Game Menu` item. After Farming has been confirmed in Garden, matching recovery conditions close Farming, return to Garden, run `/home`, then reopen Farming. Garden void-fall chat detection also closes Farming, runs `/home`, and reopens Farming.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick.
 - Farming pauses movement/attack while player inventory or chat is open, then continues when closed without turning Farming off.
-- Farming settings use a centered crop-selection popup with native Minecraft item icons, plus an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages.
+- Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors for Farming/Mining features, status, crops, blocks, locations, commands, warnings, and errors.
 
@@ -61,7 +62,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.53.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.54.jar
 ```
 
 ## Maintenance rule
