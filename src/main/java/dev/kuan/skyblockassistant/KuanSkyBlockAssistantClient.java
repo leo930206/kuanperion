@@ -113,6 +113,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
     private static double pumpkinMelonStepStartX = 0.0;
     private static double pumpkinMelonStepStartZ = 0.0;
+    private static int pumpkinMelonStepTicks = 0;
     private static boolean pumpkinMelonMarkerCleared = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
@@ -252,6 +253,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingMushroomProbePos = null;
         farmingMushroomProbeColor = MushroomColor.UNKNOWN;
         pumpkinMelonState = farmingCrop == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
+        pumpkinMelonStepTicks = 0;
         pumpkinMelonMarkerCleared = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
@@ -685,12 +687,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonState = state;
         pumpkinMelonStepStartX = player.getX();
         pumpkinMelonStepStartZ = player.getZ();
+        pumpkinMelonStepTicks = 0;
     }
 
     private static boolean pumpkinMelonStepDone(LocalPlayer player) {
+        pumpkinMelonStepTicks++;
         double dx = player.getX() - pumpkinMelonStepStartX;
         double dz = player.getZ() - pumpkinMelonStepStartZ;
-        return dx * dx + dz * dz >= FARMING_ONE_BLOCK_DISTANCE * FARMING_ONE_BLOCK_DISTANCE;
+        return dx * dx + dz * dz >= FARMING_ONE_BLOCK_DISTANCE * FARMING_ONE_BLOCK_DISTANCE
+                || pumpkinMelonStepTicks >= 20;
     }
 
     private static boolean probeStartingMushroom(Minecraft mc, LocalPlayer player) {

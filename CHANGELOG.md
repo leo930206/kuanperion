@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.50] - 2026-10-16
+
+### Fixed
+
+- Prevented `Pumpkim & Melon` one-block movement stages from getting stuck forever when collision or server position correction prevents reaching the exact distance threshold; each stage now falls back after one second so startup proceeds to continuous leftward harvesting.
+
 ## [1.0.49] - 2026-10-15
 
 ### Added
