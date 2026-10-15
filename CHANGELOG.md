@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.55] - 2026-10-16
+
+### Added
+
+- Added tool validation mappings for Wheat (`Euclid's Wheat Sickle`), Carrot (`Gauss Carrot Shovel`), Potato (`Pythagorean Potato Shovel`), Sugar Cane (`Turing Sugar Cane Cutter`), Cactus (`Cactus Knife`), Cocoa Beans (`Cocoa Chopper`), and Nether Wart (`Newton Nether Wart Cutter`).
+- Reserved the supplied future flower mappings in code: Sunflower and Moonflower use `Eclipse Sickle`; Wild Rose uses `Wild Rose Cutter`. These become active when the flower block IDs and movement profiles are added.
+
+### Fixed
+
+- Crop auto-detection now genuinely holds the attack key continuously for at least 20 ticks (one second) without resetting it every tick, then identifies the broken crop.
+
 ## [1.0.54] - 2026-10-16
 
 ### Added

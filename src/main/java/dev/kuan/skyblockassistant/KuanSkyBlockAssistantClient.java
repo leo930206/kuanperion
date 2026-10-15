@@ -72,6 +72,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
     private static final double FARMING_ONE_BLOCK_DISTANCE = 0.9;
     private static final int PUMPKIN_MELON_START_FORWARD_TICKS = 10;
+    // Reserved for the flower crop profiles once their in-world block IDs and movement logic are configured.
+    private static final String SUNFLOWER_TOOL_NAME = "Eclipse Sickle";
+    private static final String MOONFLOWER_TOOL_NAME = "Eclipse Sickle";
+    private static final String WILD_ROSE_TOOL_NAME = "Wild Rose Cutter";
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
@@ -706,9 +710,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
-        releaseFarmingKeys(mc);
+        releaseFarmingMovementKeys(mc);
         farmingCropProbeTicks++;
         if (farmingCropProbePos != null) {
+            setAttackKey(mc, true);
+            if (farmingCropProbeTicks < 20) return true;
             String current = blockId(mc.level.getBlockState(farmingCropProbePos));
             if (!current.equals(farmingCropProbeBlock)) {
                 FarmingCrop detected = FarmingCrop.fromBlockId(farmingCropProbeBlock);
@@ -751,7 +757,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 saveConfig();
                 return true;
             }
-            setAttackKey(mc, true);
         } else {
             HitResult hit = player.pick(5.0, 0.0f, false);
             if (hit instanceof BlockHitResult blockHit) {
@@ -777,6 +782,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static String expectedToolForCropBlock(String cropBlockId) {
         if (cropBlockId == null) return null;
         return switch (cropBlockId) {
+            case "minecraft:wheat" -> "Euclid's Wheat Sickle";
+            case "minecraft:carrots" -> "Gauss Carrot Shovel";
+            case "minecraft:potatoes" -> "Pythagorean Potato Shovel";
+            case "minecraft:sugar_cane" -> "Turing Sugar Cane Cutter";
+            case "minecraft:cactus" -> "Cactus Knife";
+            case "minecraft:cocoa" -> "Cocoa Chopper";
+            case "minecraft:nether_wart" -> "Newton Nether Wart Cutter";
             case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
                  "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> "Fungi Cutter";
             case "minecraft:melon" -> "Melon Dicer";
@@ -853,6 +865,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void releaseFarmingKeys(Minecraft mc) {
         setAttackKey(mc, false);
+        releaseFarmingMovementKeys(mc);
+    }
+
+    private static void releaseFarmingMovementKeys(Minecraft mc) {
         if (mc == null || mc.options == null) return;
         mc.options.keyUp.setDown(false);
         mc.options.keyDown.setDown(false);
