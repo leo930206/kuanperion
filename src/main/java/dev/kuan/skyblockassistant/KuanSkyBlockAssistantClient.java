@@ -21,6 +21,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -130,6 +131,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
+    private static boolean miningWaitingForTarget = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
@@ -188,11 +190,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void toggleMining(Minecraft mc) {
-        miningEnabled = !miningEnabled;
-        if (miningEnabled) stopFarming(mc, false);
-        if (!miningEnabled) clearActiveTarget(mc);
+        if (miningEnabled) {
+            miningEnabled = false;
+            miningWaitingForTarget = false;
+            clearActiveTarget(mc);
+            saveConfig();
+            sayAutoState(mc, "Mining", false);
+            return;
+        }
+        if (TARGET_BLOCKS.isEmpty()) {
+            say(mc, plain("Auto "), feature("Mining"), plain(" "), error("無法開啟"), plain("：尚未設定目標方塊"));
+            return;
+        }
+        stopFarming(mc, false);
+        miningEnabled = true;
+        miningWaitingForTarget = false;
         saveConfig();
-        say(mc, "Mining：" + (miningEnabled ? "開" : "關"));
+        sayAutoState(mc, "Mining", true);
     }
 
     private static void toggleFarming(Minecraft mc) {
@@ -205,7 +219,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
-            say(mc, "Farming：開（" + farmingCrop.label + "）");
+            if (farmingCrop != FarmingCrop.MUSHROOM) {
+                say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，作物："), cropName(farmingCrop.label));
+            }
         }
         saveConfig();
     }
@@ -219,7 +235,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingResumeAfterRecovery = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        if (announce) say(mc, "Farming：關");
+        if (announce) sayAutoState(mc, "Farming", false);
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
@@ -272,7 +288,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 releaseFarmingKeys(mc);
                 farmingHarvestMissingTicks++;
                 if (farmingHarvestMissingTicks >= 60) {
-                    say(mc, "Farming 連續 3 秒未踩在採集方塊上，已自動關閉");
+                    say(mc, plain("Auto "), feature("Farming"), plain(" "), error("已關閉"), plain("：連續 3 秒未站在採集方塊上"));
                     stopFarming(mc, false);
                     saveConfig();
                 }
@@ -290,7 +306,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (farmingReturningToStart) {
             setAttackKey(mc, false);
             if (blockProfile.startDetection && isConfiguredBlockNear(mc, player, blockProfile.startBlock)) {
-                say(mc, "Farming 偵測到開始方塊：" + blockProfile.startBlock);
+                say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(blockProfile.startBlock));
                 farmingReturningToStart = false;
                 farmingReverseLane = false;
                 farmingRightShiftTicks = MUSHROOM_LEFT_SHIFT_TICKS;
@@ -329,7 +345,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         setAttackKey(mc, true);
         pressFarmingMoveKeys(mc, farmingCrop, farmingReverseLane);
         if (blockProfile.endDetection && isConfiguredBlockNear(mc, player, blockProfile.endBlock)) {
-            say(mc, "Farming 偵測到結束方塊：" + blockProfile.endBlock + "，開始後退找開始方塊");
+            say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(blockProfile.endBlock), warning("，開始後退尋找開始方塊"));
             farmingReturningToStart = true;
             applyFarmingInput(mc, DirectionKey.BACK, false, false);
             return;
@@ -373,7 +389,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     sendCommand(mc, "home");
                     farmingRecoveryHomeSent = true;
                     enqueueFarmingCommand("__resume__", 60);
-                    say(mc, "Farming 已回到 Garden，輸入 /home 後準備重新開啟 Farming");
+                    say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，正在執行 "), commandName("/home"));
                 }
             }
             return true;
@@ -401,7 +417,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        say(mc, "Farming 偵測到離開 Garden：" + location.label + "，已關閉 Farming 並嘗試回 Garden");
+        say(mc, feature("Farming"), warning(" 離開 "), locationName("Garden"), plain("：偵測到 "), locationName(location.label), warning("，開始自動回傳"));
         int delay = Math.max(1, firstDelayTicks);
         if (location == FarmingLocation.LIMBO) {
             enqueueFarmingCommand("lobby", delay);
@@ -431,7 +447,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        say(mc, "Farming 偵測到" + reason + "，已關閉 Farming，執行 /home 後會重新開啟");
+        say(mc, feature("Farming"), warning(" " + reason), plain("：正在執行 "), commandName("/home"), plain("，完成後重新開啟"));
         enqueueFarmingCommand("home", 20);
         enqueueFarmingCommand("__resume__", 80);
         saveConfig();
@@ -452,7 +468,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingWasInGarden = true;
             farmingResumeAfterRecovery = false;
             saveConfig();
-            say(mc, farmingEnabled ? "Farming 已重新開啟並恢復採集" : "Farming 回復流程完成");
+            if (farmingEnabled) {
+                say(mc, feature("Farming"), success(" 回傳完成"), plain("，正在恢復採集"));
+            } else {
+                say(mc, feature("Farming"), success(" 回傳流程完成"));
+            }
         } else {
             sendCommand(mc, current.command);
         }
@@ -531,16 +551,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         FarmingBlockProfile profile = farmingProfile();
         if (mode == FarmingSelectMode.ROW) {
             profile.rowBlock = name;
-            say(mc, "已設定 " + farmingCrop.label + " 換行方塊：" + name);
+            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 換行方塊已設定："), blockName(name));
         } else if (mode == FarmingSelectMode.START) {
             profile.startBlock = name;
-            say(mc, "已設定 " + farmingCrop.label + " 開始方塊：" + name);
+            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 開始方塊已設定："), blockName(name));
         } else if (mode == FarmingSelectMode.END) {
             profile.endBlock = name;
-            say(mc, "已設定 " + farmingCrop.label + " 結束方塊：" + name);
+            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 結束方塊已設定："), blockName(name));
         } else if (mode == FarmingSelectMode.HARVEST) {
             profile.harvestBlock = name;
-            say(mc, "已設定 " + farmingCrop.label + " 採集方塊：" + name);
+            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 採集方塊已設定："), blockName(name));
         }
     }
 
@@ -586,7 +606,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, "Farming 偵測到結束方塊：" + profile.endBlock + "，停止採集並往後尋找開始方塊");
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock), warning("，停止採集並往後尋找開始方塊"));
                     pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 } else if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
@@ -612,7 +632,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case RETURN_BACK_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, "Farming 偵測到開始方塊：" + profile.startBlock);
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_ONE);
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
@@ -683,8 +703,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 farmingReverseLane = farmingMushroomStartColor == MushroomColor.BROWN;
                 farmingMushroomProbePos = null;
                 farmingMushroomProbeColor = MushroomColor.UNKNOWN;
-                say(mc, "Farming 已確認起始蘑菇：" + farmingMushroomStartColor.label
-                        + (farmingReverseLane ? "，使用換行後方向" : "，使用原本方向"));
+                say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，方向確認："),
+                        cropName(farmingMushroomStartColor == MushroomColor.RED ? "Red Mushroom" : "Brown Mushroom"));
                 return true;
             }
             setAttackKey(mc, true);
@@ -722,7 +742,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void announceFarmingMarker(Minecraft mc, String marker) {
         int now = farmingTicksNow();
         if (!marker.equals(lastFarmingMarkerMessage) || now - lastFarmingMarkerMessageTick > 40) {
-            say(mc, "Farming 偵測到換行方塊：" + marker);
+            say(mc, feature("Farming"), plain(" 偵測到換行方塊："), blockName(marker));
             lastFarmingMarkerMessage = marker;
             lastFarmingMarkerMessageTick = now;
         }
@@ -830,10 +850,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     TARGET_BLOCKS.add(name);
                     selectMode = false;
                     saveConfig();
-                    say(mc, "已更新 Mining 目標方塊 #" + TARGET_BLOCKS.size() + "：" + name + "（選取結束）");
+                    say(mc, feature("Mining"), plain(" 目標方塊已設定 #" + TARGET_BLOCKS.size() + "："), blockName(name), success("（選取結束）"));
                 }
             } else if ("minecraft:bedrock".equals(name)) {
-                say(mc, "Bedrock 不可設為目標方塊");
+                say(mc, feature("Mining"), error(" 設定失敗"), plain("："), blockName("minecraft:bedrock"), error(" 不可設為目標方塊"));
             }
         }
         rightWasDown = down;
@@ -870,7 +890,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             Candidate c = new Candidate(pos, priority, dist);
             if (best == null || c.betterThan(best)) best = c;
         }
-        if (best == null) return;
+        if (best == null) {
+            if (!miningWaitingForTarget) {
+                miningWaitingForTarget = true;
+                say(mc, feature("Mining"), warning(" 等待中"), plain("：目前沒有可採集的目標方塊"));
+            }
+            return;
+        }
+        if (miningWaitingForTarget) {
+            miningWaitingForTarget = false;
+            say(mc, feature("Mining"), success(" 已找到目標"), plain("，恢復自動挖礦"));
+        }
         activeTarget = best.pos;
         activeTargetBlockId = blockId(mc.level.getBlockState(activeTarget));
         activeTargetStarted = false;
@@ -1018,8 +1048,51 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return id == null ? "unknown" : id.toString();
     }
 
-    private static void say(Minecraft mc, String text) {
-        if (mc.player != null) mc.player.sendSystemMessage(Component.literal("[Kuan SBA] " + text).withStyle(ChatFormatting.AQUA));
+    private static final int COLOR_FEATURE = 0xC084FC;
+    private static final int COLOR_PLAIN = 0xFFFFFF;
+    private static final int COLOR_SUCCESS = 0x55FF55;
+    private static final int COLOR_ERROR = 0xFF5555;
+    private static final int COLOR_WARNING = 0xFFAA00;
+    private static final int COLOR_BLOCK = 0xFFFF55;
+    private static final int COLOR_LOCATION = 0x55FFFF;
+    private static final int COLOR_COMMAND = 0xFFD166;
+    private static final int COLOR_CROP = 0xADFF2F;
+
+    private static void say(Minecraft mc, Component... parts) {
+        if (mc.player == null) return;
+        MutableComponent message = hsbaPrefix();
+        for (Component part : parts) message.append(part);
+        mc.player.sendSystemMessage(message);
+    }
+
+    private static MutableComponent hsbaPrefix() {
+        String text = "[Kuan HSBA]";
+        int start = 0x55FFFF;
+        int end = 0x2F80FF;
+        MutableComponent out = Component.empty();
+        for (int i = 0; i < text.length(); i++) {
+            double t = text.length() <= 1 ? 0.0 : i / (double)(text.length() - 1);
+            int r = (int)(((start >> 16) & 0xFF) * (1.0 - t) + ((end >> 16) & 0xFF) * t);
+            int g = (int)(((start >> 8) & 0xFF) * (1.0 - t) + ((end >> 8) & 0xFF) * t);
+            int b = (int)((start & 0xFF) * (1.0 - t) + (end & 0xFF) * t);
+            int color = (r << 16) | (g << 8) | b;
+            out.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(color).withBold(true)));
+        }
+        return out.append(Component.literal(" "));
+    }
+
+    private static Component plain(String text) { return Component.literal(text).withColor(COLOR_PLAIN); }
+    private static Component feature(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_FEATURE).withBold(true)); }
+    private static Component success(String text) { return Component.literal(text).withColor(COLOR_SUCCESS); }
+    private static Component error(String text) { return Component.literal(text).withColor(COLOR_ERROR); }
+    private static Component warning(String text) { return Component.literal(text).withColor(COLOR_WARNING); }
+    private static Component blockName(String text) { return Component.literal(text).withColor(COLOR_BLOCK); }
+    private static Component locationName(String text) { return Component.literal(text).withColor(COLOR_LOCATION); }
+    private static Component commandName(String text) { return Component.literal(text).withColor(COLOR_COMMAND); }
+    private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(true)); }
+
+    private static void sayAutoState(Minecraft mc, String featureName, boolean enabled) {
+        say(mc, plain("Auto "), feature(featureName), plain(" "), enabled ? success("開啟") : error("關閉"));
     }
 
     private static void handleReceivedMessage(Component message) {
@@ -1434,7 +1507,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingSelectMode = FarmingSelectMode.NONE;
             saveConfig();
             Minecraft.getInstance().setScreenAndShow(parent);
-            say(Minecraft.getInstance(), "請右鍵第一個要加入 Mining 目標清單的方塊");
+            say(Minecraft.getInstance(), feature("Mining"), plain(" 方塊選擇：請右鍵選擇目標方塊"));
         }
 
         private void beginFarmingBlockPick(FarmingSelectMode mode) {
@@ -1442,13 +1515,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             selectMode = false;
             saveConfig();
             Minecraft.getInstance().setScreenAndShow(parent);
-            say(Minecraft.getInstance(), switch (mode) {
-                case ROW -> "請右鍵第一個要作為換行方塊的方塊";
-                case START -> "請右鍵第一個要作為開始方塊的方塊";
-                case END -> "請右鍵第一個要作為結束方塊的方塊";
-                case HARVEST -> "請右鍵第一個要作為採集方塊的方塊";
-                default -> "";
-            });
+            Component target = switch (mode) {
+                case ROW -> blockName("換行方塊");
+                case START -> blockName("開始方塊");
+                case END -> blockName("結束方塊");
+                case HARVEST -> blockName("採集方塊");
+                default -> plain("");
+            };
+            say(Minecraft.getInstance(), feature("Farming"), plain(" 方塊選擇：請右鍵選擇"), target);
         }
 
         private void move(int idx, int delta) {

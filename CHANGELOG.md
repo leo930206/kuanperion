@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.49] - 2026-10-15
+
+### Added
+
+- Added a unified semantic chat-message color system: gradient/bold `[Kuan HSBA]`, matching Farming/Mining feature colors, green success, red failure, orange warnings, yellow blocks, aqua locations, gold commands, and yellow-green crop names.
+- Mining now refuses to start with an empty target list and reports the reason.
+- Mining now reports once when waiting for an available target and once when a target returns.
+
+### Changed
+
+- Renamed every chat prefix from `[Kuan SBA]` to `[Kuan HSBA]`.
+- Standardized all Farming and Mining status, selection, detection, recovery, success, warning, and error messages.
+- Mushroom startup now reports `Auto Farming 開啟，方向確認：Red Mushroom` or `Brown Mushroom`; all crop names share the same yellow-green style.
+
 ## [1.0.48] - 2026-10-15
 
 ### Added
