@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.64] - 2026-10-16
+
+### Changed
+
+- Converted all 13 Farming Speed reference values into editable numeric fields.
+- Every Farming Speed field now defaults to `200` and persists independently in the local configuration.
+
 ## [1.0.63] - 2026-10-16
 
 ### Changed
