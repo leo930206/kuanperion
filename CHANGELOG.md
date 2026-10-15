@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.43] - 2026-10-15
+
+### Changed
+
+- Moved the Discord webhook input from the center of the Farming controls to the bottom-left corner of the settings screen.
+
 ## [1.0.42] - 2026-10-15
 
 ### Changed
