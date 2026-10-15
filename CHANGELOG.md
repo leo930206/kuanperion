@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.51] - 2026-10-16
+
+### Changed
+
+- `Pumpkim & Melon` startup now performs the forward input once and immediately begins continuous leftward harvesting; it no longer waits for actual forward displacement when the player is blocked.
+
 ## [1.0.50] - 2026-10-16
 
 ### Fixed

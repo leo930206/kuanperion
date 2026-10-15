@@ -581,7 +581,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         switch (pumpkinMelonState) {
             case START_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
             }
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
