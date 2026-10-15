@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.45] - 2026-10-15
+
+### Changed
+
+- Replaced the expanding crop list with a centered crop-selection popup arranged in a two-column grid.
+- Added native Minecraft item icons to every crop choice.
+- Renamed the webhook label to `Discord Webhook`, shortened the input field, and removed its gray suggestion text.
+
 ## [1.0.44] - 2026-10-15
 
 ### Added

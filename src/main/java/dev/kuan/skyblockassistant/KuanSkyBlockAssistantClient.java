@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
@@ -22,6 +23,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -1132,6 +1135,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return firstNear(mc, player, 1, 0, 0, markerBlock, "#trapdoor");
         }
 
+        ItemStack icon() {
+            return new ItemStack(switch (this) {
+                case WHEAT -> Items.WHEAT;
+                case POTATO -> Items.POTATO;
+                case CARROT -> Items.CARROT;
+                case NETHER_WART -> Items.NETHER_WART;
+                case CACTUS -> Items.CACTUS;
+                case SUGAR_CANE -> Items.SUGAR_CANE;
+                case MELON -> Items.MELON;
+                case PUMPKIN -> Items.PUMPKIN;
+                case COCOA_BEAN -> Items.COCOA_BEANS;
+                case MUSHROOM -> Items.RED_MUSHROOM;
+            });
+        }
+
         static FarmingCrop fromConfig(String value) {
             if (value == null) return WHEAT;
             String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
@@ -1157,14 +1175,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static final class SettingsScreen extends Screen {
         private final Screen parent;
-        private final boolean cropDropdownOpen;
         SettingsScreen(Screen parent) {
-            this(parent, false);
-        }
-        SettingsScreen(Screen parent, boolean cropDropdownOpen) {
             super(Component.literal("Kuan Hypixel SkyBlock Assistant"));
             this.parent = parent;
-            this.cropDropdownOpen = cropDropdownOpen;
         }
 
         @Override
@@ -1209,17 +1222,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Farming ────────"), this.font));
             y += 20;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new SettingsScreen(parent, !cropDropdownOpen))).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new CropSelectionScreen(this))).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             int webhookY = this.height - 34;
-            int webhookInputX = 90;
-            int webhookInputWidth = Math.max(120, Math.min(420, x + 135 - webhookInputX));
-            addRenderableWidget(new StringWidget(20, webhookY + 5, 70, 12, Component.literal("Webhook:"), this.font));
-            EditBox webhookBox = new EditBox(this.font, webhookInputX, webhookY, webhookInputWidth, 20, Component.literal("Discord Webhook URL"));
+            int webhookInputX = 130;
+            int webhookInputWidth = 300;
+            addRenderableWidget(new StringWidget(20, webhookY + 5, 110, 12, Component.literal("Discord Webhook:"), this.font));
+            EditBox webhookBox = new EditBox(this.font, webhookInputX, webhookY, webhookInputWidth, 20, Component.literal("Discord Webhook"));
             webhookBox.setMaxLength(300);
             webhookBox.setValue(pestWebhookUrl == null ? "" : pestWebhookUrl);
-            webhookBox.setSuggestion("Discord webhook URL");
             webhookBox.setResponder(value -> { pestWebhookUrl = value.trim(); saveConfig(); });
             addRenderableWidget(webhookBox);
             addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
@@ -1227,17 +1239,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("Lobby 回傳", lobbyReturnEnabled), b -> { lobbyReturnEnabled = !lobbyReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
             y += 28;
-            if (cropDropdownOpen) {
-                int cropY = y;
-                FarmingCrop[] crops = FarmingCrop.values();
-                for (int i = 0; i < crops.length; i++) {
-                    final FarmingCrop crop = crops[i];
-                    int col = i / 5;
-                    int row = i % 5;
-                    addRenderableWidget(Button.builder(Component.literal(crop.label), b -> { farmingCrop = crop; resetFarmingRuntime(Minecraft.getInstance()); saveConfig(); rebuild(); }).bounds(x + 145 + col * 145, cropY + row * 22, 130, 20).build());
-                }
-                y += 5 * 22 + 6;
-            }
             FarmingBlockProfile blockProfile = farmingProfile();
             addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
@@ -1303,4 +1304,63 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(parent); }
         @Override public boolean isPauseScreen() { return false; }
     }
+    private static final class CropSelectionScreen extends Screen {
+        private static final int PANEL_WIDTH = 344;
+        private static final int PANEL_HEIGHT = 188;
+        private static final int BUTTON_WIDTH = 156;
+        private static final int BUTTON_HEIGHT = 24;
+        private final SettingsScreen settings;
+        private int panelX;
+        private int panelY;
+
+        CropSelectionScreen(SettingsScreen settings) {
+            super(Component.literal("選擇作物"));
+            this.settings = settings;
+        }
+
+        @Override
+        protected void init() {
+            panelX = (this.width - PANEL_WIDTH) / 2;
+            panelY = (this.height - PANEL_HEIGHT) / 2;
+            FarmingCrop[] crops = FarmingCrop.values();
+            for (int i = 0; i < crops.length; i++) {
+                FarmingCrop crop = crops[i];
+                int col = i % 2;
+                int row = i / 2;
+                int buttonX = panelX + 10 + col * (BUTTON_WIDTH + 12);
+                int buttonY = panelY + 32 + row * 29;
+                Component label = Component.literal("    " + crop.label)
+                        .withStyle(crop == farmingCrop ? ChatFormatting.GREEN : ChatFormatting.WHITE);
+                addRenderableWidget(Button.builder(label, b -> selectCrop(crop))
+                        .bounds(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT).build());
+            }
+        }
+
+        private void selectCrop(FarmingCrop crop) {
+            farmingCrop = crop;
+            resetFarmingRuntime(Minecraft.getInstance());
+            saveConfig();
+            Minecraft.getInstance().setScreenAndShow(new SettingsScreen(settings.parent));
+        }
+
+        @Override
+        public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            graphics.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, 0xFF6A6A6A);
+            graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xF0101010);
+            graphics.centeredText(this.font, "選擇作物", this.width / 2, panelY + 11, 0xFFFFFF);
+            super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+            FarmingCrop[] crops = FarmingCrop.values();
+            for (int i = 0; i < crops.length; i++) {
+                int col = i % 2;
+                int row = i / 2;
+                int buttonX = panelX + 10 + col * (BUTTON_WIDTH + 12);
+                int buttonY = panelY + 32 + row * 29;
+                graphics.item(crops[i].icon(), buttonX + 7, buttonY + 4);
+            }
+        }
+
+        @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(new SettingsScreen(settings.parent)); }
+        @Override public boolean isPauseScreen() { return false; }
+    }
+
 }
