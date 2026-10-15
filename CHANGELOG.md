@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.65] - 2026-10-16
+
+### Changed
+
+- Pumpkin/Melon now continues backward for two measured blocks after detecting the start block, before moving left and forward to resume the cycle.
+
 ## [1.0.64] - 2026-10-16
 
 ### Changed

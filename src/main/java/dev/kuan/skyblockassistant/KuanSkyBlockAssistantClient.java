@@ -125,6 +125,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double pumpkinMelonStepLastZ = 0.0;
     private static int pumpkinMelonStepStalledTicks = 0;
     private static int pumpkinMelonStepTicks = 0;
+    private static double pumpkinMelonStepTargetDistance = FARMING_ONE_BLOCK_DISTANCE;
     private static boolean pumpkinMelonMarkerCleared = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
@@ -277,6 +278,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             pumpkinMelonStepLastX = mc.player.getX();
             pumpkinMelonStepLastZ = mc.player.getZ();
             pumpkinMelonStepStalledTicks = 0;
+            pumpkinMelonStepTargetDistance = FARMING_ONE_BLOCK_DISTANCE;
         }
     }
 
@@ -673,12 +675,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
                     say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
-                    beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_ONE);
-                    announcePumpkinAction(mc, "往後一格");
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_TWO, 2.0);
+                    announcePumpkinAction(mc, "往後兩格");
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
             }
-            case RETURN_BACK_ONE -> {
+            case RETURN_BACK_TWO -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
@@ -721,6 +723,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void beginPumpkinMelonStep(LocalPlayer player, PumpkinMelonState state) {
+        beginPumpkinMelonStep(player, state, FARMING_ONE_BLOCK_DISTANCE);
+    }
+
+    private static void beginPumpkinMelonStep(LocalPlayer player, PumpkinMelonState state, double targetDistance) {
         pumpkinMelonState = state;
         pumpkinMelonStepStartX = player.getX();
         pumpkinMelonStepStartZ = player.getZ();
@@ -728,6 +734,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonStepLastZ = player.getZ();
         pumpkinMelonStepStalledTicks = 0;
         pumpkinMelonStepTicks = 0;
+        pumpkinMelonStepTargetDistance = targetDistance;
     }
 
     private static boolean pumpkinMelonStepDone(LocalPlayer player) {
@@ -740,7 +747,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonStepLastZ = player.getZ();
         if (tickDx * tickDx + tickDz * tickDz < 0.0001) pumpkinMelonStepStalledTicks++;
         else pumpkinMelonStepStalledTicks = 0;
-        return dx * dx + dz * dz >= FARMING_ONE_BLOCK_DISTANCE * FARMING_ONE_BLOCK_DISTANCE
+        return dx * dx + dz * dz >= pumpkinMelonStepTargetDistance * pumpkinMelonStepTargetDistance
                 || pumpkinMelonStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
@@ -1388,7 +1395,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RIGHT_FORWARD_ONE,
         END_RIGHT_ONE,
         RETURN_BACK_TO_START,
-        RETURN_BACK_ONE,
+        RETURN_BACK_TWO,
         RETURN_LEFT_ONE,
         RETURN_FORWARD_ONE
     }
