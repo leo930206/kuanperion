@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.52] - 2026-10-16
+
+### Changed
+
+- `Pumpkim & Melon` startup now holds the forward input for 10 ticks (about half a second, approximately one normal walking block) before beginning continuous leftward harvesting, regardless of whether collision allows actual movement.
+
 ## [1.0.51] - 2026-10-16
 
 ### Changed

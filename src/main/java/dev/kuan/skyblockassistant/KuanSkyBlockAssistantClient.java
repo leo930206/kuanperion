@@ -75,6 +75,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int FARM_TURN_RESUME_TICKS = 10;
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
     private static final double FARMING_ONE_BLOCK_DISTANCE = 0.9;
+    private static final int PUMPKIN_MELON_START_FORWARD_TICKS = 10;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
@@ -581,7 +582,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         switch (pumpkinMelonState) {
             case START_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                pumpkinMelonStepTicks++;
+                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS) {
+                    pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                }
             }
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
