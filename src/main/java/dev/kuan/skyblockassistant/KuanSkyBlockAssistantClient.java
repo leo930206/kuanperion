@@ -46,7 +46,6 @@ import java.io.FileOutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -65,7 +64,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
-    private static final Map<FarmingCrop, FarmingBlockProfile> FARMING_BLOCK_PROFILES = new EnumMap<>(FarmingCrop.class);
+    private static final FarmingBlockProfile FARMING_BLOCK_PROFILE = new FarmingBlockProfile();
     private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
@@ -107,10 +106,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double farmingLastZ = 0.0;
     private static int farmingStuckSampleTicks = 0;
     private static int farmingMarkerIgnoreTicks = 0;
-    private static int farmingHarvestMissingTicks = 0;
-    private static MushroomColor farmingMushroomStartColor = MushroomColor.UNKNOWN;
-    private static BlockPos farmingMushroomProbePos = null;
-    private static MushroomColor farmingMushroomProbeColor = MushroomColor.UNKNOWN;
+    private static boolean farmingCropDetected = false;
+    private static BlockPos farmingCropProbePos = null;
+    private static String farmingCropProbeBlock = "";
+    private static int farmingCropProbeTicks = 0;
     private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
     private static double pumpkinMelonStepStartX = 0.0;
     private static double pumpkinMelonStepStartZ = 0.0;
@@ -221,9 +220,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
-            if (farmingCrop != FarmingCrop.MUSHROOM) {
-                say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，作物："), cropName(farmingCrop.label));
-            }
+            say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，正在敲擊前方作物以自動辨識"));
         }
         saveConfig();
     }
@@ -249,11 +246,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStuckTicks = 0;
         farmingStuckSampleTicks = 0;
         farmingMarkerIgnoreTicks = 0;
-        farmingHarvestMissingTicks = 0;
-        farmingMushroomStartColor = MushroomColor.UNKNOWN;
-        farmingMushroomProbePos = null;
-        farmingMushroomProbeColor = MushroomColor.UNKNOWN;
-        pumpkinMelonState = farmingCrop == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
+        farmingCropDetected = false;
+        farmingCropProbePos = null;
+        farmingCropProbeBlock = "";
+        farmingCropProbeTicks = 0;
+        pumpkinMelonState = PumpkinMelonState.INACTIVE;
         pumpkinMelonStepTicks = 0;
         pumpkinMelonMarkerCleared = false;
         farmingAutoRecovering = false;
@@ -283,29 +280,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return;
         }
         LocalPlayer player = mc.player;
+        if (probeStartingCrop(mc, player)) return;
         FarmingBlockProfile blockProfile = farmingProfile();
-        if (blockProfile.harvestDetection) {
-            if (isStandingOnConfiguredBlock(mc, player, blockProfile.harvestBlock)) {
-                farmingHarvestMissingTicks = 0;
-            } else {
-                releaseFarmingKeys(mc);
-                farmingHarvestMissingTicks++;
-                if (farmingHarvestMissingTicks >= 60) {
-                    say(mc, plain("Auto "), feature("Farming"), plain(" "), error("已關閉"), plain("：連續 3 秒未站在採集方塊上"));
-                    stopFarming(mc, false);
-                    saveConfig();
-                }
-                return;
-            }
-        } else {
-            farmingHarvestMissingTicks = 0;
-        }
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingCrop == FarmingCrop.PUMPKIN_MELON) {
             tickPumpkinMelon(mc, player, blockProfile);
             return;
         }
-        if (probeStartingMushroom(mc, player)) return;
         if (farmingReturningToStart) {
             setAttackKey(mc, false);
             if (blockProfile.startDetection && isConfiguredBlockNear(mc, player, blockProfile.startBlock)) {
@@ -554,27 +535,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         FarmingBlockProfile profile = farmingProfile();
         if (mode == FarmingSelectMode.ROW) {
             profile.rowBlock = name;
-            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 換行方塊已設定："), blockName(name));
+            say(mc, feature("Farming"), plain(" 共用換行方塊已設定："), blockName(name));
         } else if (mode == FarmingSelectMode.START) {
             profile.startBlock = name;
-            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 開始方塊已設定："), blockName(name));
+            say(mc, feature("Farming"), plain(" 共用開始方塊已設定："), blockName(name));
         } else if (mode == FarmingSelectMode.END) {
             profile.endBlock = name;
-            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 結束方塊已設定："), blockName(name));
-        } else if (mode == FarmingSelectMode.HARVEST) {
-            profile.harvestBlock = name;
-            say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 採集方塊已設定："), blockName(name));
+            say(mc, feature("Farming"), plain(" 共用結束方塊已設定："), blockName(name));
         }
     }
 
     private static boolean isConfiguredBlockNear(Minecraft mc, LocalPlayer player, String blockId) {
         if (blockId == null || blockId.isBlank()) return false;
         return isBlockNear(mc, player, blockId, 1, 0, 1);
-    }
-
-    private static boolean isStandingOnConfiguredBlock(Minecraft mc, LocalPlayer player, String blockId) {
-        if (mc.level == null || blockId == null || blockId.isBlank()) return false;
-        return blockMatches(blockId(mc.level.getBlockState(player.blockPosition().below())), blockId);
     }
 
     private static void tickPumpkinMelon(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
@@ -585,29 +558,47 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 pumpkinMelonStepTicks++;
                 if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    announcePumpkinAction(mc, "開始持續往左採集");
                 }
             }
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
-                    pumpkinMelonState = PumpkinMelonState.LEFT_FORWARD_TO_SECOND_MARKER;
-                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_EXTRA_ONE);
+                    announcePumpkinAction(mc, "原本往左，先繼續往左一格");
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                }
+            }
+            case LEFT_EXTRA_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_TO_SECOND_MARKER);
+                    announcePumpkinAction(mc, "左移完成，按住往前並尋找第二個換行方塊");
                 }
             }
             case LEFT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonReachedSecondMarker(mc, player, profile)) {
+                pumpkinMelonStepTicks++;
+                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS && findFarmingMarkerBlock(mc, player) != null) {
+                    announcePumpkinAction(mc, "再次偵測到換行方塊，往右一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_ONE);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 }
             }
             case RIGHT_ONE -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_ONE);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_ONE);
+                    announcePumpkinAction(mc, "右移完成，往前一格");
+                }
             }
             case LEFT_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_RIGHT;
+                if (pumpkinMelonStepDone(player)) {
+                    pumpkinMelonState = PumpkinMelonState.HARVEST_RIGHT;
+                    announcePumpkinAction(mc, "開始持續往右採集");
+                }
             }
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
@@ -616,61 +607,74 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 } else if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
-                    pumpkinMelonState = PumpkinMelonState.RIGHT_FORWARD_TO_SECOND_MARKER;
-                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_EXTRA_ONE);
+                    announcePumpkinAction(mc, "原本往右，先繼續往右一格");
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                }
+            }
+            case RIGHT_EXTRA_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_TO_SECOND_MARKER);
+                    announcePumpkinAction(mc, "右移完成，按住往前並尋找第二個換行方塊");
                 }
             }
             case RIGHT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonReachedSecondMarker(mc, player, profile)) {
+                pumpkinMelonStepTicks++;
+                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS && findFarmingMarkerBlock(mc, player) != null) {
+                    announcePumpkinAction(mc, "再次偵測到換行方塊，往左一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_ONE);
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 }
             }
             case LEFT_ONE -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_ONE);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_ONE);
+                    announcePumpkinAction(mc, "左移完成，往前一格");
+                }
             }
             case RIGHT_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                if (pumpkinMelonStepDone(player)) {
+                    pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    announcePumpkinAction(mc, "開始持續往左採集");
+                }
             }
             case RETURN_BACK_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
                     say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_ONE);
+                    announcePumpkinAction(mc, "往後一格");
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
             }
             case RETURN_BACK_ONE -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
-                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
+                    announcePumpkinAction(mc, "往左一格");
+                }
             }
             case RETURN_LEFT_ONE -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_FORWARD_ONE);
+                if (pumpkinMelonStepDone(player)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_FORWARD_ONE);
+                    announcePumpkinAction(mc, "往前一格");
+                }
             }
             case RETURN_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                if (pumpkinMelonStepDone(player)) {
+                    pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    announcePumpkinAction(mc, "返回循環起點，開始持續往左採集");
+                }
             }
             case INACTIVE -> { }
         }
-    }
-
-    private static boolean pumpkinMelonReachedSecondMarker(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
-        if (!profile.rowDetection) return false;
-        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
-        if (!pumpkinMelonMarkerCleared) {
-            if (!markerPresent) pumpkinMelonMarkerCleared = true;
-            return false;
-        }
-        if (markerPresent) {
-            pumpkinMelonMarkerCleared = false;
-            return true;
-        }
-        return false;
     }
 
     private static boolean pumpkinMelonLaneMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
@@ -702,32 +706,60 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 || pumpkinMelonStepTicks >= 20;
     }
 
-    private static boolean probeStartingMushroom(Minecraft mc, LocalPlayer player) {
-        if (farmingCrop != FarmingCrop.MUSHROOM || farmingMushroomStartColor != MushroomColor.UNKNOWN) return false;
+    private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
+        if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
-        if (farmingMushroomProbePos != null) {
-            MushroomColor current = MushroomColor.fromBlockId(blockId(mc.level.getBlockState(farmingMushroomProbePos)));
-            if (current != farmingMushroomProbeColor) {
-                farmingMushroomStartColor = farmingMushroomProbeColor;
-                farmingReverseLane = farmingMushroomStartColor == MushroomColor.BROWN;
-                farmingMushroomProbePos = null;
-                farmingMushroomProbeColor = MushroomColor.UNKNOWN;
-                say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，方向確認："),
-                        cropName(farmingMushroomStartColor == MushroomColor.RED ? "Red Mushroom" : "Brown Mushroom"));
+        farmingCropProbeTicks++;
+        if (farmingCropProbePos != null) {
+            String current = blockId(mc.level.getBlockState(farmingCropProbePos));
+            if (!current.equals(farmingCropProbeBlock)) {
+                FarmingCrop detected = FarmingCrop.fromBlockId(farmingCropProbeBlock);
+                if (detected == null) {
+                    say(mc, feature("Farming"), plain(" 無法辨識作物："), blockName(farmingCropProbeBlock), error("，已關閉"));
+                    stopFarming(mc, false);
+                    saveConfig();
+                    return true;
+                }
+                farmingCrop = detected;
+                farmingCropDetected = true;
+                farmingReverseLane = false;
+                farmingCropProbePos = null;
+                pumpkinMelonState = detected == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
+                pumpkinMelonStepTicks = 0;
+                pumpkinMelonMarkerCleared = false;
+                pumpkinMelonStepStartX = player.getX();
+                pumpkinMelonStepStartZ = player.getZ();
+                MushroomColor mushroom = MushroomColor.fromBlockId(farmingCropProbeBlock);
+                if (detected == FarmingCrop.MUSHROOM) {
+                    farmingReverseLane = mushroom == MushroomColor.BROWN;
+                    say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，方向確認："),
+                            cropName(mushroom == MushroomColor.BROWN ? "Brown Mushroom" : "Red Mushroom"));
+                } else {
+                    say(mc, feature("Farming"), plain(" 自動偵測作物："), cropName(detected.label));
+                    if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "按住往前約一格的時間");
+                }
+                saveConfig();
                 return true;
             }
             setAttackKey(mc, true);
-            return true;
-        }
-        HitResult hit = player.pick(5.0, 0.0f, false);
-        if (hit instanceof BlockHitResult blockHit) {
-            BlockPos pos = blockHit.getBlockPos().immutable();
-            MushroomColor color = MushroomColor.fromBlockId(blockId(mc.level.getBlockState(pos)));
-            if (color != MushroomColor.UNKNOWN) {
-                farmingMushroomProbePos = pos;
-                farmingMushroomProbeColor = color;
-                setAttackKey(mc, true);
+        } else {
+            HitResult hit = player.pick(5.0, 0.0f, false);
+            if (hit instanceof BlockHitResult blockHit) {
+                BlockPos pos = blockHit.getBlockPos().immutable();
+                String id = blockId(mc.level.getBlockState(pos));
+                if (FarmingCrop.fromBlockId(id) != null) {
+                    farmingCropProbePos = pos;
+                    farmingCropProbeBlock = id;
+                    farmingCropProbeTicks = 0;
+                    say(mc, feature("Farming"), plain(" 正在辨識前方作物："), blockName(id));
+                    setAttackKey(mc, true);
+                }
             }
+        }
+        if (farmingCropProbeTicks >= 100) {
+            say(mc, feature("Farming"), error(" 無法偵測作物，已關閉"), plain("：請先將準星對準可破壞的作物"));
+            stopFarming(mc, false);
+            saveConfig();
         }
         return true;
     }
@@ -755,6 +787,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             lastFarmingMarkerMessage = marker;
             lastFarmingMarkerMessageTick = now;
         }
+    }
+
+    private static void announcePumpkinAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName(FarmingCrop.PUMPKIN_MELON.label), plain(" 動作："), warning(action));
     }
 
     private static int farmingTicksNow() {
@@ -1217,49 +1253,42 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void loadFarmingBlockProfiles(Properties p) {
-        FARMING_BLOCK_PROFILES.clear();
         String legacyRowBlock = p.getProperty("farmingMarkers", "").split(",", 2)[0].trim();
-        for (FarmingCrop crop : FarmingCrop.values()) {
-            String prefix = "farming." + crop.name() + ".";
-            FarmingBlockProfile profile = new FarmingBlockProfile();
-            boolean mushroom = crop == FarmingCrop.MUSHROOM;
-            profile.rowDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "rowDetection", mushroom ? p.getProperty("farmingTurnOnMarkers", "true") : "true"));
-            profile.startDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "startDetection", mushroom ? p.getProperty("farmingStartDetection", "true") : "true"));
-            profile.endDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "endDetection", mushroom ? p.getProperty("farmingEndDetection", "true") : "true"));
-            profile.harvestDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "harvestDetection", "false"));
-            profile.rowBlock = farmingProfileProperty(p, crop, "rowBlock", mushroom ? legacyRowBlock : "").trim();
-            profile.startBlock = farmingProfileProperty(p, crop, "startBlock", mushroom ? p.getProperty("farmingStartBlock", "") : "").trim();
-            profile.endBlock = farmingProfileProperty(p, crop, "endBlock", mushroom ? p.getProperty("farmingEndBlock", "") : "").trim();
-            profile.harvestBlock = farmingProfileProperty(p, crop, "harvestBlock", "").trim();
-            FARMING_BLOCK_PROFILES.put(crop, profile);
-        }
+        FARMING_BLOCK_PROFILE.rowDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "rowDetection", p.getProperty("farmingTurnOnMarkers", "true")));
+        FARMING_BLOCK_PROFILE.startDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "startDetection", p.getProperty("farmingStartDetection", "true")));
+        FARMING_BLOCK_PROFILE.endDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "endDetection", p.getProperty("farmingEndDetection", "true")));
+        FARMING_BLOCK_PROFILE.rowBlock = sharedFarmingBlock(p, "rowBlock", legacyRowBlock);
+        FARMING_BLOCK_PROFILE.startBlock = sharedFarmingBlock(p, "startBlock", p.getProperty("farmingStartBlock", ""));
+        FARMING_BLOCK_PROFILE.endBlock = sharedFarmingBlock(p, "endBlock", p.getProperty("farmingEndBlock", ""));
     }
 
-    private static String farmingProfileProperty(Properties p, FarmingCrop crop, String suffix, String fallback) {
-        String currentKey = "farming." + crop.name() + "." + suffix;
-        if (p.containsKey(currentKey)) return p.getProperty(currentKey, fallback);
-        if (crop == FarmingCrop.PUMPKIN_MELON) {
-            String pumpkinKey = "farming.PUMPKIN." + suffix;
-            if (p.containsKey(pumpkinKey)) return p.getProperty(pumpkinKey, fallback);
-            String melonKey = "farming.MELON." + suffix;
-            if (p.containsKey(melonKey)) return p.getProperty(melonKey, fallback);
-        }
+    private static String sharedFarmingProperty(Properties p, String suffix, String fallback) {
+        String shared = "farming.shared." + suffix;
+        if (p.containsKey(shared)) return p.getProperty(shared, fallback);
+        String selected = "farming." + farmingCrop.name() + "." + suffix;
+        if (p.containsKey(selected)) return p.getProperty(selected, fallback);
+        String mushroom = "farming.MUSHROOM." + suffix;
+        if (p.containsKey(mushroom)) return p.getProperty(mushroom, fallback);
         return fallback;
     }
 
-    private static void saveFarmingBlockProfiles(Properties p) {
+    private static String sharedFarmingBlock(Properties p, String suffix, String fallback) {
+        String value = sharedFarmingProperty(p, suffix, fallback).trim();
+        if (!value.isBlank()) return value;
         for (FarmingCrop crop : FarmingCrop.values()) {
-            FarmingBlockProfile profile = FARMING_BLOCK_PROFILES.computeIfAbsent(crop, ignored -> new FarmingBlockProfile());
-            String prefix = "farming." + crop.name() + ".";
-            p.setProperty(prefix + "rowDetection", Boolean.toString(profile.rowDetection));
-            p.setProperty(prefix + "startDetection", Boolean.toString(profile.startDetection));
-            p.setProperty(prefix + "endDetection", Boolean.toString(profile.endDetection));
-            p.setProperty(prefix + "harvestDetection", Boolean.toString(profile.harvestDetection));
-            p.setProperty(prefix + "rowBlock", profile.rowBlock);
-            p.setProperty(prefix + "startBlock", profile.startBlock);
-            p.setProperty(prefix + "endBlock", profile.endBlock);
-            p.setProperty(prefix + "harvestBlock", profile.harvestBlock);
+            String old = p.getProperty("farming." + crop.name() + "." + suffix, "").trim();
+            if (!old.isBlank()) return old;
         }
+        return value;
+    }
+
+    private static void saveFarmingBlockProfiles(Properties p) {
+        p.setProperty("farming.shared.rowDetection", Boolean.toString(FARMING_BLOCK_PROFILE.rowDetection));
+        p.setProperty("farming.shared.startDetection", Boolean.toString(FARMING_BLOCK_PROFILE.startDetection));
+        p.setProperty("farming.shared.endDetection", Boolean.toString(FARMING_BLOCK_PROFILE.endDetection));
+        p.setProperty("farming.shared.rowBlock", FARMING_BLOCK_PROFILE.rowBlock);
+        p.setProperty("farming.shared.startBlock", FARMING_BLOCK_PROFILE.startBlock);
+        p.setProperty("farming.shared.endBlock", FARMING_BLOCK_PROFILE.endBlock);
     }
 
     private static int parseInt(String s, int fallback, int min, int max) {
@@ -1284,10 +1313,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         INACTIVE,
         START_FORWARD_ONE,
         HARVEST_LEFT,
+        LEFT_EXTRA_ONE,
         LEFT_FORWARD_TO_SECOND_MARKER,
         RIGHT_ONE,
         LEFT_FORWARD_ONE,
         HARVEST_RIGHT,
+        RIGHT_EXTRA_ONE,
         RIGHT_FORWARD_TO_SECOND_MARKER,
         LEFT_ONE,
         RIGHT_FORWARD_ONE,
@@ -1313,21 +1344,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
-    private enum FarmingSelectMode { NONE, ROW, START, END, HARVEST }
+    private enum FarmingSelectMode { NONE, ROW, START, END }
 
     private static FarmingBlockProfile farmingProfile() {
-        return FARMING_BLOCK_PROFILES.computeIfAbsent(farmingCrop, ignored -> new FarmingBlockProfile());
+        return FARMING_BLOCK_PROFILE;
     }
 
     private static final class FarmingBlockProfile {
         boolean rowDetection = true;
         boolean startDetection = true;
         boolean endDetection = true;
-        boolean harvestDetection = false;
         String rowBlock = "";
         String startBlock = "";
         String endBlock = "";
-        String harvestBlock = "";
     }
 
     private enum FarmingCrop {
@@ -1380,6 +1409,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             });
         }
 
+        static FarmingCrop fromBlockId(String id) {
+            if (id == null) return null;
+            return switch (id) {
+                case "minecraft:wheat" -> WHEAT;
+                case "minecraft:potatoes" -> POTATO;
+                case "minecraft:carrots" -> CARROT;
+                case "minecraft:nether_wart" -> NETHER_WART;
+                case "minecraft:cactus" -> CACTUS;
+                case "minecraft:sugar_cane" -> SUGAR_CANE;
+                case "minecraft:pumpkin", "minecraft:melon" -> PUMPKIN_MELON;
+                case "minecraft:cocoa" -> COCOA_BEAN;
+                case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
+                     "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> MUSHROOM;
+                default -> null;
+            };
+        }
+
         static FarmingCrop fromConfig(String value) {
             if (value == null) return WHEAT;
             String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
@@ -1428,20 +1474,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
             y += 28;
             FarmingBlockProfile blockProfile = farmingProfile();
-            addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("結束偵測", blockProfile.endDetection), b -> { blockProfile.endDetection = !blockProfile.endDetection; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("採集偵測", blockProfile.harvestDetection), b -> { blockProfile.harvestDetection = !blockProfile.harvestDetection; farmingHarvestMissingTicks = 0; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("結束偵測", blockProfile.endDetection), b -> { blockProfile.endDetection = !blockProfile.endDetection; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(Component.literal("換行方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.ROW)).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("採集方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.HARVEST)).bounds(x + 321, y, 99, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("換行方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.ROW)).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 290, y, 130, 20).build());
             y += 22;
-            addRenderableWidget(new StringWidget(x, y, 99, 12, Component.literal(shortBlockName(farmingMarkerSummary())), this.font));
-            addRenderableWidget(new StringWidget(x + 107, y, 99, 12, Component.literal(shortBlockName(blockProfile.startBlock)), this.font));
-            addRenderableWidget(new StringWidget(x + 214, y, 99, 12, Component.literal(shortBlockName(blockProfile.endBlock)), this.font));
-            addRenderableWidget(new StringWidget(x + 321, y, 99, 12, Component.literal(shortBlockName(blockProfile.harvestBlock)), this.font));
+            addRenderableWidget(new StringWidget(x, y, 130, 12, Component.literal(shortBlockName(farmingMarkerSummary())), this.font));
+            addRenderableWidget(new StringWidget(x + 145, y, 130, 12, Component.literal(shortBlockName(blockProfile.startBlock)), this.font));
+            addRenderableWidget(new StringWidget(x + 290, y, 130, 12, Component.literal(shortBlockName(blockProfile.endBlock)), this.font));
 
             y += 28;
             addSectionTitle("Mining", y);
@@ -1528,7 +1571,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 case ROW -> blockName("換行方塊");
                 case START -> blockName("開始方塊");
                 case END -> blockName("結束方塊");
-                case HARVEST -> blockName("採集方塊");
                 default -> plain("");
             };
             say(Minecraft.getInstance(), feature("Farming"), plain(" 方塊選擇：請右鍵選擇"), target);

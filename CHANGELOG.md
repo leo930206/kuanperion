@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.53] - 2026-10-16
+
+### Added
+
+- Farming now attacks the crop under the crosshair on every start, identifies the broken crop block, and automatically switches to the detected crop profile regardless of the previous menu selection.
+- Pumpkim & Melon now reports every row-change and return-state action in chat with the standard `[Kuan HSBA]` prefix.
+
+### Changed
+
+- Removed harvest-block detection and its settings controls. Row, start, and end blocks are now one shared configuration used by every crop, while crop-specific reactions remain separate.
+- Pumpkim & Melon now moves one additional block in its existing lateral direction immediately after the first row-marker detection, then continues the forward/second-marker sequence.
+- Pumpkim & Melon forward marker transitions use a minimum held-input duration and no longer appear idle while waiting to clear the first marker.
+
 ## [1.0.52] - 2026-10-16
 
 ### Changed
