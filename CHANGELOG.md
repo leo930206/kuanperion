@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.48] - 2026-10-15
+
+### Added
+
+- Added the dedicated `Pumpkim & Melon` Farming state machine with fixed yaw `90.0` and pitch `-57.0`.
+- Added distance-based one-block forward, backward, left, and right movement steps.
+- Added two-stage row-marker handling that requires leaving the first marker before the second marker can trigger.
+
+### Changed
+
+- Merged the separate Pumpkin and Melon crop choices into `Pumpkim & Melon`, using the pumpkin icon and migrating legacy Pumpkin/Melon block settings.
+- Pumpkim & Melon now holds attack during all normal harvesting and row-change steps, releases attack only between end-block and start-block detection, and ignores row markers during that return run.
+- After reaching the start block, the return sequence is back one block, left one block, forward one block, then continuous leftward harvesting.
+
 ## [1.0.47] - 2026-10-15
 
 ### Changed

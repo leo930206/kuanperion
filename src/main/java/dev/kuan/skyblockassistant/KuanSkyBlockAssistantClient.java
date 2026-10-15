@@ -73,6 +73,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
+    private static final double FARMING_ONE_BLOCK_DISTANCE = 0.9;
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
@@ -108,6 +109,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static MushroomColor farmingMushroomStartColor = MushroomColor.UNKNOWN;
     private static BlockPos farmingMushroomProbePos = null;
     private static MushroomColor farmingMushroomProbeColor = MushroomColor.UNKNOWN;
+    private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
+    private static double pumpkinMelonStepStartX = 0.0;
+    private static double pumpkinMelonStepStartZ = 0.0;
+    private static boolean pumpkinMelonMarkerCleared = false;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -230,6 +235,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingMushroomStartColor = MushroomColor.UNKNOWN;
         farmingMushroomProbePos = null;
         farmingMushroomProbeColor = MushroomColor.UNKNOWN;
+        pumpkinMelonState = farmingCrop == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
+        pumpkinMelonMarkerCleared = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -240,6 +247,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingLastX = mc.player.getX();
             farmingLastY = mc.player.getY();
             farmingLastZ = mc.player.getZ();
+            pumpkinMelonStepStartX = mc.player.getX();
+            pumpkinMelonStepStartZ = mc.player.getZ();
         }
     }
 
@@ -273,6 +282,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingHarvestMissingTicks = 0;
         }
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
+        if (farmingCrop == FarmingCrop.PUMPKIN_MELON) {
+            tickPumpkinMelon(mc, player, blockProfile);
+            return;
+        }
         if (probeStartingMushroom(mc, player)) return;
         if (farmingReturningToStart) {
             setAttackKey(mc, false);
@@ -539,6 +552,125 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean isStandingOnConfiguredBlock(Minecraft mc, LocalPlayer player, String blockId) {
         if (mc.level == null || blockId == null || blockId.isBlank()) return false;
         return blockMatches(blockId(mc.level.getBlockState(player.blockPosition().below())), blockId);
+    }
+
+    private static void tickPumpkinMelon(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (pumpkinMelonState == PumpkinMelonState.INACTIVE) beginPumpkinMelonStep(player, PumpkinMelonState.START_FORWARD_ONE);
+        switch (pumpkinMelonState) {
+            case START_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+            }
+            case HARVEST_LEFT -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
+                    pumpkinMelonState = PumpkinMelonState.LEFT_FORWARD_TO_SECOND_MARKER;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                }
+            }
+            case LEFT_FORWARD_TO_SECOND_MARKER -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonReachedSecondMarker(mc, player, profile)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_ONE);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                }
+            }
+            case RIGHT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_ONE);
+            }
+            case LEFT_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_RIGHT;
+            }
+            case HARVEST_RIGHT -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, "Farming 偵測到結束方塊：" + profile.endBlock + "，停止採集並往後尋找開始方塊");
+                    pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
+                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                } else if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
+                    pumpkinMelonState = PumpkinMelonState.RIGHT_FORWARD_TO_SECOND_MARKER;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                }
+            }
+            case RIGHT_FORWARD_TO_SECOND_MARKER -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonReachedSecondMarker(mc, player, profile)) {
+                    beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_ONE);
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                }
+            }
+            case LEFT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_ONE);
+            }
+            case RIGHT_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+            }
+            case RETURN_BACK_TO_START -> {
+                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, "Farming 偵測到開始方塊：" + profile.startBlock);
+                    beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_ONE);
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                }
+            }
+            case RETURN_BACK_ONE -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
+            }
+            case RETURN_LEFT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (pumpkinMelonStepDone(player)) beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_FORWARD_ONE);
+            }
+            case RETURN_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (pumpkinMelonStepDone(player)) pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean pumpkinMelonReachedSecondMarker(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!pumpkinMelonMarkerCleared) {
+            if (!markerPresent) pumpkinMelonMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            pumpkinMelonMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean pumpkinMelonLaneMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!pumpkinMelonMarkerCleared) {
+            if (!markerPresent) pumpkinMelonMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            pumpkinMelonMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginPumpkinMelonStep(LocalPlayer player, PumpkinMelonState state) {
+        pumpkinMelonState = state;
+        pumpkinMelonStepStartX = player.getX();
+        pumpkinMelonStepStartZ = player.getZ();
+    }
+
+    private static boolean pumpkinMelonStepDone(LocalPlayer player) {
+        double dx = player.getX() - pumpkinMelonStepStartX;
+        double dz = player.getZ() - pumpkinMelonStepStartZ;
+        return dx * dx + dz * dz >= FARMING_ONE_BLOCK_DISTANCE * FARMING_ONE_BLOCK_DISTANCE;
     }
 
     private static boolean probeStartingMushroom(Minecraft mc, LocalPlayer player) {
@@ -1009,16 +1141,28 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             String prefix = "farming." + crop.name() + ".";
             FarmingBlockProfile profile = new FarmingBlockProfile();
             boolean mushroom = crop == FarmingCrop.MUSHROOM;
-            profile.rowDetection = Boolean.parseBoolean(p.getProperty(prefix + "rowDetection", mushroom ? p.getProperty("farmingTurnOnMarkers", "true") : "true"));
-            profile.startDetection = Boolean.parseBoolean(p.getProperty(prefix + "startDetection", mushroom ? p.getProperty("farmingStartDetection", "true") : "true"));
-            profile.endDetection = Boolean.parseBoolean(p.getProperty(prefix + "endDetection", mushroom ? p.getProperty("farmingEndDetection", "true") : "true"));
-            profile.harvestDetection = Boolean.parseBoolean(p.getProperty(prefix + "harvestDetection", "false"));
-            profile.rowBlock = p.getProperty(prefix + "rowBlock", mushroom ? legacyRowBlock : "").trim();
-            profile.startBlock = p.getProperty(prefix + "startBlock", mushroom ? p.getProperty("farmingStartBlock", "") : "").trim();
-            profile.endBlock = p.getProperty(prefix + "endBlock", mushroom ? p.getProperty("farmingEndBlock", "") : "").trim();
-            profile.harvestBlock = p.getProperty(prefix + "harvestBlock", "").trim();
+            profile.rowDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "rowDetection", mushroom ? p.getProperty("farmingTurnOnMarkers", "true") : "true"));
+            profile.startDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "startDetection", mushroom ? p.getProperty("farmingStartDetection", "true") : "true"));
+            profile.endDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "endDetection", mushroom ? p.getProperty("farmingEndDetection", "true") : "true"));
+            profile.harvestDetection = Boolean.parseBoolean(farmingProfileProperty(p, crop, "harvestDetection", "false"));
+            profile.rowBlock = farmingProfileProperty(p, crop, "rowBlock", mushroom ? legacyRowBlock : "").trim();
+            profile.startBlock = farmingProfileProperty(p, crop, "startBlock", mushroom ? p.getProperty("farmingStartBlock", "") : "").trim();
+            profile.endBlock = farmingProfileProperty(p, crop, "endBlock", mushroom ? p.getProperty("farmingEndBlock", "") : "").trim();
+            profile.harvestBlock = farmingProfileProperty(p, crop, "harvestBlock", "").trim();
             FARMING_BLOCK_PROFILES.put(crop, profile);
         }
+    }
+
+    private static String farmingProfileProperty(Properties p, FarmingCrop crop, String suffix, String fallback) {
+        String currentKey = "farming." + crop.name() + "." + suffix;
+        if (p.containsKey(currentKey)) return p.getProperty(currentKey, fallback);
+        if (crop == FarmingCrop.PUMPKIN_MELON) {
+            String pumpkinKey = "farming.PUMPKIN." + suffix;
+            if (p.containsKey(pumpkinKey)) return p.getProperty(pumpkinKey, fallback);
+            String melonKey = "farming.MELON." + suffix;
+            if (p.containsKey(melonKey)) return p.getProperty(melonKey, fallback);
+        }
+        return fallback;
     }
 
     private static void saveFarmingBlockProfiles(Properties p) {
@@ -1053,6 +1197,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private enum DirectionKey { FORWARD, BACK, LEFT, RIGHT }
+
+    private enum PumpkinMelonState {
+        INACTIVE,
+        START_FORWARD_ONE,
+        HARVEST_LEFT,
+        LEFT_FORWARD_TO_SECOND_MARKER,
+        RIGHT_ONE,
+        LEFT_FORWARD_ONE,
+        HARVEST_RIGHT,
+        RIGHT_FORWARD_TO_SECOND_MARKER,
+        LEFT_ONE,
+        RIGHT_FORWARD_ONE,
+        RETURN_BACK_TO_START,
+        RETURN_BACK_ONE,
+        RETURN_LEFT_ONE,
+        RETURN_FORWARD_ONE
+    }
 
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
@@ -1094,8 +1255,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         NETHER_WART("Nether Wart", 90.0f, 6.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         SUGAR_CANE("Sugar Cane", 135.0f, 0.0f, DirectionKey.BACK, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        MELON("Melon", 90.0f, 30.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        PUMPKIN("Pumpkin", 90.0f, 30.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
+        PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", -180.0f, -45.0f, DirectionKey.BACK, DirectionKey.FORWARD, "#dirt"),
         MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");
 
@@ -1118,7 +1278,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         String findDefaultMarker(Minecraft mc, LocalPlayer player) {
             if (this == COCOA_BEAN) return firstNear(mc, player, 1, 0, 1, "minecraft:glowstone", markerBlock);
             if (this == SUGAR_CANE) return firstNear(mc, player, 1, 0, 0, markerBlock, "minecraft:sea_lantern");
-            if (this == MELON || this == PUMPKIN || this == CACTUS || this == MUSHROOM) {
+            if (this == PUMPKIN_MELON || this == CACTUS || this == MUSHROOM) {
                 return firstNear(mc, player, 1, 0, 1, markerBlock, "#ladder", "#trapdoor");
             }
             return firstNear(mc, player, 1, 0, 0, markerBlock, "#trapdoor");
@@ -1132,8 +1292,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 case NETHER_WART -> Items.NETHER_WART;
                 case CACTUS -> Items.CACTUS;
                 case SUGAR_CANE -> Items.SUGAR_CANE;
-                case MELON -> Items.MELON;
-                case PUMPKIN -> Items.PUMPKIN;
+                case PUMPKIN_MELON -> Items.PUMPKIN;
                 case COCOA_BEAN -> Items.COCOA_BEANS;
                 case MUSHROOM -> Items.RED_MUSHROOM;
             });
@@ -1144,6 +1303,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
             if ("NETHERWART".equals(normalized)) normalized = "NETHER_WART";
             if ("COCOA".equals(normalized) || "COCOA_BEANS".equals(normalized)) normalized = "COCOA_BEAN";
+            if ("MELON".equals(normalized) || "PUMPKIN".equals(normalized) || "PUMPKIN_AND_MELON".equals(normalized) || "PUMPKIM_&_MELON".equals(normalized)) normalized = "PUMPKIN_MELON";
             if ("RED_MUSH".equals(normalized) || "RED_MUSHROOM".equals(normalized) || "BROWN_MUSH".equals(normalized) || "BROWN_MUSHROOM".equals(normalized)) normalized = "MUSHROOM";
             for (FarmingCrop crop : values()) if (crop.name().equals(normalized) || crop.label.toUpperCase(Locale.ROOT).replace(' ', '_').equals(normalized)) return crop;
             return WHEAT;
