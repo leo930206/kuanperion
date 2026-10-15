@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.46] - 2026-10-15
+
+### Changed
+
+- Moved the Farming settings section above Mining.
+- Centered the Farming and Mining section headings horizontally.
+- Added a blank-line gap between settings sections for clearer separation.
+
 ## [1.0.45] - 2026-10-15
 
 ### Changed

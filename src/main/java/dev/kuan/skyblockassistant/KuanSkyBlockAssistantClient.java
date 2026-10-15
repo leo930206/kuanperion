@@ -1184,7 +1184,36 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         protected void init() {
             int x = (this.width - 420) / 2;
             int y = 28;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Mining ────────"), this.font));
+
+            addSectionTitle("Farming", y);
+            y += 22;
+            addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new CropSelectionScreen(this))).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            y += 28;
+            addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Hub 回傳", hubReturnEnabled), b -> { hubReturnEnabled = !hubReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Lobby 回傳", lobbyReturnEnabled), b -> { lobbyReturnEnabled = !lobbyReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
+            y += 28;
+            FarmingBlockProfile blockProfile = farmingProfile();
+            addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("結束偵測", blockProfile.endDetection), b -> { blockProfile.endDetection = !blockProfile.endDetection; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("採集偵測", blockProfile.harvestDetection), b -> { blockProfile.harvestDetection = !blockProfile.harvestDetection; farmingHarvestMissingTicks = 0; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
+            y += 28;
+            addRenderableWidget(Button.builder(Component.literal("換行方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.ROW)).bounds(x, y, 99, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 107, y, 99, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 214, y, 99, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("採集方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.HARVEST)).bounds(x + 321, y, 99, 20).build());
+            y += 22;
+            addRenderableWidget(new StringWidget(x, y, 99, 12, Component.literal(shortBlockName(farmingMarkerSummary())), this.font));
+            addRenderableWidget(new StringWidget(x + 107, y, 99, 12, Component.literal(shortBlockName(blockProfile.startBlock)), this.font));
+            addRenderableWidget(new StringWidget(x + 214, y, 99, 12, Component.literal(shortBlockName(blockProfile.endBlock)), this.font));
+            addRenderableWidget(new StringWidget(x + 321, y, 99, 12, Component.literal(shortBlockName(blockProfile.harvestBlock)), this.font));
+
+            y += 28;
+            addSectionTitle("Mining", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("選取模式", selectMode), b -> { selectMode = !selectMode; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
@@ -1216,46 +1245,22 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             }
             if (TARGET_BLOCKS.size() > maxRows) {
                 addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("... 還有 " + (TARGET_BLOCKS.size() - maxRows) + " 個"), this.font));
-                y += 18;
             }
-            y += 12;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("──────── Farming ────────"), this.font));
-            y += 20;
-            addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("作物：" + farmingCrop.label), b -> Minecraft.getInstance().setScreenAndShow(new CropSelectionScreen(this))).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
-            y += 28;
+
             int webhookY = this.height - 34;
-            int webhookInputX = 130;
-            int webhookInputWidth = 300;
             addRenderableWidget(new StringWidget(20, webhookY + 5, 110, 12, Component.literal("Discord Webhook:"), this.font));
-            EditBox webhookBox = new EditBox(this.font, webhookInputX, webhookY, webhookInputWidth, 20, Component.literal("Discord Webhook"));
+            EditBox webhookBox = new EditBox(this.font, 130, webhookY, 300, 20, Component.literal("Discord Webhook"));
             webhookBox.setMaxLength(300);
             webhookBox.setValue(pestWebhookUrl == null ? "" : pestWebhookUrl);
             webhookBox.setResponder(value -> { pestWebhookUrl = value.trim(); saveConfig(); });
             addRenderableWidget(webhookBox);
-            addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Hub 回傳", hubReturnEnabled), b -> { hubReturnEnabled = !hubReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Lobby 回傳", lobbyReturnEnabled), b -> { lobbyReturnEnabled = !lobbyReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
-            y += 28;
-            FarmingBlockProfile blockProfile = farmingProfile();
-            addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("結束偵測", blockProfile.endDetection), b -> { blockProfile.endDetection = !blockProfile.endDetection; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("採集偵測", blockProfile.harvestDetection), b -> { blockProfile.harvestDetection = !blockProfile.harvestDetection; farmingHarvestMissingTicks = 0; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
-            y += 28;
-            addRenderableWidget(Button.builder(Component.literal("換行方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.ROW)).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("採集方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.HARVEST)).bounds(x + 321, y, 99, 20).build());
-            y += 22;
-            addRenderableWidget(new StringWidget(x, y, 99, 12, Component.literal(shortBlockName(farmingMarkerSummary())), this.font));
-            addRenderableWidget(new StringWidget(x + 107, y, 99, 12, Component.literal(shortBlockName(blockProfile.startBlock)), this.font));
-            addRenderableWidget(new StringWidget(x + 214, y, 99, 12, Component.literal(shortBlockName(blockProfile.endBlock)), this.font));
-            addRenderableWidget(new StringWidget(x + 321, y, 99, 12, Component.literal(shortBlockName(blockProfile.harvestBlock)), this.font));
-            y = this.height - 34;
-            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, webhookY, 130, 20).build());
+        }
+
+        private void addSectionTitle(String label, int y) {
+            Component title = Component.literal("──────── " + label + " ────────");
+            int titleWidth = this.font.width(title);
+            addRenderableWidget(new StringWidget((this.width - titleWidth) / 2, y, titleWidth, 12, title, this.font));
         }
 
         private Component toggleMsg(String label, boolean on) {
