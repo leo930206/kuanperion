@@ -10,6 +10,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ItemDisplayWidget;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -24,6 +25,8 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Input;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -1480,6 +1483,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int x = (this.width - 420) / 2;
             int y = 28;
 
+            addFarmingSpeedList(x + 440, y);
+
             addSectionTitle("Farming", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
@@ -1554,6 +1559,37 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int titleWidth = this.font.width(title);
             addRenderableWidget(new StringWidget((this.width - titleWidth) / 2, y, titleWidth, 12, title, this.font));
         }
+
+        private void addFarmingSpeedList(int x, int y) {
+            addRenderableWidget(new StringWidget(x, y, 160, 12,
+                    Component.literal("Farming Speed：").withStyle(ChatFormatting.GOLD), this.font));
+
+            FarmingSpeedEntry[] entries = {
+                    new FarmingSpeedEntry("Wheat", "?", Items.WHEAT),
+                    new FarmingSpeedEntry("Carrot", "?", Items.CARROT),
+                    new FarmingSpeedEntry("Potato", "?", Items.POTATO),
+                    new FarmingSpeedEntry("Pumpkin", "400", Items.CARVED_PUMPKIN),
+                    new FarmingSpeedEntry("Melon", "400", Items.MELON_SLICE),
+                    new FarmingSpeedEntry("Sugar Cane", "?", Items.SUGAR_CANE),
+                    new FarmingSpeedEntry("Cactus", "?", Items.CACTUS),
+                    new FarmingSpeedEntry("Cocoa Beans", "?", Items.COCOA_BEANS),
+                    new FarmingSpeedEntry("Mushroom", "233", Items.RED_MUSHROOM),
+                    new FarmingSpeedEntry("Nether Wart", "?", Items.NETHER_WART),
+                    new FarmingSpeedEntry("Sunflower", "?", Items.SUNFLOWER),
+                    new FarmingSpeedEntry("Moonflower", "?", Items.BLUE_ORCHID),
+                    new FarmingSpeedEntry("Wild Rose", "?", Items.ROSE_BUSH)
+            };
+            for (int i = 0; i < entries.length; i++) {
+                FarmingSpeedEntry entry = entries[i];
+                int rowY = y + 17 + i * 19;
+                addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, rowY - 2, 18, 18,
+                        Component.literal(entry.crop), entry.icon.getDefaultInstance(), false, true));
+                addRenderableWidget(new StringWidget(x + 22, rowY + 2, 138, 12,
+                        Component.literal(entry.crop + "：" + entry.speed), this.font));
+            }
+        }
+
+        private record FarmingSpeedEntry(String crop, String speed, Item icon) {}
 
         private Component toggleMsg(String label, boolean on) {
             return Component.literal(label + "：")

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.61] - 2026-10-16
+
+### Added
+
+- Added a read-only `Farming Speed：` reference list with native item icons on the right side of the settings screen.
+- Listed all 13 crops separately; Pumpkin/Melon use `400`, Mushroom uses `233`, and unspecified speeds show `?`.
+
 ## [1.0.60] - 2026-10-16
 
 ### Fixed

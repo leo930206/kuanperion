@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.60`
+Current mod version: `1.0.61`
 
 ## Features
 
@@ -49,6 +49,7 @@ Current mod version: `1.0.60`
 - Farming holds the attack key and directly applies movement input every tick.
 - Farming pauses movement/attack while player inventory or chat is open, then continues when closed without turning Farming off.
 - Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages.
+- The right side of the settings screen shows a read-only 13-crop Farming Speed reference list with native item icons. Pumpkin/Melon are currently `400`, Mushroom is `233`, and speeds not supplied yet display `?`.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors for Farming/Mining features, status, crops, blocks, locations, commands, warnings, and errors.
 - Block names shown in chat omit the technical `minecraft:` namespace while retaining full IDs internally for matching and configuration.
@@ -64,7 +65,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.60.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.61.jar
 ```
 
 ## Maintenance rule
