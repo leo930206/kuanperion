@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.59] - 2026-10-16
+
+### Fixed
+
+- Added `minecraft:carved_pumpkin` as a Pumpkin crop representation for automatic crosshair detection.
+- Carved Pumpkin now selects the shared Pumpkin/Melon movement profile, reports `Pumpkin`, and validates against `Pumpkin Dicer`.
+
 ## [1.0.58] - 2026-10-16
 
 ### Changed

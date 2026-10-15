@@ -740,7 +740,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                             cropName(mushroom == MushroomColor.BROWN ? "Brown Mushroom" : "Red Mushroom"));
                 } else {
                     String detectedName = "minecraft:melon".equals(cropBlockId) ? "Melon"
-                            : "minecraft:pumpkin".equals(cropBlockId) ? "Pumpkin" : detected.label;
+                            : ("minecraft:pumpkin".equals(cropBlockId) || "minecraft:carved_pumpkin".equals(cropBlockId)) ? "Pumpkin" : detected.label;
                     say(mc, feature("Farming"), plain(" 準星作物辨識："), cropName(detectedName));
                     if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "按住往前約一格的時間");
                 }
@@ -769,7 +769,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
                  "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> "Fungi Cutter";
             case "minecraft:melon" -> "Melon Dicer";
-            case "minecraft:pumpkin" -> "Pumpkin Dicer";
+            case "minecraft:pumpkin", "minecraft:carved_pumpkin" -> "Pumpkin Dicer";
             default -> null;
         };
     }
@@ -1423,7 +1423,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 case "minecraft:nether_wart" -> NETHER_WART;
                 case "minecraft:cactus" -> CACTUS;
                 case "minecraft:sugar_cane" -> SUGAR_CANE;
-                case "minecraft:pumpkin", "minecraft:melon" -> PUMPKIN_MELON;
+                case "minecraft:pumpkin", "minecraft:carved_pumpkin", "minecraft:melon" -> PUMPKIN_MELON;
                 case "minecraft:cocoa" -> COCOA_BEAN;
                 case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
                      "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> MUSHROOM;
