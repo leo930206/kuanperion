@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.63] - 2026-10-16
+
+### Changed
+
+- Pumpkin/Melon now moves right by one block without attacking after detecting the end block, then begins moving backward toward the start block.
+
 ## [1.0.62] - 2026-10-16
 
 ### Fixed

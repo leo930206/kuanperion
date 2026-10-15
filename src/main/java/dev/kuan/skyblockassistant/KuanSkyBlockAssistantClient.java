@@ -614,9 +614,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock), warning("，停止採集並往後尋找開始方塊"));
-                    pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
-                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock), warning("，停止採集並先往右一格"));
+                    beginPumpkinMelonStep(player, PumpkinMelonState.END_RIGHT_ONE);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
                 } else if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
                     announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_EXTRA_ONE);
@@ -655,6 +655,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                     announcePumpkinAction(mc, "開始持續往左採集");
+                }
+            }
+            case END_RIGHT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
+                if (pumpkinMelonStepDone(player)) {
+                    pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
+                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                    announcePumpkinAction(mc, "右移完成，開始往後尋找開始方塊");
                 }
             }
             case RETURN_BACK_TO_START -> {
@@ -1367,6 +1375,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RIGHT_FORWARD_TO_SECOND_MARKER,
         LEFT_ONE,
         RIGHT_FORWARD_ONE,
+        END_RIGHT_ONE,
         RETURN_BACK_TO_START,
         RETURN_BACK_ONE,
         RETURN_LEFT_ONE,
