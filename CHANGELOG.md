@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.42] - 2026-10-15
+
+### Changed
+
+- Lobby recovery now triggers from the held `Game Menu` item alone; the `Evacuating to Hub...` chat message is no longer required.
+- All recovery flows still require Farming to have been active and confirmed in Garden first.
+
 ## [1.0.41] - 2026-10-14
 
 ### Added

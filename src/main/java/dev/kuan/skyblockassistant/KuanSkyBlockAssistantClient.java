@@ -98,7 +98,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingResumeAfterRecovery = false;
     private static int farmingRecoveryScanTicks = 0;
     private static int limboChatSeenTick = -100000;
-    private static int lobbyEvacSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
     private static int farmingStuckTicks = 0;
     private static double farmingLastX = 0.0;
@@ -446,7 +445,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         List<String> lines = sidebarLines(mc);
         int now = farmingTicksNow();
         if (lines.isEmpty() && now - limboChatSeenTick <= 600) return FarmingLocation.LIMBO;
-        if (isHoldingGameMenu(mc) && now - lobbyEvacSeenTick <= 600) return FarmingLocation.LOBBY;
+        if (isHoldingGameMenu(mc)) return FarmingLocation.LOBBY;
         if (containsLine(lines, "The Garden") || containsLine(lines, "Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
         if (containsLine(lines, "Private Island") && containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
         if (containsLine(lines, "Hub")) return FarmingLocation.HUB;
@@ -850,13 +849,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             limboChatSeenTick = now;
             if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && limboReturnEnabled && sidebarLines(Minecraft.getInstance()).isEmpty()) {
                 startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO, 20);
-                return;
-            }
-        }
-        if (text.contains("Evacuating to Hub")) {
-            lobbyEvacSeenTick = now;
-            if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && lobbyReturnEnabled && isHoldingGameMenu(Minecraft.getInstance())) {
-                startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LOBBY, 80);
                 return;
             }
         }
