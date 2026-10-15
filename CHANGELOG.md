@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.57] - 2026-10-16
+
+### Changed
+
+- Simplified Farming crop detection to inspect the block directly under the crosshair without attacking or breaking it.
+- Pumpkin and Melon now report their exact detected type and use separate tool validation while continuing to share the `Pumpkim & Melon` movement profile.
+- Red and Brown Mushroom are identified directly from the aimed block and still select their respective initial Farming directions.
+
 ## [1.0.56] - 2026-10-16
 
 ### Fixed

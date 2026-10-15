@@ -109,9 +109,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingStuckSampleTicks = 0;
     private static int farmingMarkerIgnoreTicks = 0;
     private static boolean farmingCropDetected = false;
-    private static BlockPos farmingCropProbePos = null;
-    private static String farmingCropProbeBlock = "";
-    private static Direction farmingCropProbeFace = Direction.UP;
     private static int farmingCropProbeTicks = 0;
     private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
     private static double pumpkinMelonStepStartX = 0.0;
@@ -223,7 +220,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
-            say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，正在敲擊前方作物以自動辨識"));
+            say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，正在辨識準星指向的作物"));
         }
         saveConfig();
     }
@@ -237,7 +234,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingResumeAfterRecovery = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
         if (announce) sayAutoState(mc, "Farming", false);
     }
 
@@ -251,9 +247,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingStuckSampleTicks = 0;
         farmingMarkerIgnoreTicks = 0;
         farmingCropDetected = false;
-        farmingCropProbePos = null;
-        farmingCropProbeBlock = "";
-        farmingCropProbeFace = Direction.UP;
         farmingCropProbeTicks = 0;
         pumpkinMelonState = PumpkinMelonState.INACTIVE;
         pumpkinMelonStepTicks = 0;
@@ -713,25 +706,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
-        releaseFarmingMovementKeys(mc);
+        releaseFarmingKeys(mc);
         farmingCropProbeTicks++;
-        if (farmingCropProbePos != null) {
-            setAttackKey(mc, true);
-            if (mc.gameMode != null) {
-                mc.gameMode.continueDestroyBlock(farmingCropProbePos, farmingCropProbeFace);
-            }
-            if (farmingCropProbeTicks < 20) return true;
-            String current = blockId(mc.level.getBlockState(farmingCropProbePos));
-            if (!current.equals(farmingCropProbeBlock)) {
-                try { if (mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
-                FarmingCrop detected = FarmingCrop.fromBlockId(farmingCropProbeBlock);
-                if (detected == null) {
-                    say(mc, feature("Farming"), plain(" 無法辨識作物："), blockName(farmingCropProbeBlock), error("，已關閉"));
-                    stopFarming(mc, false);
-                    saveConfig();
-                    return true;
-                }
-                String expectedTool = expectedToolForCropBlock(farmingCropProbeBlock);
+        HitResult hit = mc.hitResult instanceof BlockHitResult ? mc.hitResult : player.pick(5.0, 0.0f, false);
+        if (hit instanceof BlockHitResult blockHit) {
+            String cropBlockId = blockId(mc.level.getBlockState(blockHit.getBlockPos()));
+            FarmingCrop detected = FarmingCrop.fromBlockId(cropBlockId);
+            if (detected != null) {
+                String expectedTool = expectedToolForCropBlock(cropBlockId);
                 if (farmingToolDetectionEnabled && expectedTool != null) {
                     String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
                     if (!heldTool.toLowerCase(Locale.ROOT).contains(expectedTool.toLowerCase(Locale.ROOT))) {
@@ -746,42 +728,28 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 farmingCrop = detected;
                 farmingCropDetected = true;
                 farmingReverseLane = false;
-                farmingCropProbePos = null;
                 pumpkinMelonState = detected == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
                 pumpkinMelonStepTicks = 0;
                 pumpkinMelonMarkerCleared = false;
                 pumpkinMelonStepStartX = player.getX();
                 pumpkinMelonStepStartZ = player.getZ();
-                MushroomColor mushroom = MushroomColor.fromBlockId(farmingCropProbeBlock);
+                MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
                     say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，方向確認："),
                             cropName(mushroom == MushroomColor.BROWN ? "Brown Mushroom" : "Red Mushroom"));
                 } else {
-                    say(mc, feature("Farming"), plain(" 自動偵測作物："), cropName(detected.label));
+                    String detectedName = "minecraft:melon".equals(cropBlockId) ? "Melon"
+                            : "minecraft:pumpkin".equals(cropBlockId) ? "Pumpkin" : detected.label;
+                    say(mc, feature("Farming"), plain(" 準星作物辨識："), cropName(detectedName));
                     if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "按住往前約一格的時間");
                 }
                 saveConfig();
                 return true;
             }
-        } else {
-            HitResult hit = mc.hitResult instanceof BlockHitResult ? mc.hitResult : player.pick(5.0, 0.0f, false);
-            if (hit instanceof BlockHitResult blockHit) {
-                BlockPos pos = blockHit.getBlockPos().immutable();
-                String id = blockId(mc.level.getBlockState(pos));
-                if (isAllowedTargetBlock(id)) {
-                    farmingCropProbePos = pos;
-                    farmingCropProbeBlock = id;
-                    farmingCropProbeFace = blockHit.getDirection();
-                    farmingCropProbeTicks = 0;
-                    say(mc, feature("Farming"), plain(" 正在辨識前方作物："), blockName(id));
-                    setAttackKey(mc, true);
-                    if (mc.gameMode != null) mc.gameMode.startDestroyBlock(pos, farmingCropProbeFace);
-                }
-            }
         }
         if (farmingCropProbeTicks >= 100) {
-            say(mc, feature("Farming"), error(" 無法偵測作物，已關閉"), plain("：請先將準星對準可破壞的作物"));
+            say(mc, feature("Farming"), error(" 無法辨識準星指向的作物，已關閉"), plain("：請將準星對準作物後再開啟"));
             stopFarming(mc, false);
             saveConfig();
         }
