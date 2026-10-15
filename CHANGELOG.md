@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.60] - 2026-10-16
+
+### Fixed
+
+- Changed every Pumpkim & Melon “one block” movement stage from fixed-time movement to an actual `1.0`-block displacement measurement, preventing high Speed from intentionally moving multiple blocks.
+- Blocked one-block actions now finish only after ten consecutive ticks without position progress, preserving the earlier blocked-movement fallback without shortening normal slow movement.
+
 ## [1.0.59] - 2026-10-16
 
 ### Fixed

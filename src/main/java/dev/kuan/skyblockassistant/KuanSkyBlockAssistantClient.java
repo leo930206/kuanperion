@@ -70,8 +70,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
-    private static final double FARMING_ONE_BLOCK_DISTANCE = 0.9;
-    private static final int PUMPKIN_MELON_START_FORWARD_TICKS = 10;
+    private static final double FARMING_ONE_BLOCK_DISTANCE = 1.0;
+    private static final int PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS = 10;
+    private static final int FARMING_BLOCKED_STEP_TICKS = 10;
     // Reserved for the flower crop profiles once their in-world block IDs and movement logic are configured.
     private static final String SUNFLOWER_TOOL_NAME = "Eclipse Sickle";
     private static final String MOONFLOWER_TOOL_NAME = "Eclipse Sickle";
@@ -113,6 +114,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static PumpkinMelonState pumpkinMelonState = PumpkinMelonState.INACTIVE;
     private static double pumpkinMelonStepStartX = 0.0;
     private static double pumpkinMelonStepStartZ = 0.0;
+    private static double pumpkinMelonStepLastX = 0.0;
+    private static double pumpkinMelonStepLastZ = 0.0;
+    private static int pumpkinMelonStepStalledTicks = 0;
     private static int pumpkinMelonStepTicks = 0;
     private static boolean pumpkinMelonMarkerCleared = false;
     private static boolean rotateToTarget = true;
@@ -263,6 +267,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingLastZ = mc.player.getZ();
             pumpkinMelonStepStartX = mc.player.getX();
             pumpkinMelonStepStartZ = mc.player.getZ();
+            pumpkinMelonStepLastX = mc.player.getX();
+            pumpkinMelonStepLastZ = mc.player.getZ();
+            pumpkinMelonStepStalledTicks = 0;
         }
     }
 
@@ -553,8 +560,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         switch (pumpkinMelonState) {
             case START_FORWARD_ONE -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                pumpkinMelonStepTicks++;
-                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS) {
+                if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
                     announcePumpkinAction(mc, "開始持續往左採集");
                 }
@@ -578,7 +584,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case LEFT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 pumpkinMelonStepTicks++;
-                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS && findFarmingMarkerBlock(mc, player) != null) {
+                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS && findFarmingMarkerBlock(mc, player) != null) {
                     announcePumpkinAction(mc, "再次偵測到換行方塊，往右一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_ONE);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
@@ -621,7 +627,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case RIGHT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 pumpkinMelonStepTicks++;
-                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_START_FORWARD_TICKS && findFarmingMarkerBlock(mc, player) != null) {
+                if (pumpkinMelonStepTicks >= PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS && findFarmingMarkerBlock(mc, player) != null) {
                     announcePumpkinAction(mc, "再次偵測到換行方塊，往左一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_ONE);
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
@@ -693,6 +699,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonState = state;
         pumpkinMelonStepStartX = player.getX();
         pumpkinMelonStepStartZ = player.getZ();
+        pumpkinMelonStepLastX = player.getX();
+        pumpkinMelonStepLastZ = player.getZ();
+        pumpkinMelonStepStalledTicks = 0;
         pumpkinMelonStepTicks = 0;
     }
 
@@ -700,8 +709,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonStepTicks++;
         double dx = player.getX() - pumpkinMelonStepStartX;
         double dz = player.getZ() - pumpkinMelonStepStartZ;
+        double tickDx = player.getX() - pumpkinMelonStepLastX;
+        double tickDz = player.getZ() - pumpkinMelonStepLastZ;
+        pumpkinMelonStepLastX = player.getX();
+        pumpkinMelonStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) pumpkinMelonStepStalledTicks++;
+        else pumpkinMelonStepStalledTicks = 0;
         return dx * dx + dz * dz >= FARMING_ONE_BLOCK_DISTANCE * FARMING_ONE_BLOCK_DISTANCE
-                || pumpkinMelonStepTicks >= 20;
+                || pumpkinMelonStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
@@ -728,11 +743,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 farmingCrop = detected;
                 farmingCropDetected = true;
                 farmingReverseLane = false;
-                pumpkinMelonState = detected == FarmingCrop.PUMPKIN_MELON ? PumpkinMelonState.START_FORWARD_ONE : PumpkinMelonState.INACTIVE;
-                pumpkinMelonStepTicks = 0;
                 pumpkinMelonMarkerCleared = false;
-                pumpkinMelonStepStartX = player.getX();
-                pumpkinMelonStepStartZ = player.getZ();
+                if (detected == FarmingCrop.PUMPKIN_MELON) beginPumpkinMelonStep(player, PumpkinMelonState.START_FORWARD_ONE);
+                else pumpkinMelonState = PumpkinMelonState.INACTIVE;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -742,7 +755,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     String detectedName = "minecraft:melon".equals(cropBlockId) ? "Melon"
                             : ("minecraft:pumpkin".equals(cropBlockId) || "minecraft:carved_pumpkin".equals(cropBlockId)) ? "Pumpkin" : detected.label;
                     say(mc, feature("Farming"), plain(" 準星作物辨識："), cropName(detectedName));
-                    if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "按住往前約一格的時間");
+                    if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "往前一格");
                 }
                 saveConfig();
                 return true;
