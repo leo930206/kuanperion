@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.62] - 2026-10-16
+
+### Fixed
+
+- Pumpkin/Melon one-block movement now replaces the old movement key immediately when a measured step completes, preventing an extra forward/backward movement tick.
+
 ## [1.0.61] - 2026-10-16
 
 ### Added

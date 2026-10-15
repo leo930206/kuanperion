@@ -565,6 +565,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                     announcePumpkinAction(mc, "開始持續往左採集");
                 }
             }
@@ -581,6 +582,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_TO_SECOND_MARKER);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                     announcePumpkinAction(mc, "左移完成，按住往前並尋找第二個換行方塊");
                 }
             }
@@ -597,6 +599,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_ONE);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                     announcePumpkinAction(mc, "右移完成，往前一格");
                 }
             }
@@ -604,6 +607,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_RIGHT;
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                     announcePumpkinAction(mc, "開始持續往右採集");
                 }
             }
@@ -624,6 +628,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_TO_SECOND_MARKER);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                     announcePumpkinAction(mc, "右移完成，按住往前並尋找第二個換行方塊");
                 }
             }
@@ -640,6 +645,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_ONE);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                     announcePumpkinAction(mc, "左移完成，往前一格");
                 }
             }
@@ -647,6 +653,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                     announcePumpkinAction(mc, "開始持續往左採集");
                 }
             }
@@ -663,6 +670,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                     announcePumpkinAction(mc, "往左一格");
                 }
             }
@@ -670,6 +678,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_FORWARD_ONE);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                     announcePumpkinAction(mc, "往前一格");
                 }
             }
@@ -677,6 +686,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                     announcePumpkinAction(mc, "返回循環起點，開始持續往左採集");
                 }
             }
