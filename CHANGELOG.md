@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.44] - 2026-10-15
+
+### Added
+
+- Added a fourth per-crop Farming block setting: harvest-block detection. Farming pauses when the player is not standing on the configured block and automatically turns off after 3 seconds.
+- Mushroom Farming now breaks and confirms one starting mushroom before moving; red uses the original direction and brown uses the post-row-switch direction.
+
+### Changed
+
+- Row, start, end, and harvest detection toggles and block choices are now stored independently for every crop profile. Existing legacy settings migrate to Mushroom.
+- Farming block controls now use four equal-width columns without increasing the original total width.
+
 ## [1.0.43] - 2026-10-15
 
 ### Changed

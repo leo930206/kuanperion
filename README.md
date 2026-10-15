@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.43`
+Current mod version: `1.0.44`
 
 ## Features
 
@@ -38,7 +38,9 @@ Current mod version: `1.0.43`
 - Crop profiles ported from the old `bobscript` Forge mod: Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Melon, Pumpkin, Cocoa Bean, and Mushroom.
 - Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
 - Configurable marker-based row switching: use the Farming settings 「偵測方塊」 button, then right-click a block to add it as a row-switch marker. If no custom marker is set, crop defaults such as quartz blocks, trapdoors, ladders, sea lanterns, dirt, and glowstone are used.
-- Farming supports separate row, start, and end detection blocks. End detection makes Farming stop harvesting, back up until the start block is found, shift right once, then resume forward harvesting.
+- Farming has independent per-crop row, start, end, and harvest block settings. End detection makes Farming stop harvesting, back up until the start block is found, shift right once, then resume forward harvesting.
+- When harvest-block detection is enabled, Farming only operates while standing on that crop profile’s configured harvest block. If the player remains off it for 3 seconds, Farming automatically turns off.
+- When Mushroom Farming starts, it first breaks one targeted mushroom to confirm its color. Red starts in the original direction; brown starts in the post-row-switch direction.
 - Farming auto-recovery has separate Island/Hub/Lobby/Limbo return toggles. Lobby recovery detects the held `Game Menu` item. After Farming has been confirmed in Garden, matching recovery conditions close Farming, return to Garden, run `/home`, then reopen Farming. Garden void-fall chat detection also closes Farming, runs `/home`, and reopens Farming.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
@@ -58,7 +60,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.43.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.44.jar
 ```
 
 ## Maintenance rule
