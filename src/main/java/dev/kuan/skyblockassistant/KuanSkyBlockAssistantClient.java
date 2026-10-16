@@ -1123,7 +1123,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cocoaState = CocoaState.HARVEST_FORWARD;
                     cocoaMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceCocoaAction(mc, "起始左移完成，開始向前採集");
+                    announceCocoaAction(mc, "左移一格完成，開始向前採集");
                 }
             }
             case HARVEST_FORWARD -> {
@@ -1186,11 +1186,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case RETURN_LEFT_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
-                    cocoaState = CocoaState.HARVEST_FORWARD;
-                    cocoaMarkerCleared = false;
-                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceCocoaAction(mc, "返回完成，重新向前採集");
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
+                            warning("，繼續往左一格"));
+                    beginCocoaStep(player, CocoaState.START_LEFT_ONE, DirectionKey.LEFT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 }
             }
             case INACTIVE -> { }

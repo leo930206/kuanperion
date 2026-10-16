@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.75] - 2026-10-16
+
+### Changed
+
+- Cocoa Bean farming now continues left for one measured block without attacking after detecting the start marker, then resumes forward harvesting with attack held.
+
 ## [1.0.74] - 2026-10-16
 
 ### Changed
