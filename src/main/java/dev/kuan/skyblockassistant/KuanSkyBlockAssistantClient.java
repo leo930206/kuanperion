@@ -829,11 +829,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         DirectionKey primary = rowCropPrimaryDirection();
         DirectionKey secondary = rowCropSecondaryDirection();
         if (rowCropState == RowCropState.INACTIVE) {
-            rowCropState = RowCropState.HARVEST_PRIMARY;
-            rowCropMarkerCleared = false;
+            beginRowCropStep(player, RowCropState.START_FORWARD_ONE);
         }
 
         switch (rowCropState) {
+            case START_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                if (rowCropStepDone(player, 1.0, 0.0)) {
+                    rowCropState = RowCropState.HARVEST_PRIMARY;
+                    rowCropMarkerCleared = false;
+                    applyFarmingInput(mc, primary, true, false);
+                    announceRowCropAction(mc, "起始前進完成，開始採集");
+                }
+            }
             case HARVEST_PRIMARY -> {
                 applyFarmingInput(mc, primary, true, false);
                 if (rowCropMarkerDetected(mc, player, profile)) {
@@ -1409,7 +1417,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 pumpkinMelonMarkerCleared = false;
                 if (detected == FarmingCrop.PUMPKIN_MELON) beginPumpkinMelonStep(player, PumpkinMelonState.START_FORWARD_ONE);
                 else pumpkinMelonState = PumpkinMelonState.INACTIVE;
-                rowCropState = isAlternatingRowCrop(detected) ? RowCropState.HARVEST_PRIMARY : RowCropState.INACTIVE;
+                if (isAlternatingRowCrop(detected)) {
+                    beginRowCropStep(player, RowCropState.START_FORWARD_ONE);
+                } else {
+                    rowCropState = RowCropState.INACTIVE;
+                }
                 rowCropMarkerCleared = false;
                 rowCropWaitTicks = 0;
                 sugarCaneState = detected == FarmingCrop.SUGAR_CANE ? SugarCaneState.HARVEST_LEFT : SugarCaneState.INACTIVE;
@@ -2057,6 +2069,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private enum RowCropState {
         INACTIVE,
+        START_FORWARD_ONE,
         HARVEST_PRIMARY,
         PRIMARY_EXTRA_ONE,
         PRIMARY_FORWARD_TWO,

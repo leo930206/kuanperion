@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.74] - 2026-10-16
+
+### Changed
+
+- Nether Wart, Wheat, Carrot, and Potato farming now move forward one measured block without attacking immediately after startup crop/tool detection, then begin their normal harvest direction.
+
 ## [1.0.73] - 2026-10-16
 
 ### Changed
