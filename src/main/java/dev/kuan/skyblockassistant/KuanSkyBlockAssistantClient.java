@@ -132,6 +132,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double rowCropStepLastZ = 0.0;
     private static int rowCropStepStalledTicks = 0;
     private static int rowCropWaitTicks = 0;
+    private static SugarCaneState sugarCaneState = SugarCaneState.INACTIVE;
+    private static boolean sugarCaneMarkerCleared = false;
+    private static double sugarCaneStepStartX = 0.0;
+    private static double sugarCaneStepStartZ = 0.0;
+    private static double sugarCaneStepLastX = 0.0;
+    private static double sugarCaneStepLastZ = 0.0;
+    private static double sugarCaneStepDirectionX = 0.0;
+    private static double sugarCaneStepDirectionZ = 0.0;
+    private static double sugarCaneStepTargetDistance = 0.0;
+    private static int sugarCaneStepStalledTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -271,6 +281,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         rowCropState = RowCropState.INACTIVE;
         rowCropMarkerCleared = false;
         rowCropWaitTicks = 0;
+        sugarCaneState = SugarCaneState.INACTIVE;
+        sugarCaneMarkerCleared = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -311,6 +323,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         if (isAlternatingRowCrop(farmingCrop)) {
             tickAlternatingRowCrop(mc, player, blockProfile);
+            return;
+        }
+        if (farmingCrop == FarmingCrop.SUGAR_CANE) {
+            tickSugarCane(mc, player, blockProfile);
             return;
         }
         if (farmingReturningToStart) {
@@ -931,6 +947,146 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 動作："), warning(action));
     }
 
+    private static void tickSugarCane(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (sugarCaneState == SugarCaneState.INACTIVE) {
+            sugarCaneState = SugarCaneState.HARVEST_LEFT;
+            sugarCaneMarkerCleared = false;
+        }
+
+        switch (sugarCaneState) {
+            case HARVEST_LEFT -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (sugarCaneMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginSugarCaneStep(player, SugarCaneState.FORWARD_FIVE, DirectionKey.FORWARD, 5.0);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceSugarCaneAction(mc, "偵測到換行方塊，往前五格");
+                }
+            }
+            case FORWARD_FIVE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (sugarCaneStepDone(player)) {
+                    beginSugarCaneStep(player, SugarCaneState.RIGHT_ONE, DirectionKey.RIGHT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceSugarCaneAction(mc, "前進完成，往右一格");
+                }
+            }
+            case RIGHT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (sugarCaneStepDone(player)) {
+                    sugarCaneState = SugarCaneState.HARVEST_BACK;
+                    sugarCaneMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                    announceSugarCaneAction(mc, "換行完成，開始後退採集");
+                }
+            }
+            case HARVEST_BACK -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
+                            warning("，停止採集並後退尋找開始方塊"));
+                    sugarCaneState = SugarCaneState.RETURN_TO_START;
+                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                } else if (sugarCaneMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginSugarCaneStep(player, SugarCaneState.RIGHT_SEVEN, DirectionKey.RIGHT, 7.0);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceSugarCaneAction(mc, "偵測到換行方塊，往右七格");
+                }
+            }
+            case RIGHT_SEVEN -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (sugarCaneStepDone(player)) {
+                    sugarCaneState = SugarCaneState.HARVEST_LEFT;
+                    sugarCaneMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceSugarCaneAction(mc, "換行完成，重新向左採集");
+                }
+            }
+            case RETURN_TO_START -> {
+                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
+                            warning("，繼續後退兩格"));
+                    beginSugarCaneStep(player, SugarCaneState.RETURN_BACK_TWO, DirectionKey.BACK, 2.0);
+                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                }
+            }
+            case RETURN_BACK_TWO -> {
+                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                if (sugarCaneStepDone(player)) {
+                    sugarCaneState = SugarCaneState.HARVEST_LEFT;
+                    sugarCaneMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceSugarCaneAction(mc, "返回完成，重新向左採集");
+                }
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean sugarCaneMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!sugarCaneMarkerCleared) {
+            if (!markerPresent) sugarCaneMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            sugarCaneMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginSugarCaneStep(LocalPlayer player, SugarCaneState state, DirectionKey direction,
+                                           double targetDistance) {
+        sugarCaneState = state;
+        sugarCaneStepStartX = player.getX();
+        sugarCaneStepStartZ = player.getZ();
+        sugarCaneStepLastX = player.getX();
+        sugarCaneStepLastZ = player.getZ();
+        sugarCaneStepStalledTicks = 0;
+        sugarCaneStepTargetDistance = targetDistance;
+        double yawRadians = Math.toRadians(farmingCrop.yaw);
+        switch (direction) {
+            case FORWARD -> {
+                sugarCaneStepDirectionX = -Math.sin(yawRadians);
+                sugarCaneStepDirectionZ = Math.cos(yawRadians);
+            }
+            case BACK -> {
+                sugarCaneStepDirectionX = Math.sin(yawRadians);
+                sugarCaneStepDirectionZ = -Math.cos(yawRadians);
+            }
+            case LEFT -> {
+                sugarCaneStepDirectionX = Math.cos(yawRadians);
+                sugarCaneStepDirectionZ = Math.sin(yawRadians);
+            }
+            case RIGHT -> {
+                sugarCaneStepDirectionX = -Math.cos(yawRadians);
+                sugarCaneStepDirectionZ = -Math.sin(yawRadians);
+            }
+        }
+    }
+
+    private static boolean sugarCaneStepDone(LocalPlayer player) {
+        double dx = player.getX() - sugarCaneStepStartX;
+        double dz = player.getZ() - sugarCaneStepStartZ;
+        double progress = dx * sugarCaneStepDirectionX + dz * sugarCaneStepDirectionZ;
+        double tickDx = player.getX() - sugarCaneStepLastX;
+        double tickDz = player.getZ() - sugarCaneStepLastZ;
+        sugarCaneStepLastX = player.getX();
+        sugarCaneStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) sugarCaneStepStalledTicks++;
+        else sugarCaneStepStalledTicks = 0;
+        return progress >= sugarCaneStepTargetDistance
+                || sugarCaneStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
+    }
+
+    private static void announceSugarCaneAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName("Sugar Cane"), plain(" 動作："), warning(action));
+    }
+
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
@@ -961,6 +1117,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 rowCropState = isAlternatingRowCrop(detected) ? RowCropState.HARVEST_PRIMARY : RowCropState.INACTIVE;
                 rowCropMarkerCleared = false;
                 rowCropWaitTicks = 0;
+                sugarCaneState = detected == FarmingCrop.SUGAR_CANE ? SugarCaneState.HARVEST_LEFT : SugarCaneState.INACTIVE;
+                sugarCaneMarkerCleared = false;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -1605,6 +1763,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         WAIT_ONE_SECOND
     }
 
+    private enum SugarCaneState {
+        INACTIVE,
+        HARVEST_LEFT,
+        FORWARD_FIVE,
+        RIGHT_ONE,
+        HARVEST_BACK,
+        RIGHT_SEVEN,
+        RETURN_TO_START,
+        RETURN_BACK_TWO
+    }
+
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
 
@@ -1642,7 +1811,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         CARROT("Carrot", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         NETHER_WART("Nether Wart", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        SUGAR_CANE("Sugar Cane", 135.0f, 0.0f, DirectionKey.BACK, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        SUGAR_CANE("Sugar Cane", 60.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", -180.0f, -45.0f, DirectionKey.BACK, DirectionKey.FORWARD, "#dirt"),
         MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");

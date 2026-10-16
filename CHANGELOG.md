@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.68] - 2026-10-16
+
+### Added
+
+- Added Sugar Cane automatic farming at fixed yaw `60` and pitch `0`.
+- Added its left harvest → forward five → right one → backward harvest → right seven loop while holding attack.
+- Sugar Cane start markers remain inactive until an end marker is detected during backward harvesting.
+- After the end marker, Sugar Cane releases attack, backs up to the start marker, continues backward two measured blocks, and restarts leftward harvesting.
+
 ## [1.0.67] - 2026-10-16
 
 ### Added
