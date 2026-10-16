@@ -12,10 +12,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ItemDisplayWidget;
 import net.minecraft.client.gui.components.StringWidget;
-import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -853,9 +850,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean isFarmingPauseScreen(Screen screen) {
-        return screen instanceof ChatScreen
-                || screen instanceof InventoryScreen
-                || screen instanceof CreativeModeInventoryScreen;
+        return screen != null;
     }
 
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {

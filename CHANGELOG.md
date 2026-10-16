@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.66] - 2026-10-16
+
+### Changed
+
+- Farming now pauses movement and attack whenever any GUI is open, including the Esc menu and settings screens, then resumes when the GUI closes.
+
 ## [1.0.65] - 2026-10-16
 
 ### Changed
