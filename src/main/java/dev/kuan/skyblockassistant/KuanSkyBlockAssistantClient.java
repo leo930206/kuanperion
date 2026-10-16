@@ -124,6 +124,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int pumpkinMelonStepTicks = 0;
     private static double pumpkinMelonStepTargetDistance = FARMING_ONE_BLOCK_DISTANCE;
     private static boolean pumpkinMelonMarkerCleared = false;
+    private static RowCropState rowCropState = RowCropState.INACTIVE;
+    private static boolean rowCropMarkerCleared = false;
+    private static double rowCropStepStartX = 0.0;
+    private static double rowCropStepStartZ = 0.0;
+    private static double rowCropStepLastX = 0.0;
+    private static double rowCropStepLastZ = 0.0;
+    private static int rowCropStepStalledTicks = 0;
+    private static int rowCropWaitTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -260,6 +268,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pumpkinMelonState = PumpkinMelonState.INACTIVE;
         pumpkinMelonStepTicks = 0;
         pumpkinMelonMarkerCleared = false;
+        rowCropState = RowCropState.INACTIVE;
+        rowCropMarkerCleared = false;
+        rowCropWaitTicks = 0;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -296,6 +307,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         lookAtFixed(player, farmingCrop.yaw, farmingCrop.pitch);
         if (farmingCrop == FarmingCrop.PUMPKIN_MELON) {
             tickPumpkinMelon(mc, player, blockProfile);
+            return;
+        }
+        if (isAlternatingRowCrop(farmingCrop)) {
+            tickAlternatingRowCrop(mc, player, blockProfile);
             return;
         }
         if (farmingReturningToStart) {
@@ -748,6 +763,174 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 || pumpkinMelonStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
+    private static boolean isAlternatingRowCrop(FarmingCrop crop) {
+        return crop == FarmingCrop.NETHER_WART || crop == FarmingCrop.CARROT
+                || crop == FarmingCrop.WHEAT || crop == FarmingCrop.POTATO;
+    }
+
+    private static DirectionKey rowCropPrimaryDirection() {
+        return farmingCrop == FarmingCrop.NETHER_WART || farmingCrop == FarmingCrop.CARROT
+                ? DirectionKey.RIGHT : DirectionKey.LEFT;
+    }
+
+    private static DirectionKey rowCropSecondaryDirection() {
+        return rowCropPrimaryDirection() == DirectionKey.RIGHT ? DirectionKey.LEFT : DirectionKey.RIGHT;
+    }
+
+    private static void tickAlternatingRowCrop(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        DirectionKey primary = rowCropPrimaryDirection();
+        DirectionKey secondary = rowCropSecondaryDirection();
+        if (rowCropState == RowCropState.INACTIVE) {
+            rowCropState = RowCropState.HARVEST_PRIMARY;
+            rowCropMarkerCleared = false;
+        }
+
+        switch (rowCropState) {
+            case HARVEST_PRIMARY -> {
+                applyFarmingInput(mc, primary, true, false);
+                if (rowCropMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginRowCropStep(player, RowCropState.PRIMARY_EXTRA_ONE);
+                    announceRowCropAction(mc, "偵測到換行方塊，沿原方向再走一格");
+                    applyFarmingInput(mc, primary, true, false);
+                }
+            }
+            case PRIMARY_EXTRA_ONE -> {
+                applyFarmingInput(mc, primary, true, false);
+                if (rowCropStepDone(player, 0.0, 1.0)) {
+                    beginRowCropStep(player, RowCropState.PRIMARY_FORWARD_TWO);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceRowCropAction(mc, "開始往前兩格");
+                }
+            }
+            case PRIMARY_FORWARD_TWO -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (rowCropStepDone(player, 2.0, 0.0)) {
+                    beginRowCropStep(player, RowCropState.PRIMARY_FORWARD_DIAGONAL);
+                    applyFarmingDiagonalInput(mc, secondary, true);
+                    announceRowCropAction(mc, "最後一格同時往前並轉向");
+                }
+            }
+            case PRIMARY_FORWARD_DIAGONAL -> {
+                applyFarmingDiagonalInput(mc, secondary, true);
+                if (rowCropStepDone(player, 1.0, 1.0)) {
+                    rowCropState = RowCropState.HARVEST_SECONDARY;
+                    rowCropMarkerCleared = false;
+                    applyFarmingInput(mc, secondary, true, false);
+                    announceRowCropAction(mc, "換行完成，開始反方向採集");
+                }
+            }
+            case HARVEST_SECONDARY -> {
+                applyFarmingInput(mc, secondary, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
+                            warning("，停止採集並沿原方向尋找開始方塊"));
+                    beginRowCropStep(player, RowCropState.END_EXTRA_ONE);
+                    applyFarmingInput(mc, secondary, false, false);
+                } else if (rowCropMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginRowCropStep(player, RowCropState.SECONDARY_EXTRA_ONE);
+                    announceRowCropAction(mc, "偵測到換行方塊，沿原方向再走一格");
+                    applyFarmingInput(mc, secondary, true, false);
+                }
+            }
+            case SECONDARY_EXTRA_ONE -> {
+                applyFarmingInput(mc, secondary, true, false);
+                if (rowCropStepDone(player, 0.0, 1.0)) {
+                    beginRowCropStep(player, RowCropState.SECONDARY_FORWARD_TWO);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceRowCropAction(mc, "開始往前兩格");
+                }
+            }
+            case SECONDARY_FORWARD_TWO -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (rowCropStepDone(player, 2.0, 0.0)) {
+                    beginRowCropStep(player, RowCropState.SECONDARY_FORWARD_DIAGONAL);
+                    applyFarmingDiagonalInput(mc, primary, true);
+                    announceRowCropAction(mc, "最後一格同時往前並轉向");
+                }
+            }
+            case SECONDARY_FORWARD_DIAGONAL -> {
+                applyFarmingDiagonalInput(mc, primary, true);
+                if (rowCropStepDone(player, 1.0, 1.0)) {
+                    rowCropState = RowCropState.HARVEST_PRIMARY;
+                    rowCropMarkerCleared = false;
+                    applyFarmingInput(mc, primary, true, false);
+                    announceRowCropAction(mc, "換行完成，回到原方向採集");
+                }
+            }
+            case END_EXTRA_ONE -> {
+                applyFarmingInput(mc, secondary, false, false);
+                if (rowCropStepDone(player, 0.0, 1.0)) {
+                    rowCropState = RowCropState.RETURN_TO_START;
+                    applyFarmingInput(mc, secondary, false, false);
+                    announceRowCropAction(mc, "額外一格完成，繼續尋找開始方塊");
+                }
+            }
+            case RETURN_TO_START -> {
+                applyFarmingInput(mc, secondary, false, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
+                            warning("，原地等待一秒"));
+                    rowCropState = RowCropState.WAIT_ONE_SECOND;
+                    rowCropWaitTicks = 20;
+                    releaseFarmingKeys(mc);
+                }
+            }
+            case WAIT_ONE_SECOND -> {
+                releaseFarmingKeys(mc);
+                if (--rowCropWaitTicks <= 0) {
+                    rowCropState = RowCropState.HARVEST_PRIMARY;
+                    rowCropMarkerCleared = false;
+                    applyFarmingInput(mc, primary, true, false);
+                    announceRowCropAction(mc, "等待完成，重新開始採集");
+                }
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean rowCropMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!rowCropMarkerCleared) {
+            if (!markerPresent) rowCropMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            rowCropMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginRowCropStep(LocalPlayer player, RowCropState state) {
+        rowCropState = state;
+        rowCropStepStartX = player.getX();
+        rowCropStepStartZ = player.getZ();
+        rowCropStepLastX = player.getX();
+        rowCropStepLastZ = player.getZ();
+        rowCropStepStalledTicks = 0;
+    }
+
+    private static boolean rowCropStepDone(LocalPlayer player, double requiredX, double requiredZ) {
+        double dx = Math.abs(player.getX() - rowCropStepStartX);
+        double dz = Math.abs(player.getZ() - rowCropStepStartZ);
+        double tickDx = player.getX() - rowCropStepLastX;
+        double tickDz = player.getZ() - rowCropStepLastZ;
+        rowCropStepLastX = player.getX();
+        rowCropStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) rowCropStepStalledTicks++;
+        else rowCropStepStalledTicks = 0;
+        boolean distanceDone = (requiredX <= 0.0 || dx >= requiredX)
+                && (requiredZ <= 0.0 || dz >= requiredZ);
+        return distanceDone || rowCropStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
+    }
+
+    private static void announceRowCropAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 動作："), warning(action));
+    }
+
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
@@ -775,6 +958,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 pumpkinMelonMarkerCleared = false;
                 if (detected == FarmingCrop.PUMPKIN_MELON) beginPumpkinMelonStep(player, PumpkinMelonState.START_FORWARD_ONE);
                 else pumpkinMelonState = PumpkinMelonState.INACTIVE;
+                rowCropState = isAlternatingRowCrop(detected) ? RowCropState.HARVEST_PRIMARY : RowCropState.INACTIVE;
+                rowCropMarkerCleared = false;
+                rowCropWaitTicks = 0;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -862,11 +1048,20 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void applyFarmingInput(Minecraft mc, DirectionKey key, boolean attack, boolean jump) {
-        if (mc == null || mc.options == null) return;
         boolean forward = key == DirectionKey.FORWARD;
         boolean back = key == DirectionKey.BACK;
         boolean left = key == DirectionKey.LEFT;
         boolean right = key == DirectionKey.RIGHT;
+        applyFarmingInput(mc, forward, back, left, right, attack, jump);
+    }
+
+    private static void applyFarmingDiagonalInput(Minecraft mc, DirectionKey lateral, boolean attack) {
+        applyFarmingInput(mc, true, false, lateral == DirectionKey.LEFT, lateral == DirectionKey.RIGHT, attack, false);
+    }
+
+    private static void applyFarmingInput(Minecraft mc, boolean forward, boolean back, boolean left, boolean right,
+                                          boolean attack, boolean jump) {
+        if (mc == null || mc.options == null) return;
         setAttackKey(mc, attack);
         mc.options.keyUp.setDown(forward);
         mc.options.keyDown.setDown(back);
@@ -1395,6 +1590,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RETURN_FORWARD_ONE
     }
 
+    private enum RowCropState {
+        INACTIVE,
+        HARVEST_PRIMARY,
+        PRIMARY_EXTRA_ONE,
+        PRIMARY_FORWARD_TWO,
+        PRIMARY_FORWARD_DIAGONAL,
+        HARVEST_SECONDARY,
+        SECONDARY_EXTRA_ONE,
+        SECONDARY_FORWARD_TWO,
+        SECONDARY_FORWARD_DIAGONAL,
+        END_EXTRA_ONE,
+        RETURN_TO_START,
+        WAIT_ONE_SECOND
+    }
+
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
 
@@ -1427,10 +1637,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private enum FarmingCrop {
-        WHEAT("Wheat", -90.0f, 6.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
-        POTATO("Potato", -90.0f, 6.0f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
-        CARROT("Carrot", 90.0f, 6.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        NETHER_WART("Nether Wart", 90.0f, 6.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        WHEAT("Wheat", 90.0f, 5.5f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        POTATO("Potato", 90.0f, 5.5f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        CARROT("Carrot", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
+        NETHER_WART("Nether Wart", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         SUGAR_CANE("Sugar Cane", 135.0f, 0.0f, DirectionKey.BACK, DirectionKey.RIGHT, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),

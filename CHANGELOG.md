@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.67] - 2026-10-16
+
+### Added
+
+- Added a shared automatic farming state machine for Nether Wart/Carrot using fixed yaw `-90` and pitch `5.5`.
+- Added its mirrored state machine for Wheat/Potato using fixed yaw `+90` and pitch `5.5`.
+- Added measured sideways, forward, and diagonal row transitions, end-to-start return handling without attack, and a one-second restart wait.
+- Start markers for these four crops remain inactive until the end marker has triggered the return phase.
+
 ## [1.0.66] - 2026-10-16
 
 ### Changed
