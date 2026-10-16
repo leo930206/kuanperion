@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.72`
+Current mod version: `1.0.73`
 
 ## Features
 
@@ -44,7 +44,7 @@ Current mod version: `1.0.72`
 - For these four row crops, start markers are ignored until an end marker is reached. Attack is then released while movement continues in the current sideways direction for at least one block until the start marker is found, followed by a one-second wait before restarting.
 - Sugar Cane farming locks yaw `45` and pitch `0`, harvests left until a row marker, moves forward five blocks and right one block, harvests backward until the next marker, then moves right seven blocks and repeats. Attack remains held throughout normal harvesting and row transitions.
 - Sugar Cane checks the end marker only while harvesting backward. After it triggers, attack is released while backing up to the start marker and for two additional blocks, then leftward harvesting resumes.
-- Cocoa Bean farming locks yaw `0` and pitch `-45`, harvests forward until a row marker, moves right one block, harvests backward, then moves right two blocks, forward one block, and left one block before repeating. Attack remains held during the complete normal cycle.
+- Cocoa Bean farming locks yaw `0` and pitch `-45`, first moves left one block without attacking, harvests forward until a row marker, moves right one block, harvests backward, then moves right two blocks, forward one block, and left one block before repeating. Attack remains held during the normal cycle after the initial adjustment.
 - Cocoa Bean checks the end marker only while harvesting backward. After it triggers, attack is released and the player moves left while ignoring row markers until the start marker is found, then forward harvesting resumes immediately.
 - Cactus farming locks yaw `90` and pitch `0`, moves forward one block without attacking, then alternates left/right harvesting lanes. Each row change releases attack, moves one extra block in the current sideways direction, and moves forward two blocks before resuming attack in the opposite direction.
 - Cactus checks the end marker only while harvesting right. It then releases attack, backs up while ignoring row markers until the start marker, moves left one block, moves forward one block, and restarts leftward harvesting.
@@ -73,7 +73,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.72.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.73.jar
 ```
 
 ## Maintenance rule

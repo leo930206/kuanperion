@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.73] - 2026-10-16
+
+### Changed
+
+- Cocoa Bean farming now moves left one measured block without attacking immediately after startup crop/tool detection, then begins forward harvesting with attack held.
+
 ## [1.0.72] - 2026-10-16
 
 ### Fixed

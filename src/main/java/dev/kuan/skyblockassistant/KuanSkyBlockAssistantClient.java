@@ -1105,11 +1105,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void tickCocoa(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
         if (cocoaState == CocoaState.INACTIVE) {
-            cocoaState = CocoaState.HARVEST_FORWARD;
-            cocoaMarkerCleared = false;
+            beginCocoaStep(player, CocoaState.START_LEFT_ONE, DirectionKey.LEFT, 1.0);
         }
 
         switch (cocoaState) {
+            case START_LEFT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                if (cocoaStepDone(player)) {
+                    cocoaState = CocoaState.HARVEST_FORWARD;
+                    cocoaMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceCocoaAction(mc, "起始左移完成，開始向前採集");
+                }
+            }
             case HARVEST_FORWARD -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (cocoaMarkerDetected(mc, player, profile)) {
@@ -1406,7 +1414,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 rowCropWaitTicks = 0;
                 sugarCaneState = detected == FarmingCrop.SUGAR_CANE ? SugarCaneState.HARVEST_LEFT : SugarCaneState.INACTIVE;
                 sugarCaneMarkerCleared = false;
-                cocoaState = detected == FarmingCrop.COCOA_BEAN ? CocoaState.HARVEST_FORWARD : CocoaState.INACTIVE;
+                if (detected == FarmingCrop.COCOA_BEAN) {
+                    beginCocoaStep(player, CocoaState.START_LEFT_ONE, DirectionKey.LEFT, 1.0);
+                } else {
+                    cocoaState = CocoaState.INACTIVE;
+                }
                 cocoaMarkerCleared = false;
                 if (detected == FarmingCrop.CACTUS) {
                     beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
@@ -2071,6 +2083,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private enum CocoaState {
         INACTIVE,
+        START_LEFT_ONE,
         HARVEST_FORWARD,
         RIGHT_ONE,
         HARVEST_BACK,
