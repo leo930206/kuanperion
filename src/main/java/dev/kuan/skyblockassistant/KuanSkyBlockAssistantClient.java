@@ -1030,9 +1030,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
                     say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，停止採集並後退尋找開始方塊"));
+                            warning("，持續按住左鍵並後退尋找開始方塊"));
                     sugarCaneState = SugarCaneState.RETURN_TO_START;
-                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 } else if (sugarCaneMarkerDetected(mc, player, profile)) {
                     announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginSugarCaneStep(player, SugarCaneState.RIGHT_SEVEN, DirectionKey.RIGHT, 7.0);
@@ -1050,16 +1050,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 }
             }
             case RETURN_TO_START -> {
-                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
                     say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
                             warning("，繼續後退兩格"));
                     beginSugarCaneStep(player, SugarCaneState.RETURN_BACK_TWO, DirectionKey.BACK, 2.0);
-                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
             }
             case RETURN_BACK_TWO -> {
-                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (sugarCaneStepDone(player)) {
                     sugarCaneState = SugarCaneState.HARVEST_LEFT;
                     sugarCaneMarkerCleared = false;

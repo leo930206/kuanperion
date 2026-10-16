@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.79] - 2026-10-16
+
+### Changed
+
+- Sugar Cane farming now keeps attack held during every active state, including the end-to-start return and the additional two backward blocks.
+
 ## [1.0.78] - 2026-10-16
 
 ### Changed
