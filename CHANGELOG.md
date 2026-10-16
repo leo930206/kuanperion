@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.77] - 2026-10-16
+
+### Changed
+
+- Nether Wart, Wheat, Carrot, and Potato row changes no longer move forward two blocks after the extra sideways block.
+- They now wait two seconds without movement while keeping attack held, then perform the final one-block forward/sideways diagonal movement.
+
 ## [1.0.76] - 2026-10-16
 
 ### Changed
