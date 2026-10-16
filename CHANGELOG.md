@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.69] - 2026-10-16
+
+### Added
+
+- Added Cocoa Bean automatic farming at fixed yaw `0` and pitch `-45`.
+- Added its forward harvest → right one → backward harvest → right two → forward one → left one loop while holding attack.
+- Cocoa Bean start markers remain inactive until an end marker is detected during backward harvesting.
+- After the end marker, Cocoa Bean releases attack, moves left while ignoring row markers until the start marker, and immediately restarts forward harvesting.
+
 ## [1.0.68] - 2026-10-16
 
 ### Added

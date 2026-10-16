@@ -142,6 +142,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double sugarCaneStepDirectionZ = 0.0;
     private static double sugarCaneStepTargetDistance = 0.0;
     private static int sugarCaneStepStalledTicks = 0;
+    private static CocoaState cocoaState = CocoaState.INACTIVE;
+    private static boolean cocoaMarkerCleared = false;
+    private static double cocoaStepStartX = 0.0;
+    private static double cocoaStepStartZ = 0.0;
+    private static double cocoaStepLastX = 0.0;
+    private static double cocoaStepLastZ = 0.0;
+    private static double cocoaStepDirectionX = 0.0;
+    private static double cocoaStepDirectionZ = 0.0;
+    private static double cocoaStepTargetDistance = 0.0;
+    private static int cocoaStepStalledTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -283,6 +293,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         rowCropWaitTicks = 0;
         sugarCaneState = SugarCaneState.INACTIVE;
         sugarCaneMarkerCleared = false;
+        cocoaState = CocoaState.INACTIVE;
+        cocoaMarkerCleared = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -327,6 +339,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         if (farmingCrop == FarmingCrop.SUGAR_CANE) {
             tickSugarCane(mc, player, blockProfile);
+            return;
+        }
+        if (farmingCrop == FarmingCrop.COCOA_BEAN) {
+            tickCocoa(mc, player, blockProfile);
             return;
         }
         if (farmingReturningToStart) {
@@ -1048,25 +1064,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         sugarCaneStepLastZ = player.getZ();
         sugarCaneStepStalledTicks = 0;
         sugarCaneStepTargetDistance = targetDistance;
-        double yawRadians = Math.toRadians(farmingCrop.yaw);
-        switch (direction) {
-            case FORWARD -> {
-                sugarCaneStepDirectionX = -Math.sin(yawRadians);
-                sugarCaneStepDirectionZ = Math.cos(yawRadians);
-            }
-            case BACK -> {
-                sugarCaneStepDirectionX = Math.sin(yawRadians);
-                sugarCaneStepDirectionZ = -Math.cos(yawRadians);
-            }
-            case LEFT -> {
-                sugarCaneStepDirectionX = Math.cos(yawRadians);
-                sugarCaneStepDirectionZ = Math.sin(yawRadians);
-            }
-            case RIGHT -> {
-                sugarCaneStepDirectionX = -Math.cos(yawRadians);
-                sugarCaneStepDirectionZ = -Math.sin(yawRadians);
-            }
-        }
+        Vec3 directionVector = farmingMovementVector(direction, farmingCrop.yaw);
+        sugarCaneStepDirectionX = directionVector.x;
+        sugarCaneStepDirectionZ = directionVector.z;
     }
 
     private static boolean sugarCaneStepDone(LocalPlayer player) {
@@ -1085,6 +1085,139 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void announceSugarCaneAction(Minecraft mc, String action) {
         say(mc, feature("Farming"), plain(" "), cropName("Sugar Cane"), plain(" 動作："), warning(action));
+    }
+
+    private static void tickCocoa(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (cocoaState == CocoaState.INACTIVE) {
+            cocoaState = CocoaState.HARVEST_FORWARD;
+            cocoaMarkerCleared = false;
+        }
+
+        switch (cocoaState) {
+            case HARVEST_FORWARD -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (cocoaMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginCocoaStep(player, CocoaState.RIGHT_ONE, DirectionKey.RIGHT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceCocoaAction(mc, "偵測到換行方塊，往右一格");
+                }
+            }
+            case RIGHT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (cocoaStepDone(player)) {
+                    cocoaState = CocoaState.HARVEST_BACK;
+                    cocoaMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                    announceCocoaAction(mc, "換行完成，開始後退採集");
+                }
+            }
+            case HARVEST_BACK -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
+                            warning("，停止採集並往左尋找開始方塊"));
+                    cocoaState = CocoaState.RETURN_LEFT_TO_START;
+                    applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                } else if (cocoaMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginCocoaStep(player, CocoaState.RIGHT_TWO, DirectionKey.RIGHT, 2.0);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceCocoaAction(mc, "偵測到換行方塊，往右兩格");
+                }
+            }
+            case RIGHT_TWO -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (cocoaStepDone(player)) {
+                    beginCocoaStep(player, CocoaState.FORWARD_ONE, DirectionKey.FORWARD, 1.0);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceCocoaAction(mc, "右移完成，往前一格");
+                }
+            }
+            case FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                if (cocoaStepDone(player)) {
+                    beginCocoaStep(player, CocoaState.LEFT_ONE, DirectionKey.LEFT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceCocoaAction(mc, "前進完成，往左一格");
+                }
+            }
+            case LEFT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (cocoaStepDone(player)) {
+                    cocoaState = CocoaState.HARVEST_FORWARD;
+                    cocoaMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceCocoaAction(mc, "換行完成，重新向前採集");
+                }
+            }
+            case RETURN_LEFT_TO_START -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
+                    cocoaState = CocoaState.HARVEST_FORWARD;
+                    cocoaMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceCocoaAction(mc, "返回完成，重新向前採集");
+                }
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean cocoaMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!cocoaMarkerCleared) {
+            if (!markerPresent) cocoaMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            cocoaMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginCocoaStep(LocalPlayer player, CocoaState state, DirectionKey direction,
+                                       double targetDistance) {
+        cocoaState = state;
+        cocoaStepStartX = player.getX();
+        cocoaStepStartZ = player.getZ();
+        cocoaStepLastX = player.getX();
+        cocoaStepLastZ = player.getZ();
+        cocoaStepStalledTicks = 0;
+        cocoaStepTargetDistance = targetDistance;
+        Vec3 directionVector = farmingMovementVector(direction, farmingCrop.yaw);
+        cocoaStepDirectionX = directionVector.x;
+        cocoaStepDirectionZ = directionVector.z;
+    }
+
+    private static boolean cocoaStepDone(LocalPlayer player) {
+        double dx = player.getX() - cocoaStepStartX;
+        double dz = player.getZ() - cocoaStepStartZ;
+        double progress = dx * cocoaStepDirectionX + dz * cocoaStepDirectionZ;
+        double tickDx = player.getX() - cocoaStepLastX;
+        double tickDz = player.getZ() - cocoaStepLastZ;
+        cocoaStepLastX = player.getX();
+        cocoaStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) cocoaStepStalledTicks++;
+        else cocoaStepStalledTicks = 0;
+        return progress >= cocoaStepTargetDistance || cocoaStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
+    }
+
+    private static Vec3 farmingMovementVector(DirectionKey direction, float yaw) {
+        double yawRadians = Math.toRadians(yaw);
+        return switch (direction) {
+            case FORWARD -> new Vec3(-Math.sin(yawRadians), 0.0, Math.cos(yawRadians));
+            case BACK -> new Vec3(Math.sin(yawRadians), 0.0, -Math.cos(yawRadians));
+            case LEFT -> new Vec3(Math.cos(yawRadians), 0.0, Math.sin(yawRadians));
+            case RIGHT -> new Vec3(-Math.cos(yawRadians), 0.0, -Math.sin(yawRadians));
+        };
+    }
+
+    private static void announceCocoaAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName("Cocoa Bean"), plain(" 動作："), warning(action));
     }
 
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
@@ -1119,6 +1252,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 rowCropWaitTicks = 0;
                 sugarCaneState = detected == FarmingCrop.SUGAR_CANE ? SugarCaneState.HARVEST_LEFT : SugarCaneState.INACTIVE;
                 sugarCaneMarkerCleared = false;
+                cocoaState = detected == FarmingCrop.COCOA_BEAN ? CocoaState.HARVEST_FORWARD : CocoaState.INACTIVE;
+                cocoaMarkerCleared = false;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -1774,6 +1909,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RETURN_BACK_TWO
     }
 
+    private enum CocoaState {
+        INACTIVE,
+        HARVEST_FORWARD,
+        RIGHT_ONE,
+        HARVEST_BACK,
+        RIGHT_TWO,
+        FORWARD_ONE,
+        LEFT_ONE,
+        RETURN_LEFT_TO_START
+    }
+
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
 
@@ -1813,7 +1959,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         SUGAR_CANE("Sugar Cane", 60.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        COCOA_BEAN("Cocoa Bean", -180.0f, -45.0f, DirectionKey.BACK, DirectionKey.FORWARD, "#dirt"),
+        COCOA_BEAN("Cocoa Bean", 0.0f, -45.0f, DirectionKey.FORWARD, DirectionKey.BACK, "#dirt"),
         MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");
 
         final String label;
