@@ -152,6 +152,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double cocoaStepDirectionZ = 0.0;
     private static double cocoaStepTargetDistance = 0.0;
     private static int cocoaStepStalledTicks = 0;
+    private static CactusState cactusState = CactusState.INACTIVE;
+    private static boolean cactusMarkerCleared = false;
+    private static double cactusStepStartX = 0.0;
+    private static double cactusStepStartZ = 0.0;
+    private static double cactusStepLastX = 0.0;
+    private static double cactusStepLastZ = 0.0;
+    private static double cactusStepDirectionX = 0.0;
+    private static double cactusStepDirectionZ = 0.0;
+    private static double cactusStepTargetDistance = 0.0;
+    private static int cactusStepStalledTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -295,6 +305,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         sugarCaneMarkerCleared = false;
         cocoaState = CocoaState.INACTIVE;
         cocoaMarkerCleared = false;
+        cactusState = CactusState.INACTIVE;
+        cactusMarkerCleared = false;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -343,6 +355,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         if (farmingCrop == FarmingCrop.COCOA_BEAN) {
             tickCocoa(mc, player, blockProfile);
+            return;
+        }
+        if (farmingCrop == FarmingCrop.CACTUS) {
+            tickCactus(mc, player, blockProfile);
             return;
         }
         if (farmingReturningToStart) {
@@ -1220,6 +1236,144 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         say(mc, feature("Farming"), plain(" "), cropName("Cocoa Bean"), plain(" 動作："), warning(action));
     }
 
+    private static void tickCactus(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (cactusState == CactusState.INACTIVE) {
+            beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
+        }
+
+        switch (cactusState) {
+            case START_FORWARD_ONE -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                if (cactusStepDone(player)) {
+                    cactusState = CactusState.HARVEST_LEFT;
+                    cactusMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceCactusAction(mc, "前進完成，開始向左採集");
+                }
+            }
+            case HARVEST_LEFT -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                if (cactusMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginCactusStep(player, CactusState.LEFT_EXTRA_ONE, DirectionKey.LEFT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                    announceCactusAction(mc, "停止採集，繼續往左一格");
+                }
+            }
+            case LEFT_EXTRA_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                if (cactusStepDone(player)) {
+                    beginCactusStep(player, CactusState.LEFT_FORWARD_TWO, DirectionKey.FORWARD, 2.0);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                    announceCactusAction(mc, "左移完成，往前兩格");
+                }
+            }
+            case LEFT_FORWARD_TWO -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                if (cactusStepDone(player)) {
+                    cactusState = CactusState.HARVEST_RIGHT;
+                    cactusMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceCactusAction(mc, "換行完成，開始向右採集");
+                }
+            }
+            case HARVEST_RIGHT -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
+                            warning("，停止採集並後退尋找開始方塊"));
+                    cactusState = CactusState.RETURN_BACK_TO_START;
+                    applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                } else if (cactusMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    beginCactusStep(player, CactusState.RIGHT_EXTRA_ONE, DirectionKey.RIGHT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
+                    announceCactusAction(mc, "停止採集，繼續往右一格");
+                }
+            }
+            case RIGHT_EXTRA_ONE -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
+                if (cactusStepDone(player)) {
+                    beginCactusStep(player, CactusState.RIGHT_FORWARD_TWO, DirectionKey.FORWARD, 2.0);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                    announceCactusAction(mc, "右移完成，往前兩格");
+                }
+            }
+            case RIGHT_FORWARD_TWO -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                if (cactusStepDone(player)) {
+                    cactusState = CactusState.HARVEST_LEFT;
+                    cactusMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceCactusAction(mc, "換行完成，開始向左採集");
+                }
+            }
+            case RETURN_BACK_TO_START -> {
+                applyFarmingInput(mc, DirectionKey.BACK, false, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
+                            warning("，往左一格"));
+                    beginCactusStep(player, CactusState.RETURN_LEFT_ONE, DirectionKey.LEFT, 1.0);
+                    applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                }
+            }
+            case RETURN_LEFT_ONE -> {
+                applyFarmingInput(mc, DirectionKey.LEFT, false, false);
+                if (cactusStepDone(player)) {
+                    beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
+                    applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
+                    announceCactusAction(mc, "左移完成，往前一格後重新採集");
+                }
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean cactusMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!cactusMarkerCleared) {
+            if (!markerPresent) cactusMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            cactusMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginCactusStep(LocalPlayer player, CactusState state, DirectionKey direction,
+                                        double targetDistance) {
+        cactusState = state;
+        cactusStepStartX = player.getX();
+        cactusStepStartZ = player.getZ();
+        cactusStepLastX = player.getX();
+        cactusStepLastZ = player.getZ();
+        cactusStepStalledTicks = 0;
+        cactusStepTargetDistance = targetDistance;
+        Vec3 directionVector = farmingMovementVector(direction, farmingCrop.yaw);
+        cactusStepDirectionX = directionVector.x;
+        cactusStepDirectionZ = directionVector.z;
+    }
+
+    private static boolean cactusStepDone(LocalPlayer player) {
+        double dx = player.getX() - cactusStepStartX;
+        double dz = player.getZ() - cactusStepStartZ;
+        double progress = dx * cactusStepDirectionX + dz * cactusStepDirectionZ;
+        double tickDx = player.getX() - cactusStepLastX;
+        double tickDz = player.getZ() - cactusStepLastZ;
+        cactusStepLastX = player.getX();
+        cactusStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) cactusStepStalledTicks++;
+        else cactusStepStalledTicks = 0;
+        return progress >= cactusStepTargetDistance || cactusStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
+    }
+
+    private static void announceCactusAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName("Cactus"), plain(" 動作："), warning(action));
+    }
+
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
@@ -1254,6 +1408,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 sugarCaneMarkerCleared = false;
                 cocoaState = detected == FarmingCrop.COCOA_BEAN ? CocoaState.HARVEST_FORWARD : CocoaState.INACTIVE;
                 cocoaMarkerCleared = false;
+                if (detected == FarmingCrop.CACTUS) {
+                    beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
+                } else {
+                    cactusState = CactusState.INACTIVE;
+                }
+                cactusMarkerCleared = false;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -1920,6 +2080,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RETURN_LEFT_TO_START
     }
 
+    private enum CactusState {
+        INACTIVE,
+        START_FORWARD_ONE,
+        HARVEST_LEFT,
+        LEFT_EXTRA_ONE,
+        LEFT_FORWARD_TWO,
+        HARVEST_RIGHT,
+        RIGHT_EXTRA_ONE,
+        RIGHT_FORWARD_TWO,
+        RETURN_BACK_TO_START,
+        RETURN_LEFT_ONE
+    }
+
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
 
@@ -1956,7 +2129,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         POTATO("Potato", 90.0f, 5.5f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         CARROT("Carrot", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         NETHER_WART("Nether Wart", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
-        CACTUS("Cactus", -90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
+        CACTUS("Cactus", 90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         SUGAR_CANE("Sugar Cane", 60.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", 0.0f, -45.0f, DirectionKey.FORWARD, DirectionKey.BACK, "#dirt"),

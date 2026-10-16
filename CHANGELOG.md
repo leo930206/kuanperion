@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.70] - 2026-10-16
+
+### Added
+
+- Added Cactus automatic farming at fixed yaw `90` and pitch `0`.
+- Added its initial forward-one step and alternating left/right harvest loop with attack-free one-block sideways and two-block forward row transitions.
+- Cactus start markers remain inactive until an end marker is detected while harvesting right.
+- After the end marker, Cactus releases attack, backs up while ignoring row markers until the start marker, moves left one block, moves forward one block, and restarts leftward harvesting.
+
 ## [1.0.69] - 2026-10-16
 
 ### Added
