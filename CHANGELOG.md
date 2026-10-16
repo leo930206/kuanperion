@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.72] - 2026-10-16
+
+### Fixed
+
+- Fixed Farming Speed input text becoming invisible immediately after editing by using opaque ARGB text colors.
+
 ## [1.0.71] - 2026-10-16
 
 ### Changed

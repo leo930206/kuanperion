@@ -2322,7 +2322,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 speedBox.setValue(Integer.toString(FARMING_SPEEDS.getOrDefault(entry.key, 200)));
                 speedBox.setResponder(value -> {
                     boolean valid = value.matches("\\d{1,4}");
-                    speedBox.setTextColor(valid ? 0xE0E0E0 : 0xFF5555);
+                    speedBox.setTextColor(valid ? 0xFFE0E0E0 : 0xFFFF5555);
                     if (valid) {
                         FARMING_SPEEDS.put(entry.key, parseInt(value, 200, 0, 9999));
                         saveConfig();
