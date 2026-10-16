@@ -162,6 +162,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double cactusStepDirectionZ = 0.0;
     private static double cactusStepTargetDistance = 0.0;
     private static int cactusStepStalledTicks = 0;
+    private static int cactusWaitTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -307,6 +308,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         cocoaMarkerCleared = false;
         cactusState = CactusState.INACTIVE;
         cactusMarkerCleared = false;
+        cactusWaitTicks = 0;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -1286,10 +1288,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case LEFT_FORWARD_TWO -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
                 if (cactusStepDone(player)) {
+                    cactusState = CactusState.WAIT_BEFORE_HARVEST_RIGHT;
+                    cactusWaitTicks = 20;
+                    releaseFarmingKeys(mc);
+                    announceCactusAction(mc, "前進完成，等待一秒後向右採集");
+                }
+            }
+            case WAIT_BEFORE_HARVEST_RIGHT -> {
+                releaseFarmingKeys(mc);
+                if (--cactusWaitTicks <= 0) {
                     cactusState = CactusState.HARVEST_RIGHT;
                     cactusMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceCactusAction(mc, "換行完成，開始向右採集");
+                    announceCactusAction(mc, "等待完成，開始向右採集");
                 }
             }
             case HARVEST_RIGHT -> {
@@ -1317,10 +1328,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case RIGHT_FORWARD_TWO -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
                 if (cactusStepDone(player)) {
+                    cactusState = CactusState.WAIT_BEFORE_HARVEST_LEFT;
+                    cactusWaitTicks = 20;
+                    releaseFarmingKeys(mc);
+                    announceCactusAction(mc, "前進完成，等待一秒後向左採集");
+                }
+            }
+            case WAIT_BEFORE_HARVEST_LEFT -> {
+                releaseFarmingKeys(mc);
+                if (--cactusWaitTicks <= 0) {
                     cactusState = CactusState.HARVEST_LEFT;
                     cactusMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceCactusAction(mc, "換行完成，開始向左採集");
+                    announceCactusAction(mc, "等待完成，開始向左採集");
                 }
             }
             case RETURN_BACK_TO_START -> {
@@ -2111,9 +2131,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         HARVEST_LEFT,
         LEFT_EXTRA_ONE,
         LEFT_FORWARD_TWO,
+        WAIT_BEFORE_HARVEST_RIGHT,
         HARVEST_RIGHT,
         RIGHT_EXTRA_ONE,
         RIGHT_FORWARD_TWO,
+        WAIT_BEFORE_HARVEST_LEFT,
         RETURN_BACK_TO_START,
         RETURN_LEFT_ONE
     }

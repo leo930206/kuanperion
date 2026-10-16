@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.76] - 2026-10-16
+
+### Changed
+
+- Cactus farming now waits one second without moving or attacking after each two-block forward row transition, before starting the opposite harvesting direction.
+
 ## [1.0.75] - 2026-10-16
 
 ### Changed
