@@ -2130,7 +2130,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         CARROT("Carrot", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         NETHER_WART("Nether Wart", -90.0f, 5.5f, DirectionKey.RIGHT, DirectionKey.LEFT, "minecraft:quartz_block"),
         CACTUS("Cactus", 90.0f, 0.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
-        SUGAR_CANE("Sugar Cane", 60.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
+        SUGAR_CANE("Sugar Cane", 45.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", 0.0f, -45.0f, DirectionKey.FORWARD, DirectionKey.BACK, "#dirt"),
         MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");

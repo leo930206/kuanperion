@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.71] - 2026-10-16
+
+### Changed
+
+- Changed the fixed Sugar Cane farming yaw from `60` to `45`; pitch remains `0`.
+
 ## [1.0.70] - 2026-10-16
 
 ### Added
