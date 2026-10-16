@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.78] - 2026-10-16
+
+### Changed
+
+- Replaced the two-second stationary row-change wait for Nether Wart, Wheat, Carrot, and Potato with four seconds of forward input for water movement.
+- The first three seconds hold forward only; the fourth second holds forward and the opposite sideways direction simultaneously, with attack held throughout.
+
 ## [1.0.77] - 2026-10-16
 
 ### Changed

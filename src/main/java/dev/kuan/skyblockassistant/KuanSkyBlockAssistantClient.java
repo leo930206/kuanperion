@@ -856,25 +856,24 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case PRIMARY_EXTRA_ONE -> {
                 applyFarmingInput(mc, primary, true, false);
                 if (rowCropStepDone(player, 0.0, 1.0)) {
-                    rowCropState = RowCropState.PRIMARY_WAIT_TWO_SECONDS;
-                    rowCropWaitTicks = 40;
-                    setAttackKey(mc, true);
-                    releaseFarmingMovementKeys(mc);
-                    announceRowCropAction(mc, "橫移完成，原地等待兩秒");
+                    rowCropState = RowCropState.PRIMARY_FORWARD_THREE_SECONDS;
+                    rowCropWaitTicks = 60;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceRowCropAction(mc, "橫移完成，開始往前三秒");
                 }
             }
-            case PRIMARY_WAIT_TWO_SECONDS -> {
-                setAttackKey(mc, true);
-                releaseFarmingMovementKeys(mc);
+            case PRIMARY_FORWARD_THREE_SECONDS -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (--rowCropWaitTicks <= 0) {
-                    beginRowCropStep(player, RowCropState.PRIMARY_FORWARD_DIAGONAL);
+                    rowCropState = RowCropState.PRIMARY_FORWARD_DIAGONAL_ONE_SECOND;
+                    rowCropWaitTicks = 20;
                     applyFarmingDiagonalInput(mc, secondary, true);
-                    announceRowCropAction(mc, "等待完成，最後一格同時往前並轉向");
+                    announceRowCropAction(mc, "進入最後一秒，同時往前並轉向");
                 }
             }
-            case PRIMARY_FORWARD_DIAGONAL -> {
+            case PRIMARY_FORWARD_DIAGONAL_ONE_SECOND -> {
                 applyFarmingDiagonalInput(mc, secondary, true);
-                if (rowCropStepDone(player, 1.0, 1.0)) {
+                if (--rowCropWaitTicks <= 0) {
                     rowCropState = RowCropState.HARVEST_SECONDARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, secondary, true, false);
@@ -898,25 +897,24 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case SECONDARY_EXTRA_ONE -> {
                 applyFarmingInput(mc, secondary, true, false);
                 if (rowCropStepDone(player, 0.0, 1.0)) {
-                    rowCropState = RowCropState.SECONDARY_WAIT_TWO_SECONDS;
-                    rowCropWaitTicks = 40;
-                    setAttackKey(mc, true);
-                    releaseFarmingMovementKeys(mc);
-                    announceRowCropAction(mc, "橫移完成，原地等待兩秒");
+                    rowCropState = RowCropState.SECONDARY_FORWARD_THREE_SECONDS;
+                    rowCropWaitTicks = 60;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceRowCropAction(mc, "橫移完成，開始往前三秒");
                 }
             }
-            case SECONDARY_WAIT_TWO_SECONDS -> {
-                setAttackKey(mc, true);
-                releaseFarmingMovementKeys(mc);
+            case SECONDARY_FORWARD_THREE_SECONDS -> {
+                applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (--rowCropWaitTicks <= 0) {
-                    beginRowCropStep(player, RowCropState.SECONDARY_FORWARD_DIAGONAL);
+                    rowCropState = RowCropState.SECONDARY_FORWARD_DIAGONAL_ONE_SECOND;
+                    rowCropWaitTicks = 20;
                     applyFarmingDiagonalInput(mc, primary, true);
-                    announceRowCropAction(mc, "等待完成，最後一格同時往前並轉向");
+                    announceRowCropAction(mc, "進入最後一秒，同時往前並轉向");
                 }
             }
-            case SECONDARY_FORWARD_DIAGONAL -> {
+            case SECONDARY_FORWARD_DIAGONAL_ONE_SECOND -> {
                 applyFarmingDiagonalInput(mc, primary, true);
-                if (rowCropStepDone(player, 1.0, 1.0)) {
+                if (--rowCropWaitTicks <= 0) {
                     rowCropState = RowCropState.HARVEST_PRIMARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, primary, true, false);
@@ -2097,12 +2095,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         START_FORWARD_ONE,
         HARVEST_PRIMARY,
         PRIMARY_EXTRA_ONE,
-        PRIMARY_WAIT_TWO_SECONDS,
-        PRIMARY_FORWARD_DIAGONAL,
+        PRIMARY_FORWARD_THREE_SECONDS,
+        PRIMARY_FORWARD_DIAGONAL_ONE_SECOND,
         HARVEST_SECONDARY,
         SECONDARY_EXTRA_ONE,
-        SECONDARY_WAIT_TWO_SECONDS,
-        SECONDARY_FORWARD_DIAGONAL,
+        SECONDARY_FORWARD_THREE_SECONDS,
+        SECONDARY_FORWARD_DIAGONAL_ONE_SECOND,
         END_EXTRA_ONE,
         RETURN_TO_START,
         WAIT_ONE_SECOND
