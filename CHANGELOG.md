@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.80] - 2026-10-16
+
+### Fixed
+
+- Nether Wart, Wheat, Carrot, and Potato row changes now hold the jump key instead of the forward key: jump alone for three seconds, then jump plus the opposite sideways direction for the fourth second.
+
 ## [1.0.79] - 2026-10-16
 
 ### Changed
