@@ -81,7 +81,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
     private static boolean visitorNotificationEnabled = false;
-    private static boolean placeholderNotificationEnabled = false;
     private static boolean farmingToolDetectionEnabled = false;
     private static boolean abnormalHandlingEnabled = true;
     private static String pestWebhookUrl = "";
@@ -156,7 +155,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double flowerStepDirectionX = 0.0;
     private static double flowerStepDirectionZ = 0.0;
     private static int flowerStepStalledTicks = 0;
-    private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int rotationStepDegrees = 13;
@@ -1655,7 +1653,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return false;
         }
 
-        if (rotateToTarget && !lookAtSmooth(player, target)) return true;
+        if (!lookAtSmooth(player, target)) return true;
         BlockPos aimedTarget = getAimedTargetBlock(mc, player, r + 1.5);
         if (aimedTarget == null || !aimedTarget.equals(target)) {
             skipTarget(target);
@@ -1900,7 +1898,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
-        placeholderNotificationEnabled = Boolean.parseBoolean(p.getProperty("placeholderNotificationEnabled", "false"));
         farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
         boolean legacyAbnormalHandling = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"))
                 || Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"))
@@ -1910,7 +1907,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 Boolean.toString(legacyAbnormalHandling)));
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
-        rotateToTarget = Boolean.parseBoolean(p.getProperty("rotateToTarget", "true"));
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
         rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
         actionDelayTicks = parseInt(p.getProperty("actionDelayTicks"), 3, 1, 20);
@@ -1932,11 +1928,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
-        p.setProperty("placeholderNotificationEnabled", Boolean.toString(placeholderNotificationEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
-        p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
@@ -2227,15 +2221,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("？？？通知", placeholderNotificationEnabled), b -> { placeholderNotificationEnabled = !placeholderNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             y += 36;
             addSectionTitle("Mining", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("選擇目標方塊"), b -> openMiningTargetCountScreen()).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("選擇目標方塊"), b -> openMiningTargetCountScreen()).bounds(x + 145, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());

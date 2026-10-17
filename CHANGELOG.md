@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.90] - 2026-10-17
+
+### Changed
+
+- Made Mining automatic rotation permanently enabled, removed its toggle, and moved `選擇目標方塊` into the middle position.
+- Swapped the Farming notification controls so `Visitor 通知` appears before `害蟲通知`.
+
+### Removed
+
+- Removed the unused `？？？通知` placeholder button and configuration value.
+
 ## [1.0.89] - 2026-10-17
 
 ### Changed
