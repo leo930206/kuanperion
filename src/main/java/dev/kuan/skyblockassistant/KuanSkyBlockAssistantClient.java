@@ -1285,7 +1285,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (flowerMarkerDetected(mc, player, profile)) {
                     flowerState = FlowerState.FORWARD_TWO_SECONDS;
-                    flowerTransitionTicks = 40;
+                    flowerTransitionTicks = 20;
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 }
             }
@@ -1308,7 +1308,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 } else if (flowerMarkerDetected(mc, player, profile)) {
                     flowerState = FlowerState.LEFT_TWO_SECONDS;
-                    flowerTransitionTicks = 40;
+                    flowerTransitionTicks = 20;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 }
             }

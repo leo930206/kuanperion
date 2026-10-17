@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.88] - 2026-10-17
+
+### Changed
+
+- Shortened both flower row transitions from two seconds to one second: the first half-second uses one direction, and the final half-second adds the diagonal direction.
+
 ## [1.0.87] - 2026-10-17
 
 ### Added
