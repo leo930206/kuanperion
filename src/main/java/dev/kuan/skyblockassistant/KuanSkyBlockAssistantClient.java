@@ -10,6 +10,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ItemDisplayWidget;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -80,11 +81,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
+    private static boolean visitorNotificationEnabled = false;
+    private static boolean placeholderNotificationEnabled = false;
     private static boolean farmingToolDetectionEnabled = false;
-    private static boolean islandReturnEnabled = true;
-    private static boolean hubReturnEnabled = true;
-    private static boolean lobbyReturnEnabled = true;
-    private static boolean limboReturnEnabled = true;
+    private static boolean abnormalHandlingEnabled = true;
     private static String pestWebhookUrl = "";
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
@@ -92,9 +92,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingRightShiftTicks = 0;
     private static boolean farmingReturningToStart = false;
     private static boolean farmingAutoRecovering = false;
-    private static boolean farmingRecoveryHomeSent = false;
     private static boolean farmingWasInGarden = false;
-    private static boolean farmingResumeAfterRecovery = false;
     private static int farmingRecoveryScanTicks = 0;
     private static int limboChatSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
@@ -169,6 +167,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int rotationStepDegrees = 13;
     private static int actionDelayTicks = 3;
+    private static int miningSelectionTargetCount = 1;
     private static int miningTicks = 0;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
@@ -273,9 +272,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingEnabled = false;
         farmingEnabledThisSession = false;
         farmingAutoRecovering = false;
-        farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
-        farmingResumeAfterRecovery = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
         if (announce) sayAutoState(mc, "Farming", false);
@@ -309,9 +306,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         flowerMarkerCleared = false;
         flowerTransitionTicks = 0;
         farmingAutoRecovering = false;
-        farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
-        farmingResumeAfterRecovery = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         farmingWasInGarden = detectFarmingLocation(mc) == FarmingLocation.GARDEN;
@@ -441,17 +436,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
-        if (!farmingEnabledThisSession) return false;
+        if (!farmingEnabledThisSession || (!abnormalHandlingEnabled && !farmingAutoRecovering)) return false;
         FarmingLocation location = detectFarmingLocation(mc);
         if (farmingAutoRecovering) {
             releaseFarmingKeys(mc);
             if (location == FarmingLocation.GARDEN && FARMING_COMMAND_QUEUE.isEmpty()) {
-                if (!farmingRecoveryHomeSent) {
-                    sendCommand(mc, "home");
-                    farmingRecoveryHomeSent = true;
-                    enqueueFarmingCommand("__resume__", 60);
-                    say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，正在執行 "), commandName("/home"));
-                }
+                farmingAutoRecovering = false;
+                farmingEnabled = false;
+                farmingEnabledThisSession = false;
+                farmingWasInGarden = false;
+                say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，Farming 維持關閉"));
+                saveConfig();
             }
             return true;
         }
@@ -472,9 +467,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
         if (!shouldAutoReturn(location)) return;
         farmingAutoRecovering = true;
-        farmingResumeAfterRecovery = true;
         farmingEnabled = false;
-        farmingRecoveryHomeSent = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
@@ -494,24 +487,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean shouldAutoReturn(FarmingLocation location) {
-        return (location == FarmingLocation.ISLAND && islandReturnEnabled)
-                || (location == FarmingLocation.HUB && hubReturnEnabled)
-                || (location == FarmingLocation.LOBBY && lobbyReturnEnabled)
-                || (location == FarmingLocation.LIMBO && limboReturnEnabled);
-    }
-
-    private static void startFarmingHomeRecovery(Minecraft mc, String reason) {
-        farmingAutoRecovering = true;
-        farmingResumeAfterRecovery = true;
-        farmingEnabled = false;
-        farmingRecoveryHomeSent = true;
-        farmingRecoveryScanTicks = 0;
-        FARMING_COMMAND_QUEUE.clear();
-        releaseFarmingKeys(mc);
-        say(mc, feature("Farming"), warning(" " + reason), plain("：正在執行 "), commandName("/home"), plain("，完成後重新開啟"));
-        enqueueFarmingCommand("home", 20);
-        enqueueFarmingCommand("__resume__", 80);
-        saveConfig();
+        return abnormalHandlingEnabled && (location == FarmingLocation.ISLAND
+                || location == FarmingLocation.HUB
+                || location == FarmingLocation.LOBBY
+                || location == FarmingLocation.LIMBO);
     }
 
     private static void tickFarmingCommandQueue(Minecraft mc) {
@@ -520,23 +499,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         current.ticks--;
         if (current.ticks > 0) return;
         FARMING_COMMAND_QUEUE.removeFirst();
-        if ("__resume__".equals(current.command)) {
-            farmingAutoRecovering = false;
-            farmingRecoveryHomeSent = false;
-            farmingEnabled = farmingResumeAfterRecovery;
-            farmingEnabledThisSession = farmingResumeAfterRecovery;
-            resetFarmingRuntime(mc);
-            farmingWasInGarden = true;
-            farmingResumeAfterRecovery = false;
-            saveConfig();
-            if (farmingEnabled) {
-                say(mc, feature("Farming"), success(" 回傳完成"), plain("，正在恢復採集"));
-            } else {
-                say(mc, feature("Farming"), success(" 回傳流程完成"));
-            }
-        } else {
-            sendCommand(mc, current.command);
-        }
+        sendCommand(mc, current.command);
     }
 
     private static void enqueueFarmingCommand(String command, int delayTicks) {
@@ -1656,12 +1619,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     setSelectedFarmingBlock(mc, farmingSelectMode, name);
                     farmingSelectMode = FarmingSelectMode.NONE;
                     saveConfig();
-                } else {
-                    TARGET_BLOCKS.remove(name);
+                } else if (!TARGET_BLOCKS.contains(name)) {
                     TARGET_BLOCKS.add(name);
-                    selectMode = false;
+                    boolean finished = TARGET_BLOCKS.size() >= miningSelectionTargetCount;
+                    selectMode = !finished;
                     saveConfig();
-                    say(mc, feature("Mining"), plain(" 目標方塊已設定 #" + TARGET_BLOCKS.size() + "："), blockName(name), success("（選取結束）"));
+                    say(mc, feature("Mining"), plain(" 目標方塊已設定 " + TARGET_BLOCKS.size() + "/"
+                            + miningSelectionTargetCount + "："), blockName(name),
+                            finished ? success("（選取結束）") : plain(""));
                 }
             } else if ("minecraft:bedrock".equals(name)) {
                 say(mc, feature("Mining"), error(" 設定失敗"), plain("："), blockName("minecraft:bedrock"), error(" 不可設為目標方塊"));
@@ -1858,7 +1823,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final int COLOR_WARNING = 0xFFAA00;
     private static final int COLOR_BLOCK = 0xFFFF55;
     private static final int COLOR_LOCATION = 0x55FFFF;
-    private static final int COLOR_COMMAND = 0xFFD166;
     private static final int COLOR_CROP = 0xADFF2F;
 
     private static void say(Minecraft mc, Component... parts) {
@@ -1894,7 +1858,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Component.literal(display == null ? "" : display).withColor(COLOR_BLOCK);
     }
     private static Component locationName(String text) { return Component.literal(text).withColor(COLOR_LOCATION); }
-    private static Component commandName(String text) { return Component.literal(text).withColor(COLOR_COMMAND); }
     private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(true)); }
 
     private static void sayAutoState(Minecraft mc, String featureName, boolean enabled) {
@@ -1905,13 +1868,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (message == null) return;
         String text = StringUtil.stripColor(message.getString());
         int now = farmingTicksNow();
-        if (text.contains("You fell into the void") && farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && detectFarmingLocation(Minecraft.getInstance()) == FarmingLocation.GARDEN) {
-            startFarmingHomeRecovery(Minecraft.getInstance(), "掉入虛空");
+        if (text.contains("You fell into the void") && abnormalHandlingEnabled && farmingEnabled
+                && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering) {
+            stopFarming(Minecraft.getInstance(), true);
             return;
         }
         if (text.contains("/limbo for more information")) {
             limboChatSeenTick = now;
-            if (farmingEnabled && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering && limboReturnEnabled && sidebarLines(Minecraft.getInstance()).isEmpty()) {
+            if (abnormalHandlingEnabled && farmingEnabled && farmingEnabledThisSession && farmingWasInGarden
+                    && !farmingAutoRecovering && sidebarLines(Minecraft.getInstance()).isEmpty()) {
                 startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO, 20);
                 return;
             }
@@ -1973,11 +1938,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingCrop = FarmingCrop.fromConfig(p.getProperty("farmingCrop", "WHEAT"));
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
+        visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
+        placeholderNotificationEnabled = Boolean.parseBoolean(p.getProperty("placeholderNotificationEnabled", "false"));
         farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
-        islandReturnEnabled = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"));
-        hubReturnEnabled = Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"));
-        lobbyReturnEnabled = Boolean.parseBoolean(p.getProperty("lobbyReturnEnabled", "true"));
-        limboReturnEnabled = Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
+        boolean legacyAbnormalHandling = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"))
+                || Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"))
+                || Boolean.parseBoolean(p.getProperty("lobbyReturnEnabled", "true"))
+                || Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
+        abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
+                Boolean.toString(legacyAbnormalHandling)));
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
         loadFarmingBlockProfiles(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
@@ -1989,7 +1958,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         String targets = p.getProperty("targets", "").trim();
         if (!targets.isEmpty()) for (String s : targets.split(",")) {
             String id = s.trim();
-            if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id)) TARGET_BLOCKS.add(id);
+            if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id) && TARGET_BLOCKS.size() < 5) {
+                TARGET_BLOCKS.add(id);
+            }
         }
     }
 
@@ -2000,11 +1971,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingCrop", farmingCrop.name());
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
+        p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
+        p.setProperty("placeholderNotificationEnabled", Boolean.toString(placeholderNotificationEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
-        p.setProperty("islandReturnEnabled", Boolean.toString(islandReturnEnabled));
-        p.setProperty("hubReturnEnabled", Boolean.toString(hubReturnEnabled));
-        p.setProperty("lobbyReturnEnabled", Boolean.toString(lobbyReturnEnabled));
-        p.setProperty("limboReturnEnabled", Boolean.toString(limboReturnEnabled));
+        p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
         saveFarmingBlockProfiles(p);
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
@@ -2020,9 +1990,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         FARMING_BLOCK_PROFILE.rowDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "rowDetection", p.getProperty("farmingTurnOnMarkers", "true")));
         FARMING_BLOCK_PROFILE.startDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "startDetection", p.getProperty("farmingStartDetection", "true")));
         FARMING_BLOCK_PROFILE.endDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "endDetection", p.getProperty("farmingEndDetection", "true")));
-        FARMING_BLOCK_PROFILE.rowBlock = sharedFarmingBlock(p, "rowBlock", legacyRowBlock);
-        FARMING_BLOCK_PROFILE.startBlock = sharedFarmingBlock(p, "startBlock", p.getProperty("farmingStartBlock", ""));
-        FARMING_BLOCK_PROFILE.endBlock = sharedFarmingBlock(p, "endBlock", p.getProperty("farmingEndBlock", ""));
+        String defaultRowBlock = legacyRowBlock.isBlank() ? "minecraft:yellow_stained_glass" : legacyRowBlock;
+        FARMING_BLOCK_PROFILE.rowBlock = sharedFarmingBlock(p, "rowBlock", defaultRowBlock);
+        FARMING_BLOCK_PROFILE.startBlock = sharedFarmingBlock(p, "startBlock",
+                p.getProperty("farmingStartBlock", "minecraft:light_blue_stained_glass"));
+        FARMING_BLOCK_PROFILE.endBlock = sharedFarmingBlock(p, "endBlock",
+                p.getProperty("farmingEndBlock", "minecraft:pink_stained_glass"));
     }
 
     private static String sharedFarmingProperty(Properties p, String suffix, String fallback) {
@@ -2271,6 +2244,57 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
+    private static final class MiningTargetCountScreen extends Screen {
+        private final Screen parent;
+
+        MiningTargetCountScreen(Screen parent) {
+            super(Component.literal("選擇目標方塊數量"));
+            this.parent = parent;
+        }
+
+        @Override
+        protected void init() {
+            int centerX = this.width / 2;
+            int y = this.height / 2 - 45;
+            addRenderableWidget(new StringWidget(centerX - 120, y, 240, 12,
+                    Component.literal("請輸入要選擇的方塊種類數量"), this.font));
+            y += 20;
+            EditBox countBox = new EditBox(this.font, centerX - 50, y, 100, 20,
+                    Component.literal("目標方塊數量"));
+            countBox.setMaxLength(1);
+            countBox.setValue("");
+            addRenderableWidget(countBox);
+            y += 24;
+            addRenderableWidget(new StringWidget(centerX - 120, y, 240, 12,
+                    Component.literal("留空代表 1，最少 1、最多 5，不可重複"), this.font));
+            y += 20;
+            Button confirm = Button.builder(Component.literal("確認"), b -> {
+                String value = countBox.getValue().trim();
+                miningSelectionTargetCount = value.isEmpty() ? 1 : parseInt(value, 1, 1, 5);
+                miningEnabled = false;
+                clearActiveTarget(Minecraft.getInstance());
+                TARGET_BLOCKS.clear();
+                selectMode = true;
+                farmingSelectMode = FarmingSelectMode.NONE;
+                saveConfig();
+                Minecraft.getInstance().setScreenAndShow(null);
+                say(Minecraft.getInstance(), feature("Mining"), plain(" 方塊選擇：請右鍵選擇 "),
+                        warning(Integer.toString(miningSelectionTargetCount)), plain(" 種目標方塊"));
+            }).bounds(centerX - 105, y, 100, 20).build();
+            addRenderableWidget(confirm);
+            addRenderableWidget(Button.builder(Component.literal("取消"), b -> Minecraft.getInstance().setScreenAndShow(parent))
+                    .bounds(centerX + 5, y, 100, 20).build());
+            countBox.setResponder(value -> {
+                boolean valid = value.isEmpty() || value.matches("[1-5]");
+                countBox.setTextColor(valid ? 0xFFE0E0E0 : 0xFFFF5555);
+                confirm.active = valid;
+            });
+        }
+
+        @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(parent); }
+        @Override public boolean isPauseScreen() { return false; }
+    }
+
     private static final class SettingsScreen extends Screen {
         private final Screen parent;
         SettingsScreen(Screen parent) {
@@ -2287,12 +2311,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(toggleMsg("Island 回傳", islandReturnEnabled), b -> { islandReturnEnabled = !islandReturnEnabled; saveConfig(); rebuild(); }).bounds(x, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Hub 回傳", hubReturnEnabled), b -> { hubReturnEnabled = !hubReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 107, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Lobby 回傳", lobbyReturnEnabled), b -> { lobbyReturnEnabled = !lobbyReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 214, y, 99, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("Limbo 回傳", limboReturnEnabled), b -> { limboReturnEnabled = !limboReturnEnabled; saveConfig(); rebuild(); }).bounds(x + 321, y, 99, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("？？？通知", placeholderNotificationEnabled), b -> { placeholderNotificationEnabled = !placeholderNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             FarmingBlockProfile blockProfile = farmingProfile();
             addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
@@ -2311,8 +2334,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addSectionTitle("Mining", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("選擇方塊"), b -> beginMiningBlockPick()).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("自動轉向", rotateToTarget), b -> { rotateToTarget = !rotateToTarget; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("選擇目標方塊"), b -> openMiningTargetCountScreen()).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
@@ -2325,23 +2348,20 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("挖礦延遲: " + actionDelayTicks), this.font));
-            y += 22;
-            addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("目標方塊清單（同距離時上面優先）：右鍵選取會加入或移到最新位置"), this.font));
-            y += 18;
-            int maxRows = Math.min(8, TARGET_BLOCKS.size());
+            y += 10;
+            int maxRows = Math.min(5, TARGET_BLOCKS.size());
             for (int i = 0; i < maxRows; i++) {
                 final int idx = i;
                 String name = TARGET_BLOCKS.get(i);
-                addRenderableWidget(new StringWidget(x, y + 5, 230, 12, Component.literal((i + 1) + ". " + name), this.font));
+                var block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(name));
+                addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, y + 1, 18, 18,
+                        Component.literal(name), block.asItem().getDefaultInstance(), false, true));
+                addRenderableWidget(new StringWidget(x + 22, y + 5, 208, 12, Component.literal((i + 1) + ". " + name), this.font));
                 addRenderableWidget(Button.builder(Component.literal("↑"), b -> { move(idx, -1); rebuild(); }).bounds(x + 240, y, 36, 20).build());
                 addRenderableWidget(Button.builder(Component.literal("↓"), b -> { move(idx, 1); rebuild(); }).bounds(x + 280, y, 36, 20).build());
                 addRenderableWidget(Button.builder(Component.literal("刪"), b -> { TARGET_BLOCKS.remove(idx); saveConfig(); rebuild(); }).bounds(x + 320, y, 45, 20).build());
                 y += 24;
             }
-            if (TARGET_BLOCKS.size() > maxRows) {
-                addRenderableWidget(new StringWidget(x, y, 420, 12, Component.literal("... 還有 " + (TARGET_BLOCKS.size() - maxRows) + " 個"), this.font));
-            }
-
             int webhookY = this.height - 34;
             addRenderableWidget(new StringWidget(20, webhookY + 5, 110, 12, Component.literal("Discord Webhook:"), this.font));
             EditBox webhookBox = new EditBox(this.font, 130, webhookY, 300, 20, Component.literal("Discord Webhook"));
@@ -2375,12 +2395,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return s.length() > 18 ? s.substring(0, 18) : s;
         }
 
-        private void beginMiningBlockPick() {
-            selectMode = true;
-            farmingSelectMode = FarmingSelectMode.NONE;
-            saveConfig();
-            Minecraft.getInstance().setScreenAndShow(parent);
-            say(Minecraft.getInstance(), feature("Mining"), plain(" 方塊選擇：請右鍵選擇目標方塊"));
+        private void openMiningTargetCountScreen() {
+            Minecraft.getInstance().setScreenAndShow(new MiningTargetCountScreen(this));
         }
 
         private void beginFarmingBlockPick(FarmingSelectMode mode) {

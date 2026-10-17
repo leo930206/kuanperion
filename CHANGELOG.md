@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.85] - 2026-10-17
+
+### Added
+
+- Added saved `Visitor 通知` and `？？？通知` placeholder toggles for future notification behavior.
+- Added native block icons beside Mining targets.
+
+### Changed
+
+- Merged Island, Hub, Lobby, Limbo, and void-fall handling under one `異常狀況處理` toggle.
+- Island/Hub/Lobby/Limbo recovery now closes Farming and ends after Garden is confirmed, without `/home` or automatically restarting Farming; a void fall only closes Farming.
+- Changed the shared Farming marker defaults to yellow stained glass, light blue stained glass, and pink stained glass.
+- Mining target selection now replaces the old list, accepts 1–5 requested unique block types, ignores duplicate selections, and ends after the requested count.
+- Reordered the Farming and Mining controls and removed the Mining target-list header.
+
 ## [1.0.84] - 2026-10-17
 
 ### Changed

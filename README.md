@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.84`
+Current mod version: `1.0.85`
 
 ## Features
 
@@ -26,10 +26,10 @@ Current mod version: `1.0.84`
 
 ## Selecting mining blocks
 
-1. Open settings with `'` and click the Mining `選擇方塊` button.
-2. The settings screen closes. Aim at one block and right-click it to add its block type; selection then ends automatically.
-3. Repeat from the settings button for additional block types. Existing targets are kept, and selecting a duplicate moves it to the newest position.
-4. Reorder the list in settings when needed. Mining picks nearest first; list order only breaks ties.
+1. Open settings with `'` and click the Mining `選擇目標方塊` button.
+2. Enter a target count from 1 to 5; leaving it blank selects one type. Confirming discards the previous target list.
+3. Aim at blocks and right-click until the requested number of unique block types is reached. Repeated types are ignored and count only once.
+4. The settings list shows each block icon and supports reordering or deletion. Mining picks nearest first; list order only breaks ties.
 
 ### Farming Assistant
 
@@ -38,7 +38,7 @@ Current mod version: `1.0.84`
 - Crop profiles ported from the old `bobscript` Forge mod: Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Pumpkim & Melon, Cocoa Bean, Mushroom, Sunflower/Moonflower, and Wild Rose.
 - Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
 - Configurable marker-based row switching: use the Farming settings 「偵測方塊」 button, then right-click a block to add it as a row-switch marker. If no custom marker is set, crop defaults such as quartz blocks, trapdoors, ladders, sea lanterns, dirt, and glowstone are used.
-- Row, start, and end detection settings are shared by every crop; the removed harvest-block detector is no longer shown or enforced. Each crop may still react differently to the same three shared blocks.
+- Row, start, and end detection settings are shared by every crop. Their defaults are yellow stained glass, light blue stained glass, and pink stained glass respectively; each crop may still react differently to the same three shared blocks.
 - Every Farming start reads the block currently under the crosshair without breaking it, switches immediately to the matching crop profile, and saves the detected crop. Both `pumpkin` and the Hypixel farm's `carved_pumpkin` representation are recognized as Pumpkin; Pumpkin and Melon are distinguished for tool validation even though they share one movement profile. Red and brown Mushroom are distinguished to select the initial direction.
 - Nether Wart/Carrot share a row-harvesting state machine at yaw `-90` and pitch `5.5`; Wheat/Potato use the mirrored yaw `+90`. Each starts by moving forward one block without attacking. Row changes move one block farther sideways, hold jump for three seconds, then hold jump plus the opposite sideways direction for the fourth second; attack remains held throughout the timed transition.
 - For these four row crops, start markers are ignored until an end marker is reached. Attack is then released while movement continues in the current sideways direction for at least one block until the start marker is found, followed by a one-second wait before restarting.
@@ -53,12 +53,12 @@ Current mod version: `1.0.84`
 - The former crop-selection button is replaced by `工具偵測`. When enabled, the detected crop must match the held tool name before Farming continues. Supported mappings are Wheat → `Euclid's Wheat Sickle`, Carrot → `Gauss Carrot Shovel`, Potato → `Pythagorean Potato Shovel`, Sugar Cane → `Turing Sugar Cane Cutter`, Cactus → `Cactus Knife`, Cocoa Beans → `Cocoa Chopper`, Nether Wart → `Newton Nether Wart Cutter`, Mushroom → `Fungi Cutter`, Melon → `Melon Dicer`, Pumpkin → `Pumpkin Dicer`, Sunflower/Moonflower → `Eclipse Sickle`, and Wild Rose → `Wild Rose Cutter`. `Mk. I`, `Mk. II`, and `Mk. III` suffixes are accepted because matching uses the base name.
 - Pumpkim & Melon uses a fixed west-facing view at yaw `90.0` and pitch `-57.0`, holds attack throughout harvesting and row changes, and follows its dedicated two-marker zigzag state machine. At the first marker it continues one block in its current lateral direction before moving forward to find the second marker. During the end-to-start return run it releases attack, ignores row markers, then moves back one block, left one block, and forward one block before restarting leftward harvesting.
 - Every Pumpkim & Melon action described as “one block” is measured by actual player displacement rather than a fixed number of ticks, so increased movement speed does not intentionally lengthen the step. A step only falls back after ten consecutive ticks with no movement, allowing blocked actions to finish.
-- Farming auto-recovery has separate Island/Hub/Lobby/Limbo return toggles. Hub sidebar detection takes priority over the held `Game Menu` Lobby signal, and starting Farming while already in Garden arms recovery immediately. After Farming has been confirmed in Garden, matching recovery conditions close Farming, return to Garden, run `/home`, then reopen Farming. Garden void-fall chat detection also closes Farming, runs `/home`, and reopens Farming.
+- The single `異常狀況處理` toggle covers five conditions after Farming was started in Garden: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, execute their return commands, and finish once Garden is confirmed without `/home` or automatic Farming restart. A void fall only closes Farming. Hub sidebar detection takes priority over the held `Game Menu` Lobby signal.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick.
 - Farming pauses movement/attack while any GUI is open, including inventory, chat, the Esc menu, settings, and the mod settings screen; it continues when the GUI closes without turning Farming off.
-- Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages.
+- Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages. Saved `Visitor 通知` and `？？？通知` switches are present as behavior placeholders for later design.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
 - Block names shown in chat omit the technical `minecraft:` namespace while retaining full IDs internally for matching and configuration.
@@ -74,7 +74,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.84.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.85.jar
 ```
 
 ## Maintenance rule
