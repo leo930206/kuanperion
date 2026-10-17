@@ -70,9 +70,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final double FARMING_ONE_BLOCK_DISTANCE = 1.0;
     private static final int PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS = 10;
     private static final int FARMING_BLOCKED_STEP_TICKS = 10;
-    // Reserved for the flower crop profiles once their in-world block IDs and movement logic are configured.
     private static final String SUNFLOWER_TOOL_NAME = "Eclipse Sickle";
-    private static final String MOONFLOWER_TOOL_NAME = "Eclipse Sickle";
     private static final String WILD_ROSE_TOOL_NAME = "Wild Rose Cutter";
     private static boolean miningEnabled = false;
     private static boolean selectMode = false;
@@ -156,6 +154,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static double cactusStepTargetDistance = 0.0;
     private static int cactusStepStalledTicks = 0;
     private static int cactusWaitTicks = 0;
+    private static FlowerState flowerState = FlowerState.INACTIVE;
+    private static boolean flowerMarkerCleared = false;
+    private static int flowerTransitionTicks = 0;
+    private static double flowerStepStartX = 0.0;
+    private static double flowerStepStartZ = 0.0;
+    private static double flowerStepLastX = 0.0;
+    private static double flowerStepLastZ = 0.0;
+    private static double flowerStepDirectionX = 0.0;
+    private static double flowerStepDirectionZ = 0.0;
+    private static int flowerStepStalledTicks = 0;
     private static boolean rotateToTarget = true;
     private static int scanRadius = 5;
     private static final float ROTATION_DONE_EPSILON = 1.5f;
@@ -302,6 +310,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         cactusState = CactusState.INACTIVE;
         cactusMarkerCleared = false;
         cactusWaitTicks = 0;
+        flowerState = FlowerState.INACTIVE;
+        flowerMarkerCleared = false;
+        flowerTransitionTicks = 0;
         farmingAutoRecovering = false;
         farmingRecoveryHomeSent = false;
         farmingWasInGarden = false;
@@ -355,6 +366,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         if (farmingCrop == FarmingCrop.CACTUS) {
             tickCactus(mc, player, blockProfile);
+            return;
+        }
+        if (isFlowerCrop(farmingCrop)) {
+            tickFlower(mc, player, blockProfile);
             return;
         }
         if (farmingReturningToStart) {
@@ -1407,6 +1422,140 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         say(mc, feature("Farming"), plain(" "), cropName("Cactus"), plain(" 動作："), warning(action));
     }
 
+    private static boolean isFlowerCrop(FarmingCrop crop) {
+        return crop == FarmingCrop.SUNFLOWER || crop == FarmingCrop.WILD_ROSE;
+    }
+
+    private static void tickFlower(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (flowerState == FlowerState.INACTIVE) {
+            beginFlowerStep(player, FlowerState.START_BACK_ONE, DirectionKey.BACK);
+        }
+
+        switch (flowerState) {
+            case START_BACK_ONE -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (flowerStepDone(player)) {
+                    flowerState = FlowerState.HARVEST_RIGHT;
+                    flowerMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceFlowerAction(mc, "後退一格完成，開始往右採集");
+                }
+            }
+            case HARVEST_RIGHT -> {
+                applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                if (flowerMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    flowerState = FlowerState.FORWARD_TWO_SECONDS;
+                    flowerTransitionTicks = 40;
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                    announceFlowerAction(mc, "偵測到換行方塊，按住 W 兩秒，最後半秒加入 A");
+                }
+            }
+            case FORWARD_TWO_SECONDS -> {
+                if (flowerTransitionTicks > 10) {
+                    applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
+                } else {
+                    applyFarmingInput(mc, true, false, true, false, true, false);
+                }
+                if (--flowerTransitionTicks <= 0) {
+                    flowerState = FlowerState.HARVEST_BACK;
+                    flowerMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                    announceFlowerAction(mc, "換行完成，開始向後採集");
+                }
+            }
+            case HARVEST_BACK -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
+                            warning("，持續按住左鍵與 S 尋找開始方塊"));
+                    flowerState = FlowerState.RETURN_BACK_TO_START;
+                    applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                } else if (flowerMarkerDetected(mc, player, profile)) {
+                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
+                    flowerState = FlowerState.LEFT_TWO_SECONDS;
+                    flowerTransitionTicks = 40;
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                    announceFlowerAction(mc, "偵測到換行方塊，按住 A 兩秒，最後半秒加入 W");
+                }
+            }
+            case LEFT_TWO_SECONDS -> {
+                if (flowerTransitionTicks > 10) {
+                    applyFarmingInput(mc, DirectionKey.LEFT, true, false);
+                } else {
+                    applyFarmingInput(mc, true, false, true, false, true, false);
+                }
+                if (--flowerTransitionTicks <= 0) {
+                    flowerState = FlowerState.HARVEST_RIGHT;
+                    flowerMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceFlowerAction(mc, "換行完成，開始往右採集");
+                }
+            }
+            case RETURN_BACK_TO_START -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
+                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
+                            warning("，繼續後退一格後重新開始"));
+                    beginFlowerStep(player, FlowerState.RETURN_BACK_ONE, DirectionKey.BACK);
+                }
+            }
+            case RETURN_BACK_ONE -> {
+                applyFarmingInput(mc, DirectionKey.BACK, true, false);
+                if (flowerStepDone(player)) {
+                    flowerState = FlowerState.HARVEST_RIGHT;
+                    flowerMarkerCleared = false;
+                    applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
+                    announceFlowerAction(mc, "循環重置完成，開始往右採集");
+                }
+            }
+            case INACTIVE -> { }
+        }
+    }
+
+    private static boolean flowerMarkerDetected(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
+        if (!profile.rowDetection) return false;
+        boolean markerPresent = findFarmingMarkerBlock(mc, player) != null;
+        if (!flowerMarkerCleared) {
+            if (!markerPresent) flowerMarkerCleared = true;
+            return false;
+        }
+        if (markerPresent) {
+            flowerMarkerCleared = false;
+            return true;
+        }
+        return false;
+    }
+
+    private static void beginFlowerStep(LocalPlayer player, FlowerState state, DirectionKey direction) {
+        flowerState = state;
+        flowerStepStartX = player.getX();
+        flowerStepStartZ = player.getZ();
+        flowerStepLastX = player.getX();
+        flowerStepLastZ = player.getZ();
+        flowerStepStalledTicks = 0;
+        Vec3 directionVector = farmingMovementVector(direction, farmingCrop.yaw);
+        flowerStepDirectionX = directionVector.x;
+        flowerStepDirectionZ = directionVector.z;
+    }
+
+    private static boolean flowerStepDone(LocalPlayer player) {
+        double dx = player.getX() - flowerStepStartX;
+        double dz = player.getZ() - flowerStepStartZ;
+        double progress = dx * flowerStepDirectionX + dz * flowerStepDirectionZ;
+        double tickDx = player.getX() - flowerStepLastX;
+        double tickDz = player.getZ() - flowerStepLastZ;
+        flowerStepLastX = player.getX();
+        flowerStepLastZ = player.getZ();
+        if (tickDx * tickDx + tickDz * tickDz < 0.0001) flowerStepStalledTicks++;
+        else flowerStepStalledTicks = 0;
+        return progress >= FARMING_ONE_BLOCK_DISTANCE || flowerStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
+    }
+
+    private static void announceFlowerAction(Minecraft mc, String action) {
+        say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 動作："), warning(action));
+    }
+
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
@@ -1455,6 +1604,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.INACTIVE;
                 }
                 cactusMarkerCleared = false;
+                if (isFlowerCrop(detected)) {
+                    beginFlowerStep(player, FlowerState.START_BACK_ONE, DirectionKey.BACK);
+                } else {
+                    flowerState = FlowerState.INACTIVE;
+                }
+                flowerMarkerCleared = false;
+                flowerTransitionTicks = 0;
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
@@ -1492,6 +1648,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                  "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> "Fungi Cutter";
             case "minecraft:melon" -> "Melon Dicer";
             case "minecraft:pumpkin", "minecraft:carved_pumpkin" -> "Pumpkin Dicer";
+            case "minecraft:sunflower" -> SUNFLOWER_TOOL_NAME;
+            case "minecraft:rose_bush" -> WILD_ROSE_TOOL_NAME;
             default -> null;
         };
     }
@@ -2131,6 +2289,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         RETURN_LEFT_ONE
     }
 
+    private enum FlowerState {
+        INACTIVE,
+        START_BACK_ONE,
+        HARVEST_RIGHT,
+        FORWARD_TWO_SECONDS,
+        HARVEST_BACK,
+        LEFT_TWO_SECONDS,
+        RETURN_BACK_TO_START,
+        RETURN_BACK_ONE
+    }
+
     private enum MushroomColor {
         UNKNOWN("未知"), RED("紅色"), BROWN("棕色");
 
@@ -2171,6 +2340,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         SUGAR_CANE("Sugar Cane", 45.0f, 0.0f, DirectionKey.LEFT, DirectionKey.BACK, "minecraft:quartz_block"),
         PUMPKIN_MELON("Pumpkim & Melon", 90.0f, -57.0f, DirectionKey.LEFT, DirectionKey.RIGHT, "minecraft:quartz_block"),
         COCOA_BEAN("Cocoa Bean", 0.0f, -45.0f, DirectionKey.FORWARD, DirectionKey.BACK, "#dirt"),
+        SUNFLOWER("Sunflower", -45.0f, 0.0f, DirectionKey.RIGHT, DirectionKey.BACK, "minecraft:quartz_block"),
+        WILD_ROSE("Wild Rose", -45.0f, 0.0f, DirectionKey.RIGHT, DirectionKey.BACK, "minecraft:quartz_block"),
         MUSHROOM("Mushroom", -65.0f, 0.0f, DirectionKey.FORWARD, DirectionKey.BACK, "minecraft:quartz_block");
 
         final String label;
@@ -2209,6 +2380,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 case "minecraft:sugar_cane" -> SUGAR_CANE;
                 case "minecraft:pumpkin", "minecraft:carved_pumpkin", "minecraft:melon" -> PUMPKIN_MELON;
                 case "minecraft:cocoa" -> COCOA_BEAN;
+                case "minecraft:sunflower" -> SUNFLOWER;
+                case "minecraft:rose_bush" -> WILD_ROSE;
                 case "minecraft:red_mushroom", "minecraft:red_mushroom_block",
                      "minecraft:brown_mushroom", "minecraft:brown_mushroom_block" -> MUSHROOM;
                 default -> null;
@@ -2220,6 +2393,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
             if ("NETHERWART".equals(normalized)) normalized = "NETHER_WART";
             if ("COCOA".equals(normalized) || "COCOA_BEANS".equals(normalized)) normalized = "COCOA_BEAN";
+            if ("MOONFLOWER".equals(normalized)) normalized = "SUNFLOWER";
+            if ("ROSE_BUSH".equals(normalized)) normalized = "WILD_ROSE";
             if ("MELON".equals(normalized) || "PUMPKIN".equals(normalized) || "PUMPKIN_AND_MELON".equals(normalized) || "PUMPKIM_&_MELON".equals(normalized)) normalized = "PUMPKIN_MELON";
             if ("RED_MUSH".equals(normalized) || "RED_MUSHROOM".equals(normalized) || "BROWN_MUSH".equals(normalized) || "BROWN_MUSHROOM".equals(normalized)) normalized = "MUSHROOM";
             for (FarmingCrop crop : values()) if (crop.name().equals(normalized) || crop.label.toUpperCase(Locale.ROOT).replace(' ', '_').equals(normalized)) return crop;

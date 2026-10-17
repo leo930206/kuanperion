@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.83] - 2026-10-17
+
+### Added
+
+- Added automatic Sunflower/Moonflower and Wild Rose farming at fixed yaw `-45` and pitch `0`.
+- Added the shared flower right/back harvesting cycle, timed two-second row transitions, and the final-half-second diagonal inputs.
+- Added flower end-to-start recovery while keeping attack held, plus `Eclipse Sickle` and `Wild Rose Cutter` validation.
+
 ## [1.0.82] - 2026-10-17
 
 ### Removed
