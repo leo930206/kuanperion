@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.91] - 2026-10-17
+
+### Changed
+
+- Shifted the Mining target reorder/delete controls to the right edge of the settings grid and replaced the delete label with `×`.
+
 ## [1.0.90] - 2026-10-17
 
 ### Changed

@@ -2249,9 +2249,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, y + 1, 18, 18,
                         Component.literal(name), block.asItem().getDefaultInstance(), false, true));
                 addRenderableWidget(new StringWidget(x + 22, y + 5, 208, 12, Component.literal((i + 1) + ". " + name), this.font));
-                addRenderableWidget(Button.builder(Component.literal("↑"), b -> { move(idx, -1); rebuild(); }).bounds(x + 240, y, 36, 20).build());
-                addRenderableWidget(Button.builder(Component.literal("↓"), b -> { move(idx, 1); rebuild(); }).bounds(x + 280, y, 36, 20).build());
-                addRenderableWidget(Button.builder(Component.literal("刪"), b -> { TARGET_BLOCKS.remove(idx); saveConfig(); rebuild(); }).bounds(x + 320, y, 45, 20).build());
+                addRenderableWidget(Button.builder(Component.literal("↑"), b -> { move(idx, -1); rebuild(); }).bounds(x + 295, y, 36, 20).build());
+                addRenderableWidget(Button.builder(Component.literal("↓"), b -> { move(idx, 1); rebuild(); }).bounds(x + 335, y, 36, 20).build());
+                addRenderableWidget(Button.builder(Component.literal("×"), b -> { TARGET_BLOCKS.remove(idx); saveConfig(); rebuild(); }).bounds(x + 375, y, 45, 20).build());
                 y += 24;
             }
             int webhookY = this.height - 34;
