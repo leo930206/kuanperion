@@ -81,6 +81,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
     private static boolean visitorNotificationEnabled = false;
+    private static boolean farmingMenuPauseEnabled = true;
     private static boolean farmingToolDetectionEnabled = false;
     private static boolean abnormalHandlingEnabled = true;
     private static String pestWebhookUrl = "";
@@ -1484,7 +1485,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean isFarmingPauseScreen(Screen screen) {
-        return screen != null;
+        return farmingMenuPauseEnabled && screen != null;
     }
 
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
@@ -1920,6 +1921,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
+        farmingMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("farmingMenuPauseEnabled", "true"));
         farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
         boolean legacyAbnormalHandling = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"))
                 || Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"))
@@ -1950,6 +1952,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
+        p.setProperty("farmingMenuPauseEnabled", Boolean.toString(farmingMenuPauseEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
@@ -2245,6 +2248,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 28;
             addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("選單關閉", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 36;
             addSectionTitle("Mining", y);
             y += 22;

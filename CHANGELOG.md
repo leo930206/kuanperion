@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.93] - 2026-10-17
+
+### Added
+
+- Added the saved `選單關閉` toggle in the third Farming notification-row position.
+- When enabled, any open GUI pauses Farming until closed; when disabled, Farming continues while GUIs remain open.
+
 ## [1.0.92] - 2026-10-17
 
 ### Changed
