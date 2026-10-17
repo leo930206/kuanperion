@@ -2248,7 +2248,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 28;
             addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("選單關閉", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("智慧暫停", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 36;
             addSectionTitle("Mining", y);
             y += 22;

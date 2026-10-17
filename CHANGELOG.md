@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.94] - 2026-10-17
+
+### Changed
+
+- Renamed the Farming `選單關閉` toggle to `智慧暫停` without changing its behavior.
+
 ## [1.0.93] - 2026-10-17
 
 ### Added

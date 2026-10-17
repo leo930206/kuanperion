@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.93`
+Current mod version: `1.0.94`
 
 ## Features
 
@@ -56,7 +56,7 @@ Current mod version: `1.0.93`
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed; only movement requested by the active crop state machine is applied. Mushroom farming no longer performs automatic stuck-detection jumps.
-- The `選單關閉` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes when it closes without turning Farming off. When disabled, Farming continues through open GUIs.
+- The `智慧暫停` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes when it closes without turning Farming off. When disabled, Farming continues through open GUIs.
 - Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages. A saved `Visitor 通知` switch is present as a behavior placeholder for later design.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
@@ -73,7 +73,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.93.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.94.jar
 ```
 
 ## Maintenance rule
