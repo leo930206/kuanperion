@@ -148,6 +148,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static FlowerState flowerState = FlowerState.INACTIVE;
     private static boolean flowerMarkerCleared = false;
     private static int flowerTransitionTicks = 0;
+    private static boolean farmingDesiredForward = false;
+    private static boolean farmingDesiredBack = false;
+    private static boolean farmingDesiredLeft = false;
+    private static boolean farmingDesiredRight = false;
+    private static boolean farmingDesiredJump = false;
     private static double flowerStepStartX = 0.0;
     private static double flowerStepStartZ = 0.0;
     private static double flowerStepLastX = 0.0;
@@ -181,7 +186,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
-        ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::freezeMovementIfMining);
+        ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::enforceAutomationMovementLock);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleReceivedMessage(message));
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
@@ -195,7 +200,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         handleShiftHotkeys(mc);
         handleRightClickSelection(mc);
-        freezeMovementIfMining(mc);
+        enforceAutomationMovementLock(mc);
         if (miningEnabled && mc.options != null) mc.options.pauseOnLostFocus = false;
         tickSkippedTargets();
         if (cooldown > 0) cooldown--;
@@ -1504,14 +1509,25 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void applyFarmingInput(Minecraft mc, boolean forward, boolean back, boolean left, boolean right,
                                           boolean attack, boolean jump) {
-        if (mc == null || mc.options == null) return;
+        farmingDesiredForward = forward;
+        farmingDesiredBack = back;
+        farmingDesiredLeft = left;
+        farmingDesiredRight = right;
+        farmingDesiredJump = jump;
         setAttackKey(mc, attack);
+        applyLockedMovement(mc, forward, back, left, right, jump);
+    }
+
+    private static void applyLockedMovement(Minecraft mc, boolean forward, boolean back, boolean left,
+                                            boolean right, boolean jump) {
+        if (mc == null || mc.options == null) return;
         mc.options.keyUp.setDown(forward);
         mc.options.keyDown.setDown(back);
         mc.options.keyLeft.setDown(left);
         mc.options.keyRight.setDown(right);
         mc.options.keyJump.setDown(jump);
         mc.options.keyShift.setDown(false);
+        mc.options.keySprint.setDown(false);
         if (mc.player != null && mc.player.input != null) {
             mc.player.input.keyPresses = new Input(forward, back, left, right, jump, false, false);
             mc.player.setSprinting(false);
@@ -1524,14 +1540,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void releaseFarmingMovementKeys(Minecraft mc) {
-        if (mc == null || mc.options == null) return;
-        mc.options.keyUp.setDown(false);
-        mc.options.keyDown.setDown(false);
-        mc.options.keyLeft.setDown(false);
-        mc.options.keyRight.setDown(false);
-        mc.options.keyJump.setDown(false);
-        mc.options.keyShift.setDown(false);
-        if (mc.player != null && mc.player.input != null) mc.player.input.keyPresses = Input.EMPTY;
+        farmingDesiredForward = false;
+        farmingDesiredBack = false;
+        farmingDesiredLeft = false;
+        farmingDesiredRight = false;
+        farmingDesiredJump = false;
+        applyLockedMovement(mc, false, false, false, false, false);
     }
 
     private static void lookAtFixed(LocalPlayer player, float yaw, float pitch) {
@@ -1559,13 +1573,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return false;
     }
 
-    private static void freezeMovementIfMining(Minecraft mc) {
-        if (!miningEnabled || mc.player == null) return;
-        LocalPlayer player = mc.player;
-        if (player.input != null) player.input.keyPresses = Input.EMPTY;
-        Vec3 velocity = player.getDeltaMovement();
-        player.setDeltaMovement(0.0, velocity.y, 0.0);
-        player.setSprinting(false);
+    private static void enforceAutomationMovementLock(Minecraft mc) {
+        if (mc == null || mc.player == null || mc.options == null) return;
+        if (miningEnabled || farmingAutoRecovering) {
+            applyLockedMovement(mc, false, false, false, false, false);
+            Vec3 velocity = mc.player.getDeltaMovement();
+            mc.player.setDeltaMovement(0.0, velocity.y, 0.0);
+            return;
+        }
+        if (!farmingEnabled) return;
+        if (isFarmingPauseScreen(mc.gui.screen())) {
+            applyLockedMovement(mc, false, false, false, false, false);
+            return;
+        }
+        applyLockedMovement(mc, farmingDesiredForward, farmingDesiredBack, farmingDesiredLeft,
+                farmingDesiredRight, farmingDesiredJump);
     }
 
     private static void handleRightClickSelection(Minecraft mc) {

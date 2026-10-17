@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.92] - 2026-10-17
+
+### Changed
+
+- Locked manual forward, backward, left, right, jump, sneak, and sprint input while Mining or Farming is enabled.
+- Mining now remains horizontally stationary, while Farming accepts movement only from its active crop state machine.
+
 ## [1.0.91] - 2026-10-17
 
 ### Changed
