@@ -77,7 +77,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
     private static boolean farmingEnabledThisSession = false;
-    private static FarmingSelectMode farmingSelectMode = FarmingSelectMode.NONE;
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
@@ -548,20 +547,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return id.contains("sign") && mc.player.getMainHandItem().isEmpty();
         } catch (Throwable ignored) {
             return false;
-        }
-    }
-
-    private static void setSelectedFarmingBlock(Minecraft mc, FarmingSelectMode mode, String name) {
-        FarmingBlockProfile profile = farmingProfile();
-        if (mode == FarmingSelectMode.ROW) {
-            profile.rowBlock = name;
-            say(mc, feature("Farming"), plain(" 共用換行方塊已設定："), blockName(name));
-        } else if (mode == FarmingSelectMode.START) {
-            profile.startBlock = name;
-            say(mc, feature("Farming"), plain(" 共用開始方塊已設定："), blockName(name));
-        } else if (mode == FarmingSelectMode.END) {
-            profile.endBlock = name;
-            say(mc, feature("Farming"), plain(" 共用結束方塊已設定："), blockName(name));
         }
     }
 
@@ -1586,7 +1571,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void handleRightClickSelection(Minecraft mc) {
-        if ((!selectMode && farmingSelectMode == FarmingSelectMode.NONE) || mc.player == null || mc.level == null || mc.getWindow() == null) {
+        if (!selectMode || mc.player == null || mc.level == null || mc.getWindow() == null) {
             rightWasDown = false;
             return;
         }
@@ -1595,11 +1580,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             BlockState state = mc.level.getBlockState(bhr.getBlockPos());
             String name = blockId(state);
             if (!state.isAir() && isAllowedTargetBlock(name)) {
-                if (farmingSelectMode != FarmingSelectMode.NONE) {
-                    setSelectedFarmingBlock(mc, farmingSelectMode, name);
-                    farmingSelectMode = FarmingSelectMode.NONE;
-                    saveConfig();
-                } else if (!TARGET_BLOCKS.contains(name)) {
+                if (!TARGET_BLOCKS.contains(name)) {
                     TARGET_BLOCKS.add(name);
                     boolean finished = TARGET_BLOCKS.size() >= miningSelectionTargetCount;
                     selectMode = !finished;
@@ -1928,7 +1909,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
                 Boolean.toString(legacyAbnormalHandling)));
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
-        loadFarmingBlockProfiles(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
         rotateToTarget = Boolean.parseBoolean(p.getProperty("rotateToTarget", "true"));
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
@@ -1956,55 +1936,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
-        saveFarmingBlockProfiles(p);
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuan Hypixel SkyBlock Assistant"); } catch (Throwable ignored) {}
-    }
-
-    private static void loadFarmingBlockProfiles(Properties p) {
-        String legacyRowBlock = p.getProperty("farmingMarkers", "").split(",", 2)[0].trim();
-        FARMING_BLOCK_PROFILE.rowDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "rowDetection", p.getProperty("farmingTurnOnMarkers", "true")));
-        FARMING_BLOCK_PROFILE.startDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "startDetection", p.getProperty("farmingStartDetection", "true")));
-        FARMING_BLOCK_PROFILE.endDetection = Boolean.parseBoolean(sharedFarmingProperty(p, "endDetection", p.getProperty("farmingEndDetection", "true")));
-        String defaultRowBlock = legacyRowBlock.isBlank() ? "minecraft:yellow_stained_glass" : legacyRowBlock;
-        FARMING_BLOCK_PROFILE.rowBlock = sharedFarmingBlock(p, "rowBlock", defaultRowBlock);
-        FARMING_BLOCK_PROFILE.startBlock = sharedFarmingBlock(p, "startBlock",
-                p.getProperty("farmingStartBlock", "minecraft:light_blue_stained_glass"));
-        FARMING_BLOCK_PROFILE.endBlock = sharedFarmingBlock(p, "endBlock",
-                p.getProperty("farmingEndBlock", "minecraft:pink_stained_glass"));
-    }
-
-    private static String sharedFarmingProperty(Properties p, String suffix, String fallback) {
-        String shared = "farming.shared." + suffix;
-        if (p.containsKey(shared)) return p.getProperty(shared, fallback);
-        String selected = "farming." + farmingCrop.name() + "." + suffix;
-        if (p.containsKey(selected)) return p.getProperty(selected, fallback);
-        String mushroom = "farming.MUSHROOM." + suffix;
-        if (p.containsKey(mushroom)) return p.getProperty(mushroom, fallback);
-        return fallback;
-    }
-
-    private static String sharedFarmingBlock(Properties p, String suffix, String fallback) {
-        String value = sharedFarmingProperty(p, suffix, fallback).trim();
-        if (!value.isBlank()) return value;
-        for (FarmingCrop crop : FarmingCrop.values()) {
-            String old = p.getProperty("farming." + crop.name() + "." + suffix, "").trim();
-            if (!old.isBlank()) return old;
-        }
-        return value;
-    }
-
-    private static void saveFarmingBlockProfiles(Properties p) {
-        p.setProperty("farming.shared.rowDetection", Boolean.toString(FARMING_BLOCK_PROFILE.rowDetection));
-        p.setProperty("farming.shared.startDetection", Boolean.toString(FARMING_BLOCK_PROFILE.startDetection));
-        p.setProperty("farming.shared.endDetection", Boolean.toString(FARMING_BLOCK_PROFILE.endDetection));
-        p.setProperty("farming.shared.rowBlock", FARMING_BLOCK_PROFILE.rowBlock);
-        p.setProperty("farming.shared.startBlock", FARMING_BLOCK_PROFILE.startBlock);
-        p.setProperty("farming.shared.endBlock", FARMING_BLOCK_PROFILE.endBlock);
     }
 
     private static int parseInt(String s, int fallback, int min, int max) {
@@ -2126,19 +2063,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
-    private enum FarmingSelectMode { NONE, ROW, START, END }
-
     private static FarmingBlockProfile farmingProfile() {
         return FARMING_BLOCK_PROFILE;
     }
 
     private static final class FarmingBlockProfile {
-        boolean rowDetection = true;
-        boolean startDetection = true;
-        boolean endDetection = true;
-        String rowBlock = "";
-        String startBlock = "";
-        String endBlock = "";
+        final boolean rowDetection = true;
+        final boolean startDetection = true;
+        final boolean endDetection = true;
+        final String rowBlock = "minecraft:yellow_stained_glass";
+        final String startBlock = "minecraft:light_blue_stained_glass";
+        final String endBlock = "minecraft:pink_stained_glass";
     }
 
     private enum FarmingCrop {
@@ -2255,7 +2190,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 clearActiveTarget(Minecraft.getInstance());
                 TARGET_BLOCKS.clear();
                 selectMode = true;
-                farmingSelectMode = FarmingSelectMode.NONE;
                 saveConfig();
                 Minecraft.getInstance().setScreenAndShow(null);
                 say(Minecraft.getInstance(), feature("Mining"), plain(" 方塊選擇：請右鍵選擇 "),
@@ -2296,21 +2230,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("？？？通知", placeholderNotificationEnabled), b -> { placeholderNotificationEnabled = !placeholderNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
-            y += 28;
-            FarmingBlockProfile blockProfile = farmingProfile();
-            addRenderableWidget(Button.builder(toggleMsg("換行偵測", blockProfile.rowDetection), b -> { blockProfile.rowDetection = !blockProfile.rowDetection; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("開始偵測", blockProfile.startDetection), b -> { blockProfile.startDetection = !blockProfile.startDetection; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("結束偵測", blockProfile.endDetection), b -> { blockProfile.endDetection = !blockProfile.endDetection; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
-            y += 28;
-            addRenderableWidget(Button.builder(Component.literal("換行方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.ROW)).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 290, y, 130, 20).build());
-            y += 22;
-            addFarmingBlockDisplay(x, y, farmingMarkerSummary());
-            addFarmingBlockDisplay(x + 145, y, blockProfile.startBlock);
-            addFarmingBlockDisplay(x + 290, y, blockProfile.endBlock);
-
-            y += 28;
+            y += 36;
             addSectionTitle("Mining", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
@@ -2364,48 +2284,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
 
-        private String farmingMarkerSummary() {
-            if (farmingProfile().rowBlock.isBlank()) return "預設";
-            return farmingProfile().rowBlock;
-        }
-
-        private void addFarmingBlockDisplay(int x, int y, String id) {
-            try {
-                if (id != null && !id.isBlank()) {
-                    var block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
-                    var stack = block.asItem().getDefaultInstance();
-                    if (!stack.isEmpty()) {
-                        addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, y, 18, 18,
-                                Component.literal(id), stack, false, true));
-                    }
-                }
-            } catch (Throwable ignored) {}
-            addRenderableWidget(new StringWidget(x + 22, y + 5, 108, 12,
-                    Component.literal(shortBlockName(id)), this.font));
-        }
-
-        private String shortBlockName(String id) {
-            if (id == null || id.isBlank()) return "未設定";
-            String s = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : id;
-            return s.length() > 18 ? s.substring(0, 18) : s;
-        }
-
         private void openMiningTargetCountScreen() {
             Minecraft.getInstance().setScreenAndShow(new MiningTargetCountScreen(this));
-        }
-
-        private void beginFarmingBlockPick(FarmingSelectMode mode) {
-            farmingSelectMode = mode;
-            selectMode = false;
-            saveConfig();
-            Minecraft.getInstance().setScreenAndShow(parent);
-            Component target = switch (mode) {
-                case ROW -> blockName("換行方塊");
-                case START -> blockName("開始方塊");
-                case END -> blockName("結束方塊");
-                default -> plain("");
-            };
-            say(Minecraft.getInstance(), feature("Farming"), plain(" 方塊選擇：請右鍵選擇"), target);
         }
 
         private void move(int idx, int delta) {

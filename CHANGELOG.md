@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.89] - 2026-10-17
+
+### Changed
+
+- Hardcoded row, start, and end detection as permanently enabled with yellow stained glass, light blue stained glass, and pink stained glass.
+
+### Removed
+
+- Removed all six Farming detection and block-selection buttons, their three block-name/icon labels, right-click selection mode, and saved marker configuration.
+
 ## [1.0.88] - 2026-10-17
 
 ### Changed
