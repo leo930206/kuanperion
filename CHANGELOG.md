@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.86] - 2026-10-17
+
+### Removed
+
+- Removed Mushroom stuck detection and its automatic 12-tick jump response; Mushroom farming no longer presses jump.
+
+### Fixed
+
+- Moved the Mining target rows below the mining-delay controls so block icons and names no longer overlap the buttons.
+
 ## [1.0.85] - 2026-10-17
 
 ### Added

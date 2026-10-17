@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.85`
+Current mod version: `1.0.86`
 
 ## Features
 
@@ -56,7 +56,7 @@ Current mod version: `1.0.85`
 - The single `異常狀況處理` toggle covers five conditions after Farming was started in Garden: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, execute their return commands, and finish once Garden is confirmed without `/home` or automatic Farming restart. A void fall only closes Farming. Hub sidebar detection takes priority over the held `Game Menu` Lobby signal.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
-- Farming holds the attack key and directly applies movement input every tick.
+- Farming holds the attack key and directly applies movement input every tick. Mushroom farming no longer performs automatic stuck-detection jumps.
 - Farming pauses movement/attack while any GUI is open, including inventory, chat, the Esc menu, settings, and the mod settings screen; it continues when the GUI closes without turning Farming off.
 - Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages. Saved `Visitor 通知` and `？？？通知` switches are present as behavior placeholders for later design.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
@@ -74,7 +74,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.85.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.86.jar
 ```
 
 ## Maintenance rule

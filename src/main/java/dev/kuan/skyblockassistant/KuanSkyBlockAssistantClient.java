@@ -96,11 +96,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingRecoveryScanTicks = 0;
     private static int limboChatSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
-    private static int farmingStuckTicks = 0;
-    private static double farmingLastX = 0.0;
-    private static double farmingLastY = 0.0;
-    private static double farmingLastZ = 0.0;
-    private static int farmingStuckSampleTicks = 0;
     private static int farmingMarkerIgnoreTicks = 0;
     private static boolean farmingCropDetected = false;
     private static int farmingCropProbeTicks = 0;
@@ -284,8 +279,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingLeftShiftTicks = 0;
         farmingRightShiftTicks = 0;
         farmingReturningToStart = false;
-        farmingStuckTicks = 0;
-        farmingStuckSampleTicks = 0;
         farmingMarkerIgnoreTicks = 0;
         farmingCropDetected = false;
         farmingCropProbeTicks = 0;
@@ -311,9 +304,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         FARMING_COMMAND_QUEUE.clear();
         farmingWasInGarden = detectFarmingLocation(mc) == FarmingLocation.GARDEN;
         if (mc.player != null) {
-            farmingLastX = mc.player.getX();
-            farmingLastY = mc.player.getY();
-            farmingLastZ = mc.player.getZ();
             pumpkinMelonStepStartX = mc.player.getX();
             pumpkinMelonStepStartZ = mc.player.getZ();
             pumpkinMelonStepLastX = mc.player.getX();
@@ -423,16 +413,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             releaseFarmingKeys(mc);
             return;
         }
-        farmingStuckSampleTicks++;
-        if (farmingStuckSampleTicks >= 60) {
-            double moved = player.distanceToSqr(farmingLastX, farmingLastY, farmingLastZ);
-            farmingLastX = player.getX();
-            farmingLastY = player.getY();
-            farmingLastZ = player.getZ();
-            farmingStuckSampleTicks = 0;
-            if (moved < 1.0) farmingStuckTicks = 12;
-        }
-        if (farmingStuckTicks-- > 0) applyFarmingInput(mc, reversedKey(farmingCrop, farmingReverseLane), true, true);
     }
 
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
@@ -2348,7 +2328,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 -"), b -> { actionDelayTicks = Math.max(1, actionDelayTicks - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("挖礦延遲: " + actionDelayTicks), this.font));
-            y += 10;
+            y += 28;
             int maxRows = Math.min(5, TARGET_BLOCKS.size());
             for (int i = 0; i < maxRows; i++) {
                 final int idx = i;
