@@ -174,14 +174,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean rightWasDown = false;
     private static boolean miningComboWasDown = false;
     private static boolean farmingComboWasDown = false;
-    private static String lastFarmingMarkerMessage = "";
-    private static int lastFarmingMarkerMessageTick = 0;
     private static String lastPestMessage = "";
     private static int lastPestMessageTick = 0;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
-    private static boolean miningWaitingForTarget = false;
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
@@ -242,19 +239,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void toggleMining(Minecraft mc) {
         if (miningEnabled) {
             miningEnabled = false;
-            miningWaitingForTarget = false;
             clearActiveTarget(mc);
             saveConfig();
             sayAutoState(mc, "Mining", false);
             return;
         }
         if (TARGET_BLOCKS.isEmpty()) {
-            say(mc, plain("Auto "), feature("Mining"), plain(" "), error("無法開啟"), plain("：尚未設定目標方塊"));
+            say(mc, feature("Mining"), plain(" "), error("無法開啟"), plain("：尚未設定目標方塊"));
             return;
         }
         stopFarming(mc, false);
         miningEnabled = true;
-        miningWaitingForTarget = false;
         saveConfig();
         sayAutoState(mc, "Mining", true);
     }
@@ -269,7 +264,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
-            say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，正在辨識準星指向的作物"));
+            say(mc, feature("Farming"), plain(" "), success("開啟"), plain("，正在辨識準星指向的作物"));
         }
         saveConfig();
     }
@@ -375,7 +370,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (farmingReturningToStart) {
             setAttackKey(mc, false);
             if (blockProfile.startDetection && isConfiguredBlockNear(mc, player, blockProfile.startBlock)) {
-                say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(blockProfile.startBlock));
                 farmingReturningToStart = false;
                 farmingReverseLane = false;
                 farmingRightShiftTicks = MUSHROOM_LEFT_SHIFT_TICKS;
@@ -414,7 +408,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         setAttackKey(mc, true);
         pressFarmingMoveKeys(mc, farmingCrop, farmingReverseLane);
         if (blockProfile.endDetection && isConfiguredBlockNear(mc, player, blockProfile.endBlock)) {
-            say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(blockProfile.endBlock), warning("，開始後退尋找開始方塊"));
             farmingReturningToStart = true;
             applyFarmingInput(mc, DirectionKey.BACK, false, false);
             return;
@@ -426,7 +419,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             marker = findFarmingMarkerBlock(mc, player);
         }
         if (marker != null) {
-            announceFarmingMarker(mc, marker);
             farmingMarkerIgnoreTicks = 30;
             if (farmingCrop == FarmingCrop.MUSHROOM) {
                 farmingLeftShiftTicks = MUSHROOM_LEFT_SHIFT_TICKS;
@@ -643,15 +635,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announcePumpkinAction(mc, "開始持續往左採集");
                 }
             }
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_EXTRA_ONE);
-                    announcePumpkinAction(mc, "原本往左，先繼續往左一格");
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 }
             }
@@ -660,14 +649,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_TO_SECOND_MARKER);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announcePumpkinAction(mc, "左移完成，按住往前並尋找第二個換行方塊");
                 }
             }
             case LEFT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 pumpkinMelonStepTicks++;
                 if (pumpkinMelonStepTicks >= PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS && findFarmingMarkerBlock(mc, player) != null) {
-                    announcePumpkinAction(mc, "再次偵測到換行方塊，往右一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_ONE);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 }
@@ -677,7 +664,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_FORWARD_ONE);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announcePumpkinAction(mc, "右移完成，往前一格");
                 }
             }
             case LEFT_FORWARD_ONE -> {
@@ -685,19 +671,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_RIGHT;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announcePumpkinAction(mc, "開始持續往右採集");
                 }
             }
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock), warning("，停止採集並先往右一格"));
                     beginPumpkinMelonStep(player, PumpkinMelonState.END_RIGHT_ONE);
                     applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
                 } else if (pumpkinMelonLaneMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_EXTRA_ONE);
-                    announcePumpkinAction(mc, "原本往右，先繼續往右一格");
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 }
             }
@@ -706,14 +688,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_TO_SECOND_MARKER);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announcePumpkinAction(mc, "右移完成，按住往前並尋找第二個換行方塊");
                 }
             }
             case RIGHT_FORWARD_TO_SECOND_MARKER -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 pumpkinMelonStepTicks++;
                 if (pumpkinMelonStepTicks >= PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS && findFarmingMarkerBlock(mc, player) != null) {
-                    announcePumpkinAction(mc, "再次偵測到換行方塊，往左一格");
                     beginPumpkinMelonStep(player, PumpkinMelonState.LEFT_ONE);
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 }
@@ -723,7 +703,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RIGHT_FORWARD_ONE);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announcePumpkinAction(mc, "左移完成，往前一格");
                 }
             }
             case RIGHT_FORWARD_ONE -> {
@@ -731,7 +710,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announcePumpkinAction(mc, "開始持續往左採集");
                 }
             }
             case END_RIGHT_ONE -> {
@@ -739,15 +717,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.RETURN_BACK_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, false, false);
-                    announcePumpkinAction(mc, "右移完成，開始往後尋找開始方塊");
                 }
             }
             case RETURN_BACK_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock));
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_BACK_TWO, 2.0);
-                    announcePumpkinAction(mc, "往後兩格");
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
             }
@@ -756,7 +731,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_LEFT_ONE);
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announcePumpkinAction(mc, "往左一格");
                 }
             }
             case RETURN_LEFT_ONE -> {
@@ -764,7 +738,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     beginPumpkinMelonStep(player, PumpkinMelonState.RETURN_FORWARD_ONE);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announcePumpkinAction(mc, "往前一格");
                 }
             }
             case RETURN_FORWARD_ONE -> {
@@ -772,7 +745,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (pumpkinMelonStepDone(player)) {
                     pumpkinMelonState = PumpkinMelonState.HARVEST_LEFT;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announcePumpkinAction(mc, "返回循環起點，開始持續往左採集");
                 }
             }
             case INACTIVE -> { }
@@ -850,15 +822,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.HARVEST_PRIMARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, primary, true, false);
-                    announceRowCropAction(mc, "起始前進完成，開始採集");
                 }
             }
             case HARVEST_PRIMARY -> {
                 applyFarmingInput(mc, primary, true, false);
                 if (rowCropMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginRowCropStep(player, RowCropState.PRIMARY_EXTRA_ONE);
-                    announceRowCropAction(mc, "偵測到換行方塊，沿原方向再走一格");
                     applyFarmingInput(mc, primary, true, false);
                 }
             }
@@ -868,7 +837,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.PRIMARY_JUMP_THREE_SECONDS;
                     rowCropWaitTicks = 60;
                     applyFarmingInput(mc, false, false, false, false, true, true);
-                    announceRowCropAction(mc, "橫移完成，開始按住空白鍵三秒");
                 }
             }
             case PRIMARY_JUMP_THREE_SECONDS -> {
@@ -877,7 +845,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.PRIMARY_JUMP_LATERAL_ONE_SECOND;
                     rowCropWaitTicks = 20;
                     applyFarmingJumpLateralInput(mc, secondary, true);
-                    announceRowCropAction(mc, "進入第四秒，同時按住空白鍵並轉向");
                 }
             }
             case PRIMARY_JUMP_LATERAL_ONE_SECOND -> {
@@ -886,20 +853,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.HARVEST_SECONDARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, secondary, true, false);
-                    announceRowCropAction(mc, "換行完成，開始反方向採集");
                 }
             }
             case HARVEST_SECONDARY -> {
                 applyFarmingInput(mc, secondary, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，停止採集並沿原方向尋找開始方塊"));
                     beginRowCropStep(player, RowCropState.END_EXTRA_ONE);
                     applyFarmingInput(mc, secondary, false, false);
                 } else if (rowCropMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginRowCropStep(player, RowCropState.SECONDARY_EXTRA_ONE);
-                    announceRowCropAction(mc, "偵測到換行方塊，沿原方向再走一格");
                     applyFarmingInput(mc, secondary, true, false);
                 }
             }
@@ -909,7 +871,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.SECONDARY_JUMP_THREE_SECONDS;
                     rowCropWaitTicks = 60;
                     applyFarmingInput(mc, false, false, false, false, true, true);
-                    announceRowCropAction(mc, "橫移完成，開始按住空白鍵三秒");
                 }
             }
             case SECONDARY_JUMP_THREE_SECONDS -> {
@@ -918,7 +879,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.SECONDARY_JUMP_LATERAL_ONE_SECOND;
                     rowCropWaitTicks = 20;
                     applyFarmingJumpLateralInput(mc, primary, true);
-                    announceRowCropAction(mc, "進入第四秒，同時按住空白鍵並轉向");
                 }
             }
             case SECONDARY_JUMP_LATERAL_ONE_SECOND -> {
@@ -927,7 +887,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.HARVEST_PRIMARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, primary, true, false);
-                    announceRowCropAction(mc, "換行完成，回到原方向採集");
                 }
             }
             case END_EXTRA_ONE -> {
@@ -935,14 +894,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (rowCropStepDone(player, 0.0, 1.0)) {
                     rowCropState = RowCropState.RETURN_TO_START;
                     applyFarmingInput(mc, secondary, false, false);
-                    announceRowCropAction(mc, "額外一格完成，繼續尋找開始方塊");
                 }
             }
             case RETURN_TO_START -> {
                 applyFarmingInput(mc, secondary, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
-                            warning("，原地等待一秒"));
                     rowCropState = RowCropState.WAIT_ONE_SECOND;
                     rowCropWaitTicks = 20;
                     releaseFarmingKeys(mc);
@@ -954,7 +910,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     rowCropState = RowCropState.HARVEST_PRIMARY;
                     rowCropMarkerCleared = false;
                     applyFarmingInput(mc, primary, true, false);
-                    announceRowCropAction(mc, "等待完成，重新開始採集");
                 }
             }
             case INACTIVE -> { }
@@ -998,10 +953,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return distanceDone || rowCropStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
-    private static void announceRowCropAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 動作："), warning(action));
-    }
-
     private static void tickSugarCane(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
         if (sugarCaneState == SugarCaneState.INACTIVE) {
             sugarCaneState = SugarCaneState.HARVEST_LEFT;
@@ -1012,10 +963,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (sugarCaneMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginSugarCaneStep(player, SugarCaneState.FORWARD_FIVE, DirectionKey.FORWARD, 5.0);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceSugarCaneAction(mc, "偵測到換行方塊，往前五格");
                 }
             }
             case FORWARD_FIVE -> {
@@ -1023,7 +972,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (sugarCaneStepDone(player)) {
                     beginSugarCaneStep(player, SugarCaneState.RIGHT_ONE, DirectionKey.RIGHT, 1.0);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceSugarCaneAction(mc, "前進完成，往右一格");
                 }
             }
             case RIGHT_ONE -> {
@@ -1032,21 +980,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     sugarCaneState = SugarCaneState.HARVEST_BACK;
                     sugarCaneMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
-                    announceSugarCaneAction(mc, "換行完成，開始後退採集");
                 }
             }
             case HARVEST_BACK -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，持續按住左鍵並後退尋找開始方塊"));
                     sugarCaneState = SugarCaneState.RETURN_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 } else if (sugarCaneMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginSugarCaneStep(player, SugarCaneState.RIGHT_SEVEN, DirectionKey.RIGHT, 7.0);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceSugarCaneAction(mc, "偵測到換行方塊，往右七格");
                 }
             }
             case RIGHT_SEVEN -> {
@@ -1055,14 +998,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     sugarCaneState = SugarCaneState.HARVEST_LEFT;
                     sugarCaneMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceSugarCaneAction(mc, "換行完成，重新向左採集");
                 }
             }
             case RETURN_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
-                            warning("，繼續後退兩格"));
                     beginSugarCaneStep(player, SugarCaneState.RETURN_BACK_TWO, DirectionKey.BACK, 2.0);
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 }
@@ -1073,7 +1013,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     sugarCaneState = SugarCaneState.HARVEST_LEFT;
                     sugarCaneMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceSugarCaneAction(mc, "返回完成，重新向左採集");
                 }
             }
             case INACTIVE -> { }
@@ -1122,10 +1061,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 || sugarCaneStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
-    private static void announceSugarCaneAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName("Sugar Cane"), plain(" 動作："), warning(action));
-    }
-
     private static void tickCocoa(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
         if (cocoaState == CocoaState.INACTIVE) {
             beginCocoaStep(player, CocoaState.START_LEFT_ONE, DirectionKey.LEFT, 1.0);
@@ -1138,16 +1073,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cocoaState = CocoaState.HARVEST_FORWARD;
                     cocoaMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceCocoaAction(mc, "左移一格完成，開始向前採集");
                 }
             }
             case HARVEST_FORWARD -> {
                 applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
                 if (cocoaMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginCocoaStep(player, CocoaState.RIGHT_ONE, DirectionKey.RIGHT, 1.0);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceCocoaAction(mc, "偵測到換行方塊，往右一格");
                 }
             }
             case RIGHT_ONE -> {
@@ -1156,21 +1088,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cocoaState = CocoaState.HARVEST_BACK;
                     cocoaMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
-                    announceCocoaAction(mc, "換行完成，開始後退採集");
                 }
             }
             case HARVEST_BACK -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，停止採集並往左尋找開始方塊"));
                     cocoaState = CocoaState.RETURN_LEFT_TO_START;
                     applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 } else if (cocoaMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginCocoaStep(player, CocoaState.RIGHT_TWO, DirectionKey.RIGHT, 2.0);
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceCocoaAction(mc, "偵測到換行方塊，往右兩格");
                 }
             }
             case RIGHT_TWO -> {
@@ -1178,7 +1105,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (cocoaStepDone(player)) {
                     beginCocoaStep(player, CocoaState.FORWARD_ONE, DirectionKey.FORWARD, 1.0);
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceCocoaAction(mc, "右移完成，往前一格");
                 }
             }
             case FORWARD_ONE -> {
@@ -1186,7 +1112,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (cocoaStepDone(player)) {
                     beginCocoaStep(player, CocoaState.LEFT_ONE, DirectionKey.LEFT, 1.0);
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceCocoaAction(mc, "前進完成，往左一格");
                 }
             }
             case LEFT_ONE -> {
@@ -1195,14 +1120,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cocoaState = CocoaState.HARVEST_FORWARD;
                     cocoaMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceCocoaAction(mc, "換行完成，重新向前採集");
                 }
             }
             case RETURN_LEFT_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
-                            warning("，繼續往左一格"));
                     beginCocoaStep(player, CocoaState.START_LEFT_ONE, DirectionKey.LEFT, 1.0);
                     applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 }
@@ -1262,10 +1184,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         };
     }
 
-    private static void announceCocoaAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName("Cocoa Bean"), plain(" 動作："), warning(action));
-    }
-
     private static void tickCactus(Minecraft mc, LocalPlayer player, FarmingBlockProfile profile) {
         if (cactusState == CactusState.INACTIVE) {
             beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
@@ -1278,16 +1196,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.HARVEST_LEFT;
                     cactusMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceCactusAction(mc, "前進完成，開始向左採集");
                 }
             }
             case HARVEST_LEFT -> {
                 applyFarmingInput(mc, DirectionKey.LEFT, true, false);
                 if (cactusMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginCactusStep(player, CactusState.LEFT_EXTRA_ONE, DirectionKey.LEFT, 1.0);
                     applyFarmingInput(mc, DirectionKey.LEFT, false, false);
-                    announceCactusAction(mc, "停止採集，繼續往左一格");
                 }
             }
             case LEFT_EXTRA_ONE -> {
@@ -1295,7 +1210,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (cactusStepDone(player)) {
                     beginCactusStep(player, CactusState.LEFT_FORWARD_TWO, DirectionKey.FORWARD, 2.0);
                     applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
-                    announceCactusAction(mc, "左移完成，往前兩格");
                 }
             }
             case LEFT_FORWARD_TWO -> {
@@ -1304,7 +1218,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.WAIT_BEFORE_HARVEST_RIGHT;
                     cactusWaitTicks = 20;
                     releaseFarmingKeys(mc);
-                    announceCactusAction(mc, "前進完成，等待一秒後向右採集");
                 }
             }
             case WAIT_BEFORE_HARVEST_RIGHT -> {
@@ -1313,21 +1226,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.HARVEST_RIGHT;
                     cactusMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceCactusAction(mc, "等待完成，開始向右採集");
                 }
             }
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，停止採集並後退尋找開始方塊"));
                     cactusState = CactusState.RETURN_BACK_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 } else if (cactusMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     beginCactusStep(player, CactusState.RIGHT_EXTRA_ONE, DirectionKey.RIGHT, 1.0);
                     applyFarmingInput(mc, DirectionKey.RIGHT, false, false);
-                    announceCactusAction(mc, "停止採集，繼續往右一格");
                 }
             }
             case RIGHT_EXTRA_ONE -> {
@@ -1335,7 +1243,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (cactusStepDone(player)) {
                     beginCactusStep(player, CactusState.RIGHT_FORWARD_TWO, DirectionKey.FORWARD, 2.0);
                     applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
-                    announceCactusAction(mc, "右移完成，往前兩格");
                 }
             }
             case RIGHT_FORWARD_TWO -> {
@@ -1344,7 +1251,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.WAIT_BEFORE_HARVEST_LEFT;
                     cactusWaitTicks = 20;
                     releaseFarmingKeys(mc);
-                    announceCactusAction(mc, "前進完成，等待一秒後向左採集");
                 }
             }
             case WAIT_BEFORE_HARVEST_LEFT -> {
@@ -1353,14 +1259,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     cactusState = CactusState.HARVEST_LEFT;
                     cactusMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceCactusAction(mc, "等待完成，開始向左採集");
                 }
             }
             case RETURN_BACK_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, false, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
-                            warning("，往左一格"));
                     beginCactusStep(player, CactusState.RETURN_LEFT_ONE, DirectionKey.LEFT, 1.0);
                     applyFarmingInput(mc, DirectionKey.LEFT, false, false);
                 }
@@ -1370,7 +1273,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 if (cactusStepDone(player)) {
                     beginCactusStep(player, CactusState.START_FORWARD_ONE, DirectionKey.FORWARD, 1.0);
                     applyFarmingInput(mc, DirectionKey.FORWARD, false, false);
-                    announceCactusAction(mc, "左移完成，往前一格後重新採集");
                 }
             }
             case INACTIVE -> { }
@@ -1418,10 +1320,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return progress >= cactusStepTargetDistance || cactusStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
-    private static void announceCactusAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName("Cactus"), plain(" 動作："), warning(action));
-    }
-
     private static boolean isFlowerCrop(FarmingCrop crop) {
         return crop == FarmingCrop.SUNFLOWER || crop == FarmingCrop.WILD_ROSE;
     }
@@ -1438,17 +1336,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     flowerState = FlowerState.HARVEST_RIGHT;
                     flowerMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceFlowerAction(mc, "後退一格完成，開始往右採集");
                 }
             }
             case HARVEST_RIGHT -> {
                 applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
                 if (flowerMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     flowerState = FlowerState.FORWARD_TWO_SECONDS;
                     flowerTransitionTicks = 40;
                     applyFarmingInput(mc, DirectionKey.FORWARD, true, false);
-                    announceFlowerAction(mc, "偵測到換行方塊，按住 W 兩秒，最後半秒加入 A");
                 }
             }
             case FORWARD_TWO_SECONDS -> {
@@ -1461,22 +1356,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     flowerState = FlowerState.HARVEST_BACK;
                     flowerMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
-                    announceFlowerAction(mc, "換行完成，開始向後採集");
                 }
             }
             case HARVEST_BACK -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.endDetection && isConfiguredBlockNear(mc, player, profile.endBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到結束方塊："), blockName(profile.endBlock),
-                            warning("，持續按住左鍵與 S 尋找開始方塊"));
                     flowerState = FlowerState.RETURN_BACK_TO_START;
                     applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 } else if (flowerMarkerDetected(mc, player, profile)) {
-                    announceFarmingMarker(mc, profile.rowBlock.isBlank() ? farmingCrop.markerBlock : profile.rowBlock);
                     flowerState = FlowerState.LEFT_TWO_SECONDS;
                     flowerTransitionTicks = 40;
                     applyFarmingInput(mc, DirectionKey.LEFT, true, false);
-                    announceFlowerAction(mc, "偵測到換行方塊，按住 A 兩秒，最後半秒加入 W");
                 }
             }
             case LEFT_TWO_SECONDS -> {
@@ -1489,14 +1379,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     flowerState = FlowerState.HARVEST_RIGHT;
                     flowerMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceFlowerAction(mc, "換行完成，開始往右採集");
                 }
             }
             case RETURN_BACK_TO_START -> {
                 applyFarmingInput(mc, DirectionKey.BACK, true, false);
                 if (profile.startDetection && isConfiguredBlockNear(mc, player, profile.startBlock)) {
-                    say(mc, feature("Farming"), plain(" 偵測到開始方塊："), blockName(profile.startBlock),
-                            warning("，繼續後退一格後重新開始"));
                     beginFlowerStep(player, FlowerState.RETURN_BACK_ONE, DirectionKey.BACK);
                 }
             }
@@ -1506,7 +1393,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     flowerState = FlowerState.HARVEST_RIGHT;
                     flowerMarkerCleared = false;
                     applyFarmingInput(mc, DirectionKey.RIGHT, true, false);
-                    announceFlowerAction(mc, "循環重置完成，開始往右採集");
                 }
             }
             case INACTIVE -> { }
@@ -1552,10 +1438,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return progress >= FARMING_ONE_BLOCK_DISTANCE || flowerStepStalledTicks >= FARMING_BLOCKED_STEP_TICKS;
     }
 
-    private static void announceFlowerAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName(farmingCrop.label), plain(" 動作："), warning(action));
-    }
-
     private static boolean probeStartingCrop(Minecraft mc, LocalPlayer player) {
         if (farmingCropDetected) return false;
         releaseFarmingKeys(mc);
@@ -1570,12 +1452,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                     String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
                     if (!heldTool.toLowerCase(Locale.ROOT).contains(expectedTool.toLowerCase(Locale.ROOT))) {
                         say(mc, feature("Farming"), error(" 工具錯誤："), cropName(detected.label), plain(" 需要 "),
-                                warning(expectedTool), plain("，目前拿著："), blockName(heldTool.isBlank() ? "空手" : heldTool));
+                                warning(expectedTool));
                         stopFarming(mc, false);
                         saveConfig();
                         return true;
                     }
-                    say(mc, feature("Farming"), success(" 工具確認："), warning(expectedTool));
                 }
                 farmingCrop = detected;
                 farmingCropDetected = true;
@@ -1614,13 +1495,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 MushroomColor mushroom = MushroomColor.fromBlockId(cropBlockId);
                 if (detected == FarmingCrop.MUSHROOM) {
                     farmingReverseLane = mushroom == MushroomColor.BROWN;
-                    say(mc, plain("Auto "), feature("Farming"), plain(" "), success("開啟"), plain("，方向確認："),
-                            cropName(mushroom == MushroomColor.BROWN ? "Brown Mushroom" : "Red Mushroom"));
                 } else {
                     String detectedName = "minecraft:melon".equals(cropBlockId) ? "Melon"
                             : ("minecraft:pumpkin".equals(cropBlockId) || "minecraft:carved_pumpkin".equals(cropBlockId)) ? "Pumpkin" : detected.label;
                     say(mc, feature("Farming"), plain(" 準星作物辨識："), cropName(detectedName));
-                    if (detected == FarmingCrop.PUMPKIN_MELON) announcePumpkinAction(mc, "往前一格");
                 }
                 saveConfig();
                 return true;
@@ -1668,19 +1546,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (blockMatches(id, expected)) return id;
         }
         return null;
-    }
-
-    private static void announceFarmingMarker(Minecraft mc, String marker) {
-        int now = farmingTicksNow();
-        if (!marker.equals(lastFarmingMarkerMessage) || now - lastFarmingMarkerMessageTick > 40) {
-            say(mc, feature("Farming"), plain(" 偵測到換行方塊："), blockName(marker));
-            lastFarmingMarkerMessage = marker;
-            lastFarmingMarkerMessageTick = now;
-        }
-    }
-
-    private static void announcePumpkinAction(Minecraft mc, String action) {
-        say(mc, feature("Farming"), plain(" "), cropName(FarmingCrop.PUMPKIN_MELON.label), plain(" 動作："), warning(action));
     }
 
     private static int farmingTicksNow() {
@@ -1837,15 +1702,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (best == null || c.betterThan(best)) best = c;
         }
         if (best == null) {
-            if (!miningWaitingForTarget) {
-                miningWaitingForTarget = true;
-                say(mc, feature("Mining"), warning(" 等待中"), plain("：目前沒有可採集的目標方塊"));
-            }
             return;
-        }
-        if (miningWaitingForTarget) {
-            miningWaitingForTarget = false;
-            say(mc, feature("Mining"), success(" 已找到目標"), plain("，恢復自動挖礦"));
         }
         activeTarget = best.pos;
         activeTargetBlockId = blockId(mc.level.getBlockState(activeTarget));
@@ -2041,7 +1898,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(true)); }
 
     private static void sayAutoState(Minecraft mc, String featureName, boolean enabled) {
-        say(mc, plain("Auto "), feature(featureName), plain(" "), enabled ? success("開啟") : error("關閉"));
+        say(mc, feature(featureName), plain(" "), enabled ? success("開啟") : error("關閉"));
     }
 
     private static void handleReceivedMessage(Component message) {

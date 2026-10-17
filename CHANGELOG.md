@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.84] - 2026-10-17
+
+### Changed
+
+- Removed the `Auto` word from Mining and Farming open, close, and unavailable messages.
+- Removed Mining target waiting/resume notices and Farming movement, row-marker, start/end/return, mushroom-direction, and successful tool-confirmation messages.
+- Farming tool mismatch messages now show only the detected crop and required tool, without the currently held item.
+
 ## [1.0.83] - 2026-10-17
 
 ### Added
