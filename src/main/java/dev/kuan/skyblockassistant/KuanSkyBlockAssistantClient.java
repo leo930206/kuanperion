@@ -2306,9 +2306,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(Component.literal("開始方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.START)).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("結束方塊"), b -> beginFarmingBlockPick(FarmingSelectMode.END)).bounds(x + 290, y, 130, 20).build());
             y += 22;
-            addRenderableWidget(new StringWidget(x, y, 130, 12, Component.literal(shortBlockName(farmingMarkerSummary())), this.font));
-            addRenderableWidget(new StringWidget(x + 145, y, 130, 12, Component.literal(shortBlockName(blockProfile.startBlock)), this.font));
-            addRenderableWidget(new StringWidget(x + 290, y, 130, 12, Component.literal(shortBlockName(blockProfile.endBlock)), this.font));
+            addFarmingBlockDisplay(x, y, farmingMarkerSummary());
+            addFarmingBlockDisplay(x + 145, y, blockProfile.startBlock);
+            addFarmingBlockDisplay(x + 290, y, blockProfile.endBlock);
 
             y += 28;
             addSectionTitle("Mining", y);
@@ -2367,6 +2367,21 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         private String farmingMarkerSummary() {
             if (farmingProfile().rowBlock.isBlank()) return "預設";
             return farmingProfile().rowBlock;
+        }
+
+        private void addFarmingBlockDisplay(int x, int y, String id) {
+            try {
+                if (id != null && !id.isBlank()) {
+                    var block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
+                    var stack = block.asItem().getDefaultInstance();
+                    if (!stack.isEmpty()) {
+                        addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, y, 18, 18,
+                                Component.literal(id), stack, false, true));
+                    }
+                }
+            } catch (Throwable ignored) {}
+            addRenderableWidget(new StringWidget(x + 22, y + 5, 108, 12,
+                    Component.literal(shortBlockName(id)), this.font));
         }
 
         private String shortBlockName(String id) {

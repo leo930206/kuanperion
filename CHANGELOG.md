@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.87] - 2026-10-17
+
+### Added
+
+- Added native block icons to the left of the Farming row, start, and end block names.
+
 ## [1.0.86] - 2026-10-17
 
 ### Removed
