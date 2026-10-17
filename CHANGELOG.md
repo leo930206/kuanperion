@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.81] - 2026-10-17
+
+### Fixed
+
+- Hub return now prioritizes the sidebar's `Hub` location over the held Game Menu Lobby signal.
+- Starting Farming while already in Garden now arms teleport recovery immediately instead of waiting for the next periodic location scan.
+
 ## [1.0.80] - 2026-10-16
 
 ### Fixed

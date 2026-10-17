@@ -315,6 +315,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingResumeAfterRecovery = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
+        farmingWasInGarden = detectFarmingLocation(mc) == FarmingLocation.GARDEN;
         if (mc.player != null) {
             farmingLastX = mc.player.getX();
             farmingLastY = mc.player.getY();
@@ -551,10 +552,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         List<String> lines = sidebarLines(mc);
         int now = farmingTicksNow();
         if (lines.isEmpty() && now - limboChatSeenTick <= 600) return FarmingLocation.LIMBO;
-        if (isHoldingGameMenu(mc)) return FarmingLocation.LOBBY;
         if (containsLine(lines, "The Garden") || containsLine(lines, "Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
         if (containsLine(lines, "Private Island") && containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
         if (containsLine(lines, "Hub")) return FarmingLocation.HUB;
+        if (isHoldingGameMenu(mc)) return FarmingLocation.LOBBY;
         return FarmingLocation.UNKNOWN;
     }
 
