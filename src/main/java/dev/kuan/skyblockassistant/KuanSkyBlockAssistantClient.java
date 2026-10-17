@@ -10,7 +10,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ItemDisplayWidget;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -22,8 +21,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Input;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -66,10 +63,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
     private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
-    private static final List<String> FARMING_SPEED_CROPS = List.of(
-            "wheat", "carrot", "potato", "pumpkin", "melon", "sugar_cane", "cactus",
-            "cocoa_beans", "mushroom", "nether_wart", "sunflower", "moonflower", "wild_rose");
-    private static final Map<String, Integer> FARMING_SPEEDS = new HashMap<>();
     private static final int UNREACHABLE_SKIP_TICKS = 200;
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
@@ -1971,10 +1964,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         lobbyReturnEnabled = Boolean.parseBoolean(p.getProperty("lobbyReturnEnabled", "true"));
         limboReturnEnabled = Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
-        FARMING_SPEEDS.clear();
-        for (String crop : FARMING_SPEED_CROPS) {
-            FARMING_SPEEDS.put(crop, parseInt(p.getProperty("farmingSpeed." + crop), 200, 0, 9999));
-        }
         loadFarmingBlockProfiles(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
         rotateToTarget = Boolean.parseBoolean(p.getProperty("rotateToTarget", "true"));
@@ -2002,9 +1991,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("lobbyReturnEnabled", Boolean.toString(lobbyReturnEnabled));
         p.setProperty("limboReturnEnabled", Boolean.toString(limboReturnEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
-        for (String crop : FARMING_SPEED_CROPS) {
-            p.setProperty("farmingSpeed." + crop, Integer.toString(FARMING_SPEEDS.getOrDefault(crop, 200)));
-        }
         saveFarmingBlockProfiles(p);
         p.setProperty("rotateToTarget", Boolean.toString(rotateToTarget));
         p.setProperty("scanRadius", Integer.toString(scanRadius));
@@ -2265,8 +2251,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int x = (this.width - 420) / 2;
             int y = 28;
 
-            addFarmingSpeedList(x + 440, y);
-
             addSectionTitle("Farming", y);
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
@@ -2341,50 +2325,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             int titleWidth = this.font.width(title);
             addRenderableWidget(new StringWidget((this.width - titleWidth) / 2, y, titleWidth, 12, title, this.font));
         }
-
-        private void addFarmingSpeedList(int x, int y) {
-            addRenderableWidget(new StringWidget(x, y, 160, 12,
-                    Component.literal("Farming Speed：").withStyle(ChatFormatting.GOLD), this.font));
-
-            FarmingSpeedEntry[] entries = {
-                    new FarmingSpeedEntry("wheat", "Wheat", Items.WHEAT),
-                    new FarmingSpeedEntry("carrot", "Carrot", Items.CARROT),
-                    new FarmingSpeedEntry("potato", "Potato", Items.POTATO),
-                    new FarmingSpeedEntry("pumpkin", "Pumpkin", Items.CARVED_PUMPKIN),
-                    new FarmingSpeedEntry("melon", "Melon", Items.MELON_SLICE),
-                    new FarmingSpeedEntry("sugar_cane", "Sugar Cane", Items.SUGAR_CANE),
-                    new FarmingSpeedEntry("cactus", "Cactus", Items.CACTUS),
-                    new FarmingSpeedEntry("cocoa_beans", "Cocoa Beans", Items.COCOA_BEANS),
-                    new FarmingSpeedEntry("mushroom", "Mushroom", Items.RED_MUSHROOM),
-                    new FarmingSpeedEntry("nether_wart", "Nether Wart", Items.NETHER_WART),
-                    new FarmingSpeedEntry("sunflower", "Sunflower", Items.SUNFLOWER),
-                    new FarmingSpeedEntry("moonflower", "Moonflower", Items.BLUE_ORCHID),
-                    new FarmingSpeedEntry("wild_rose", "Wild Rose", Items.ROSE_BUSH)
-            };
-            for (int i = 0; i < entries.length; i++) {
-                FarmingSpeedEntry entry = entries[i];
-                int rowY = y + 17 + i * 19;
-                addRenderableWidget(new ItemDisplayWidget(this.minecraft, x, rowY - 2, 18, 18,
-                        Component.literal(entry.label), entry.icon.getDefaultInstance(), false, true));
-                addRenderableWidget(new StringWidget(x + 22, rowY + 2, 90, 12,
-                        Component.literal(entry.label + "："), this.font));
-                EditBox speedBox = new EditBox(this.font, x + 112, rowY - 2, 48, 18,
-                        Component.literal(entry.label + " Farming Speed"));
-                speedBox.setMaxLength(4);
-                speedBox.setValue(Integer.toString(FARMING_SPEEDS.getOrDefault(entry.key, 200)));
-                speedBox.setResponder(value -> {
-                    boolean valid = value.matches("\\d{1,4}");
-                    speedBox.setTextColor(valid ? 0xFFE0E0E0 : 0xFFFF5555);
-                    if (valid) {
-                        FARMING_SPEEDS.put(entry.key, parseInt(value, 200, 0, 9999));
-                        saveConfig();
-                    }
-                });
-                addRenderableWidget(speedBox);
-            }
-        }
-
-        private record FarmingSpeedEntry(String key, String label, Item icon) {}
 
         private Component toggleMsg(String label, boolean on) {
             return Component.literal(label + "：")

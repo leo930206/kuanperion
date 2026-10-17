@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.82] - 2026-10-17
+
+### Removed
+
+- Removed the Farming Speed list, item icons, editable fields, and their saved configuration values from the settings screen.
+
 ## [1.0.81] - 2026-10-17
 
 ### Fixed
