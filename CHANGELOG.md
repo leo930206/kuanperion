@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.96] - 2026-10-18
+
+### Changed
+
+- Mining target selection now prioritizes the configured list order before distance. All eligible targets of a higher-priority block type within the scan radius are exhausted before lower-priority types are selected.
+- Distance now selects the nearest block only among candidates of the same priority.
+
 ## [1.0.95] - 2026-10-18
 
 ### Added

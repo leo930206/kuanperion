@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.95`
+Current mod version: `1.0.96`
 
 ## Features
 
@@ -10,7 +10,7 @@ Current mod version: `1.0.95`
 
 - Scan nearby loaded blocks around the player.
 - Select one or more target block types in-game.
-- Always choose the nearest currently visible selected block that is not bedrock.
+- Choose targets by configured block-list priority first, then by nearest distance within the same block type; all eligible priority-1 targets in range are mined before priority 2.
 - Always rotate toward the locked target block position and mine only if the crosshair confirms that exact block; automatic rotation is permanently enabled and no longer configurable.
 - Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
 - The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target after the GUI closes without turning Mining off. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed and horizontal movement is frozen.
@@ -29,7 +29,7 @@ Current mod version: `1.0.95`
 1. Open settings with `'` and click the Mining `選擇目標方塊` button.
 2. Enter a target count from 1 to 5; leaving it blank selects one type. Confirming discards the previous target list.
 3. Aim at blocks and right-click until the requested number of unique block types is reached. Repeated types are ignored and count only once.
-4. The settings list shows each block icon and supports reordering or deletion. Mining picks nearest first; list order only breaks ties.
+4. The settings list shows each block icon and supports reordering or deletion. Mining exhausts eligible targets in list order first; distance is used only to choose the nearest target within the same priority.
 
 ### Farming Assistant
 
@@ -73,7 +73,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.95.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.96.jar
 ```
 
 ## Maintenance rule

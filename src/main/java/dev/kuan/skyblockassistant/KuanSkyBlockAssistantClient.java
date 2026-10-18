@@ -2192,8 +2192,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private record Candidate(BlockPos pos, int priority, double dist) {
         boolean betterThan(Candidate other) {
-            if (dist != other.dist) return dist < other.dist;
-            return priority < other.priority;
+            if (priority != other.priority) return priority < other.priority;
+            return dist < other.dist;
         }
     }
 
