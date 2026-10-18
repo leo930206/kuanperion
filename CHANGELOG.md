@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.95] - 2026-10-18
+
+### Added
+
+- Added an independent saved Mining `智慧暫停` toggle beside `選擇目標方塊`.
+- When enabled, Mining pauses target rotation and block breaking while any GUI is open, then resumes after it closes without turning Mining off.
+
 ## [1.0.94] - 2026-10-17
 
 ### Changed

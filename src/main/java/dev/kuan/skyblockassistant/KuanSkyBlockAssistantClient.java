@@ -82,6 +82,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean pestNotificationEnabled = false;
     private static boolean visitorNotificationEnabled = false;
     private static boolean farmingMenuPauseEnabled = true;
+    private static boolean miningMenuPauseEnabled = true;
     private static boolean farmingToolDetectionEnabled = false;
     private static boolean abnormalHandlingEnabled = true;
     private static String pestWebhookUrl = "";
@@ -203,11 +204,16 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         handleRightClickSelection(mc);
         enforceAutomationMovementLock(mc);
         if (miningEnabled && mc.options != null) mc.options.pauseOnLostFocus = false;
+        boolean miningPaused = miningEnabled && isMiningPauseScreen(mc.gui.screen());
         tickSkippedTargets();
-        if (cooldown > 0) cooldown--;
+        if (!miningPaused && cooldown > 0) cooldown--;
         if (miningEnabled) {
-            miningTicks++;
-            mineBestTarget(mc);
+            if (miningPaused) {
+                pauseMining(mc);
+            } else {
+                miningTicks++;
+                mineBestTarget(mc);
+            }
         } else {
             miningTicks = 0;
         }
@@ -1488,6 +1494,17 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return farmingMenuPauseEnabled && screen != null;
     }
 
+    private static boolean isMiningPauseScreen(Screen screen) {
+        return miningMenuPauseEnabled && screen != null;
+    }
+
+    private static void pauseMining(Minecraft mc) {
+        setAttackKey(mc, false);
+        if (!activeTargetStarted) return;
+        activeTargetStarted = false;
+        try { if (mc != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock(); } catch (Throwable ignored) {}
+    }
+
     private static void pressFarmingMoveKeys(Minecraft mc, FarmingCrop crop, boolean reversed) {
         applyFarmingInput(mc, reversedKey(crop, reversed), true, false);
     }
@@ -1922,6 +1939,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
         farmingMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("farmingMenuPauseEnabled", "true"));
+        miningMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("miningMenuPauseEnabled", "true"));
         farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
         boolean legacyAbnormalHandling = Boolean.parseBoolean(p.getProperty("islandReturnEnabled", "true"))
                 || Boolean.parseBoolean(p.getProperty("hubReturnEnabled", "true"))
@@ -1953,6 +1971,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
         p.setProperty("farmingMenuPauseEnabled", Boolean.toString(farmingMenuPauseEnabled));
+        p.setProperty("miningMenuPauseEnabled", Boolean.toString(miningMenuPauseEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
@@ -2254,6 +2273,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Mining", miningEnabled), b -> { toggleMining(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("選擇目標方塊"), b -> openMiningTargetCountScreen()).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("智慧暫停", miningMenuPauseEnabled), b -> { miningMenuPauseEnabled = !miningMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 -"), b -> { scanRadius = Math.max(1, scanRadius - 1); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(Component.literal("偵測半徑 +"), b -> { scanRadius = Math.min(8, scanRadius + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());

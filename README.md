@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.94`
+Current mod version: `1.0.95`
 
 ## Features
 
@@ -13,7 +13,7 @@ Current mod version: `1.0.94`
 - Always choose the nearest currently visible selected block that is not bedrock.
 - Always rotate toward the locked target block position and mine only if the crosshair confirms that exact block; automatic rotation is permanently enabled and no longer configurable.
 - Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
-- Continue mining while game menus/inventories are open and disables pause-on-lost-focus while mining. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed and horizontal movement is frozen.
+- The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target after the GUI closes without turning Mining off. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed and horizontal movement is frozen.
 - Configurable scan radius, rotation speed, and mining delay.
 
 ## Keybinds
@@ -73,7 +73,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.94.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.95.jar
 ```
 
 ## Maintenance rule
