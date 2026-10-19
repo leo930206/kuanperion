@@ -11,9 +11,9 @@ source = (root / "src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistant
 
 
 methods = []
-for name in ["handleFarmingAutoRecovery", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage"]:
+for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook"]:
     # Find declarations rather than earlier invocations.
-    declaration = re.search(r"    private static [^\n]+ " + name + r"\(", source)
+    declaration = re.search(r"    (?:private|public) static [^\n]+ " + name + r"\(", source)
     start = declaration.start()
     opening = source.index("{", start)
     depth, end = 1, opening + 1
@@ -41,6 +41,8 @@ import java.util.regex.*;
 public final class AbnormalHandlingTest {
     static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
     static boolean farmingToolDetectionEnabled;
+    static boolean miningEnabled;
+    static int completionMessages;
     static boolean farmingEnabled, farmingEnabledThisSession, abnormalHandlingEnabled;
     static boolean farmingAutoRecovering, farmingWasInGarden, pestNotificationEnabled;
     static int farmingRecoveryScanTicks, limboChatSeenTick, lastPestMessageTick, stops;
@@ -105,13 +107,17 @@ public final class AbnormalHandlingTest {
     static void saveConfig() {}
     static void enqueueFarmingCommand(String command, int ticks) { FARMING_COMMAND_QUEUE.add(command + "@" + ticks); }
     static void stopFarming(Minecraft mc, boolean announce) {
+        farmingAutoRecovering = false;
+        FARMING_TOOL_GUARD.reset(null);
         farmingEnabled = false;
         farmingEnabledThisSession = false;
         FARMING_COMMAND_QUEUE.clear();
         stops++;
     }
     static int farmingTicksNow() { return 10000; }
-    static void say(Minecraft mc, String... text) {}
+    static void say(Minecraft mc, String... text) {
+        if (String.join("", text).contains("已返回")) completionMessages++;
+    }
     static String feature(String s) { return s; }
     static String success(String s) { return s; }
     static String warning(String s) { return s; }
@@ -119,6 +125,8 @@ public final class AbnormalHandlingTest {
     static String plain(String s) { return s; }
     static void sendPestDiscordNotification(String plot, String text) {}
     static void reset() {
+        miningEnabled = false;
+        completionMessages = 0;
         FARMING_TOOL_GUARD.reset("Euclid's Wheat Sickle");
         farmingToolDetectionEnabled = true;
         farmingEnabled = farmingEnabledThisSession = abnormalHandlingEnabled = true;
@@ -154,10 +162,26 @@ public final class AbnormalHandlingTest {
             handleFarmingAutoRecovery(mc);
             check(FARMING_COMMAND_QUEUE.size() == size, "recovery cannot enqueue duplicates");
             location = FarmingLocation.GARDEN;
-            FARMING_COMMAND_QUEUE.clear();
+            check(!FARMING_COMMAND_QUEUE.isEmpty(), "precondition: commands remain queued on arrival");
             handleFarmingAutoRecovery(mc);
-            check(!farmingEnabled && !farmingAutoRecovering && !farmingEnabledThisSession, "Garden finishes recovery without restarting");
+            check(!farmingEnabled && !farmingAutoRecovering && !farmingEnabledThisSession, "Garden must finish immediately even with queued commands");
+            check(FARMING_COMMAND_QUEUE.isEmpty(), "arrival cancels leftover return commands");
         }
+        reset();
+        location = FarmingLocation.HUB;
+        handleFarmingAutoRecovery(mc);
+        check(shouldLockManualLook(), "recovery locks manual look before arrival");
+        location = FarmingLocation.GARDEN;
+        check(finishFarmingRecoveryOnArrival(mc), "start-of-tick arrival check finishes immediately");
+        check(!shouldLockManualLook(), "arrival releases manual look lock immediately");
+        check(!farmingAutoRecovering && !farmingEnabled && FARMING_COMMAND_QUEUE.isEmpty(), "arrival cancels pending commands and keeps Farming off");
+        check(!finishFarmingRecoveryOnArrival(mc) && completionMessages == 1, "completion message is sent only once");
+        reset();
+        location = FarmingLocation.GARDEN;
+        check(!finishFarmingRecoveryOnArrival(mc) && farmingEnabled, "normal Garden farming must not be stopped");
+        reset();
+        farmingAutoRecovering = true;
+        check(!finishFarmingRecoveryOnArrival(mc) && farmingAutoRecovering, "unknown location must not finish recovery early");
         reset();
         location = FarmingLocation.HUB;
         farmingRecoveryScanTicks = 0;

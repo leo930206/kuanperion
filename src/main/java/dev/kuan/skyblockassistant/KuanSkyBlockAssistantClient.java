@@ -444,17 +444,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
         if (!farmingEnabledThisSession || (!abnormalHandlingEnabled && !farmingAutoRecovering)) return false;
+        if (finishFarmingRecoveryOnArrival(mc)) return true;
         FarmingLocation location = detectFarmingLocation(mc);
         traceFarmingLocation(mc, location);
         if (farmingAutoRecovering) {
             releaseFarmingKeys(mc);
-            if (location == FarmingLocation.GARDEN && FARMING_COMMAND_QUEUE.isEmpty()) {
-                farmingAutoRecovering = false;
-                farmingEnabled = false;
-                farmingEnabledThisSession = false;
-                say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，Farming 維持關閉"));
-                saveConfig();
-            }
             return true;
         }
         farmingRecoveryScanTicks++;
@@ -465,6 +459,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return true;
         }
         return false;
+    }
+
+    private static boolean finishFarmingRecoveryOnArrival(Minecraft mc) {
+        if (!farmingAutoRecovering || detectFarmingLocation(mc) != FarmingLocation.GARDEN) return false;
+        traceFarmingLocation(mc, FarmingLocation.GARDEN);
+        stopFarming(mc, false);
+        say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，Farming 維持關閉"));
+        saveConfig();
+        return true;
     }
 
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
@@ -498,6 +501,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void tickFarmingCommandQueue(Minecraft mc) {
+        if (finishFarmingRecoveryOnArrival(mc)) return;
         if (FARMING_COMMAND_QUEUE.isEmpty()) return;
         QueuedCommand current = FARMING_COMMAND_QUEUE.peekFirst();
         current.ticks--;
@@ -1642,6 +1646,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void enforceAutomationMovementLock(Minecraft mc) {
         if (mc == null || mc.player == null || mc.options == null) return;
+        if (finishFarmingRecoveryOnArrival(mc)) return;
         if (miningEnabled || farmingAutoRecovering) {
             applyLockedMovement(mc, false, false, false, false, false);
             Vec3 velocity = mc.player.getDeltaMovement();

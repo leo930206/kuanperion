@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.104] - 2026-10-19
+
+### Fixed
+
+- Finish abnormal recovery as soon as Garden is confirmed, checking at client-tick start before enforcing movement locks and again before sending any queued command.
+- Do not wait for the return-command queue to become empty. Cancel leftover commands and fully stop the recovery session, clearing tool/GUI pause state and releasing movement and manual mouse-look locks immediately upon detection.
+- Keep Farming disabled after return and emit the completion message once only; normal Garden farming is not affected.
+- Added regression coverage for arrival with pending commands, early completion, mouse-look unlock, one-time completion messages, and safeguards against stopping normal farming or finishing at unknown locations.
+
 ## [1.0.103] - 2026-10-19
 
 ### Fixed
