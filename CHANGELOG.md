@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.102] - 2026-10-19
+
+### Fixed
+
+- Read complete sidebar score names using their team prefixes/suffixes and owner display names instead of only raw score owners or display overrides, fixing missed Island, Hub, and Garden keywords stored in team text.
+- Match sidebar keywords case-insensitively while ignoring color codes, icons, punctuation, spacing, and invisible characters.
+- Identify Island from `Private Island` alone; prioritize `Hub` over Island and the held Game Menu Lobby signal. Do not identify Island from `Your Island` alone, since that line can also appear in Hub.
+- Added regression fixtures based on the supplied Island and Hub screenshots, including split team text, common `Your Island` lines, decorated/non-breaking-space keywords, display overrides, hidden entries, Garden, and empty-sidebar Limbo detection.
+
 ## [1.0.101] - 2026-10-19
 
 ### Fixed

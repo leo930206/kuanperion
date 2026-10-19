@@ -31,6 +31,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.DisplaySlot;
 import org.lwjgl.glfw.GLFW;
@@ -511,8 +512,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         int now = farmingTicksNow();
         if (lines.isEmpty() && now - limboChatSeenTick <= 600) return FarmingLocation.LIMBO;
         if (containsLine(lines, "The Garden") || containsLine(lines, "Garden") || containsLine(lines, "Plot")) return FarmingLocation.GARDEN;
-        if (containsLine(lines, "Private Island") && containsLine(lines, "Your Island")) return FarmingLocation.ISLAND;
         if (containsLine(lines, "Hub")) return FarmingLocation.HUB;
+        if (containsLine(lines, "Private Island")) return FarmingLocation.ISLAND;
         if (isHoldingGameMenu(mc)) return FarmingLocation.LOBBY;
         return FarmingLocation.UNKNOWN;
     }
@@ -531,7 +532,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean containsLine(List<String> lines, String needle) {
-        for (String line : lines) if (line.contains(needle)) return true;
+        String keyword = cleanSidebarText(needle);
+        if (keyword.isEmpty()) return false;
+        for (String line : lines) if (cleanSidebarText(line).contains(keyword)) return true;
         return false;
     }
 
@@ -544,7 +547,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             lines.add(cleanSidebarText(objective.getDisplayName().getString()));
             for (PlayerScoreEntry score : scoreboard.listPlayerScores(objective)) {
                 if (score == null || score.isHidden()) continue;
-                String text = score.display() != null ? score.display().getString() : score.owner();
+                PlayerTeam team = scoreboard.getPlayersTeam(score.owner());
+                String text = PlayerTeam.formatNameForTeam(team, score.ownerName()).getString();
                 lines.add(cleanSidebarText(text));
             }
         } catch (Throwable ignored) {}
@@ -553,7 +557,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static String cleanSidebarText(String text) {
         if (text == null) return "";
-        return StringUtil.stripColor(text).replaceAll("[^A-Za-z ]", "").trim();
+        return StringUtil.stripColor(text).replaceAll("[^A-Za-z]", "").toLowerCase(Locale.ROOT);
     }
 
     private static boolean looksLikeLimbo(Minecraft mc) {

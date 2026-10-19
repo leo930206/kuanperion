@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.0.101"
+VERSION="1.0.102"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PRISM="$HOME/Library/Application Support/PrismLauncher"
 MC_JAR="$PRISM/libraries/com/mojang/minecraft/26.2/minecraft-26.2-client.jar"
