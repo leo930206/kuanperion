@@ -35,6 +35,8 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.DisplaySlot;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -58,6 +60,9 @@ import java.util.regex.Pattern;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
+    private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static final SkyBlockLocationBridge SKYBLOCK_LOCATION_BRIDGE = SkyBlockLocationBridge.discover();
+    private static String lastFarmingLocationDiagnostic = "";
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final FarmingBlockProfile FARMING_BLOCK_PROFILE = new FarmingBlockProfile();
@@ -282,6 +287,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
         farmingEnabled = false;
@@ -293,6 +299,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
         farmingReverseLane = false;
@@ -438,6 +445,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
         if (!farmingEnabledThisSession || (!abnormalHandlingEnabled && !farmingAutoRecovering)) return false;
         FarmingLocation location = detectFarmingLocation(mc);
+        traceFarmingLocation(mc, location);
         if (farmingAutoRecovering) {
             releaseFarmingKeys(mc);
             if (location == FarmingLocation.GARDEN && FARMING_COMMAND_QUEUE.isEmpty()) {
@@ -508,6 +516,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static FarmingLocation detectFarmingLocation(Minecraft mc) {
         if (mc.player == null || mc.level == null) return FarmingLocation.UNKNOWN;
+        String island = SKYBLOCK_LOCATION_BRIDGE.islandName();
+        if (island != null) {
+            return switch (island) {
+                case "PRIVATE_ISLAND" -> FarmingLocation.ISLAND;
+                case "HUB" -> FarmingLocation.HUB;
+                case "GARDEN" -> FarmingLocation.GARDEN;
+                default -> FarmingLocation.UNKNOWN;
+            };
+        }
         List<String> lines = sidebarLines(mc);
         int now = farmingTicksNow();
         if (lines.isEmpty() && now - limboChatSeenTick <= 600) return FarmingLocation.LIMBO;
@@ -516,6 +533,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (containsLine(lines, "Private Island")) return FarmingLocation.ISLAND;
         if (isHoldingGameMenu(mc)) return FarmingLocation.LOBBY;
         return FarmingLocation.UNKNOWN;
+    }
+
+    private static void traceFarmingLocation(Minecraft mc, FarmingLocation location) {
+        String apiIsland = SKYBLOCK_LOCATION_BRIDGE.islandName();
+        String diagnostic = location.name() + ":" + apiIsland;
+        if (diagnostic.equals(lastFarmingLocationDiagnostic)) return;
+        lastFarmingLocationDiagnostic = diagnostic;
+        LOGGER.info("[Kuan HSBA] Farming location={} skyblockApi={} nativeSidebar={}",
+                location, apiIsland, sidebarLines(mc));
     }
 
     private static boolean isHoldingGameMenu(Minecraft mc) {

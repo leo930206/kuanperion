@@ -83,6 +83,12 @@ public final class AbnormalHandlingTest {
         List<PlayerScoreEntry> listPlayerScores(Objective obj) { return entries; }
         PlayerTeam getPlayersTeam(String owner) { return teams.get(owner); }
     }
+    static class FakeLocationBridge {
+        String island;
+        String islandName() { return island; }
+    }
+    static final FakeLocationBridge SKYBLOCK_LOCATION_BRIDGE = new FakeLocationBridge();
+    static void traceFarmingLocation(Minecraft mc, FarmingLocation value) {}
     static boolean holdingGameMenu;
     static boolean isHoldingGameMenu(Minecraft mc) { return holdingGameMenu; }
     static void sidebarRow(Minecraft mc, String prefix, String suffix) {
@@ -213,7 +219,26 @@ public final class AbnormalHandlingTest {
         mc.level.scoreboard.objective = null;
         limboChatSeenTick = farmingTicksNow();
         check(detectSidebarLocation(mc) == FarmingLocation.LIMBO, "empty-sidebar Limbo detection remains supported");
-        System.out.println("AbnormalHandlingTest: PASS (recovery, tool wait cleanup, rendered sidebar, Island/Hub screenshots, symbols, display names, Limbo)");
+        reset();
+        holdingGameMenu = false;
+        mc = new Minecraft();
+        mc.level.scoreboard.objective = null;
+        SKYBLOCK_LOCATION_BRIDGE.island = "PRIVATE_ISLAND";
+        check(detectSidebarLocation(mc) == FarmingLocation.ISLAND, "API Private Island works without a native sidebar");
+        mc = new Minecraft();
+        sidebarRow(mc, "Plot - ", "1");
+        SKYBLOCK_LOCATION_BRIDGE.island = "HUB";
+        check(detectSidebarLocation(mc) == FarmingLocation.HUB, "API Hub overrides stale native Garden text");
+        SKYBLOCK_LOCATION_BRIDGE.island = "GARDEN";
+        mc.level.scoreboard.objective = null;
+        check(detectSidebarLocation(mc) == FarmingLocation.GARDEN, "API Garden confirms successful return without native sidebar");
+        SKYBLOCK_LOCATION_BRIDGE.island = "DWARVEN_MINES";
+        mc = new Minecraft();
+        sidebarRow(mc, "Hub", "");
+        check(detectSidebarLocation(mc) == FarmingLocation.UNKNOWN, "known unsupported API island must not trigger a false Hub return");
+        SKYBLOCK_LOCATION_BRIDGE.island = null;
+        check(detectSidebarLocation(mc) == FarmingLocation.HUB, "native fallback still works when API unavailable");
+        System.out.println("AbnormalHandlingTest: PASS (API-first location, native fallback, recovery, tool wait cleanup, screenshots, symbols, Limbo)");
     }
     // CLIENT_METHODS
 }

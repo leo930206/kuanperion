@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.102`
+Current mod version: `1.0.103`
 
 ## Features
 
@@ -54,6 +54,7 @@ Current mod version: `1.0.102`
 - Pumpkim & Melon uses a fixed west-facing view at yaw `90.0` and pitch `-57.0`, holds attack throughout harvesting and row changes, and follows its dedicated two-marker zigzag state machine. At the first marker it continues one block in its current lateral direction before moving forward to find the second marker. During the end-to-start return run it releases attack, ignores row markers, then moves back one block, left one block, and forward one block before restarting leftward harvesting.
 - Every Pumpkim & Melon action described as “one block” is measured by actual player displacement rather than a fixed number of ticks, so increased movement speed does not intentionally lengthen the step. A step only falls back after ten consecutive ticks with no movement, allowing blocked actions to finish.
 - The single `異常狀況處理` toggle covers five conditions while Farming is active, with no prior Garden recognition required: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, execute their return commands, and finish once Garden is confirmed without `/home` or automatic Farming restart. A void fall only closes Farming. Starting any abnormal return also clears a pending wrong-tool wait and its previous crop-tool requirement, including empty hands in Limbo or a Game Menu in Lobby. The saved `工具偵測` setting is not disabled; the next manual Farming start performs normal tool checks. Sidebar detection reads complete rendered score names, including team prefixes/suffixes and display-name overrides, and matches keywords ignoring color codes, icons, punctuation, spacing, invisible characters, and letter case. `Private Island` alone identifies Island; `Hub` identifies Hub and takes priority over Island and the held `Game Menu` Lobby signal. `Your Island` alone is not used because it may also appear in Hub.
+- Location detection now prefers the optional SkyBlock API `LocationAPI` island enum used by CustomScoreboard, rather than assuming its generated Island/Hub labels exist in the native scoreboard. API Private Island, Hub, and Garden map directly to their locations; other known islands remain unhandled. Native sidebar and existing Limbo/Lobby checks remain fallbacks if the API is absent, outside SkyBlock, or not ready. No hard dependency is added. Location/source changes are logged once per transition in `logs/latest.log` as `[Kuan HSBA] Farming location=... skyblockApi=... nativeSidebar=...`, without extra chat notifications.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input and manual mouse look are suppressed; only movement and fixed viewing angles requested by the active crop state machine are applied. Mushroom farming no longer performs automatic stuck-detection jumps.
@@ -74,7 +75,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.102.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.103.jar
 ```
 
 ## Tests

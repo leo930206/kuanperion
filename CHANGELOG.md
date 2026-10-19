@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.103] - 2026-10-19
+
+### Fixed
+
+- Prefer the optional SkyBlock API `LocationAPI` island enum, the same island source used by the installed CustomScoreboard. Its generated Private Island/Hub labels need not exist in the native scoreboard, so native text matching alone was insufficient.
+- Detect Private Island, Hub, and Garden directly from API island identity. Keep native sidebar and existing Limbo/Lobby checks as fallbacks when the API is absent or not ready; do not misclassify other known API islands using stale native text.
+- Resolve optional API access lazily and cache reflection methods without adding a required mod dependency or retaining stale island identity outside SkyBlock.
+
+### Added
+
+- Transition-only diagnostic logging of detected location, API island, and native sidebar in `logs/latest.log` for in-game verification without chat spam.
+- Regression coverage for API island transitions, non-SkyBlock state, missing/failing API, API-first detection without native sidebar labels, native fallback, and Garden return confirmation.
+
 ## [1.0.102] - 2026-10-19
 
 ### Fixed
