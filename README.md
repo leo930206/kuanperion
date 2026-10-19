@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.97`
+Current mod version: `1.0.98`
 
 ## Features
 
@@ -50,6 +50,7 @@ Current mod version: `1.0.97`
 - Sunflower (including its Moonflower time-based appearance) and Wild Rose share a fixed yaw `-45` / pitch `0` state machine. It backs up one block, harvests right to a row marker, holds forward for one second with left added during the final half-second, harvests backward, then holds left for one second with forward added during the final half-second before repeating. Attack remains held throughout.
 - Flower end detection is active only while harvesting backward. After the end marker, it keeps attack and backward held, ignores row markers until the start marker, backs up one additional measured block, and restarts rightward harvesting.
 - The former crop-selection button is replaced by `工具偵測`. When enabled, the detected crop must match the held tool name before Farming continues. Supported mappings are Wheat → `Euclid's Wheat Sickle`, Carrot → `Gauss Carrot Shovel`, Potato → `Pythagorean Potato Shovel`, Sugar Cane → `Turing Sugar Cane Cutter`, Cactus → `Cactus Knife`, Cocoa Beans → `Cocoa Chopper`, Nether Wart → `Newton Nether Wart Cutter`, Mushroom → `Fungi Cutter`, Melon → `Melon Dicer`, Pumpkin → `Pumpkin Dicer`, Sunflower/Moonflower → `Eclipse Sickle`, and Wild Rose → `Wild Rose Cutter`. `Mk. I`, `Mk. II`, and `Mk. III` suffixes are accepted because matching uses the base name.
+- With `工具偵測` enabled, startup still rejects an incorrect tool immediately. After startup, the held tool is checked every tick against the initially detected crop, even while a GUI is open. A wrong tool or empty hand pauses movement, attack, and crop-state progression indefinitely without disabling Farming; switching back resumes the same state. Each correct-to-incorrect transition sends one in-game warning, with no repeated warnings while waiting. Switching back and then away again sends a new warning. Disabling tool detection removes this tool pause; abnormal recovery and GUI smart pause still take precedence over harvesting.
 - Pumpkim & Melon uses a fixed west-facing view at yaw `90.0` and pitch `-57.0`, holds attack throughout harvesting and row changes, and follows its dedicated two-marker zigzag state machine. At the first marker it continues one block in its current lateral direction before moving forward to find the second marker. During the end-to-start return run it releases attack, ignores row markers, then moves back one block, left one block, and forward one block before restarting leftward harvesting.
 - Every Pumpkim & Melon action described as “one block” is measured by actual player displacement rather than a fixed number of ticks, so increased movement speed does not intentionally lengthen the step. A step only falls back after ten consecutive ticks with no movement, allowing blocked actions to finish.
 - The single `異常狀況處理` toggle covers five conditions after Farming was started in Garden: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, execute their return commands, and finish once Garden is confirmed without `/home` or automatic Farming restart. A void fall only closes Farming. Hub sidebar detection takes priority over the held `Game Menu` Lobby signal.
@@ -73,14 +74,23 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.97.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.98.jar
+```
+
+## Tests
+
+Run the dependency-free tool detection regression tests:
+
+```bash
+./scripts/test.sh
 ```
 
 ## Maintenance rule
 
 For every update:
 
-1. Bump the mod version in `src/main/resources/fabric.mod.json`.
-2. Update this README if behavior, controls, build steps, or setup changed.
-3. Add a human-readable entry to `CHANGELOG.md`.
-4. Commit and push to GitHub.
+1. Bump the mod version in `src/main/resources/fabric.mod.json` and `scripts/build.sh`.
+2. Update this README and add a human-readable entry to `CHANGELOG.md`.
+3. Run tests and build the jar with `./scripts/build.sh`.
+4. Install into the Hypixel SkyBlock PrismLauncher instance, retaining only the latest assistant jar (leave other mods untouched).
+5. Commit, tag the version, and push the commit and tag to GitHub.

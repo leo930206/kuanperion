@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.98] - 2026-10-19
+
+### Changed
+
+- Kept the original immediate tool rejection at Farming startup when `工具偵測` is enabled.
+- Added continuous held-tool checks against the initially detected crop. A wrong tool or empty hand pauses movement, attack, and crop-state progression indefinitely; returning to the correct tool resumes the same state without restarting Farming.
+- Send one in-game warning per switch to an incorrect tool, suppress repeated warnings while waiting, and allow a new warning after switching back and away again.
+- Tool checks continue through open GUIs; abnormal location recovery remains active while waiting. Disabling tool detection removes the tool-related pause.
+
+### Added
+
+- Dependency-free regression tests for tool matching, indefinite waiting, automatic resume, notification transitions, detection toggling, and session resets (`./scripts/test.sh`).
+
 ## [1.0.97] - 2026-10-19
 
 ### Changed

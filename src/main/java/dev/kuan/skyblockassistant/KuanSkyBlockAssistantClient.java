@@ -60,6 +60,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String CONFIG_NAME = "kuan-hypixel-skyblock-assistant.properties";
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final FarmingBlockProfile FARMING_BLOCK_PROFILE = new FarmingBlockProfile();
+    private static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
     private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
@@ -277,6 +278,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        FARMING_TOOL_GUARD.reset(null);
         farmingEnabled = false;
         farmingEnabledThisSession = false;
         farmingAutoRecovering = false;
@@ -287,6 +289,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        FARMING_TOOL_GUARD.reset(null);
         farmingReverseLane = false;
         farmingStateTicks = 0;
         farmingLeftShiftTicks = 0;
@@ -333,6 +336,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
         tickFarmingCommandQueue(mc);
         if (handleFarmingAutoRecovery(mc)) return;
+        if (farmingCropDetected && pauseFarmingForWrongTool(mc, mc.player)) return;
         if (isFarmingPauseScreen(mc.gui.screen())) {
             releaseFarmingKeys(mc);
             return;
@@ -1390,9 +1394,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             FarmingCrop detected = FarmingCrop.fromBlockId(cropBlockId);
             if (detected != null) {
                 String expectedTool = expectedToolForCropBlock(cropBlockId);
+                FARMING_TOOL_GUARD.reset(expectedTool);
                 if (farmingToolDetectionEnabled && expectedTool != null) {
                     String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
-                    if (!heldTool.toLowerCase(Locale.ROOT).contains(expectedTool.toLowerCase(Locale.ROOT))) {
+                    if (!FARMING_TOOL_GUARD.matches(heldTool)) {
                         say(mc, feature("Farming"), error(" 工具錯誤："), cropName(detected.label), plain(" 需要 "),
                                 warning(expectedTool));
                         stopFarming(mc, false);
@@ -1450,6 +1455,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             say(mc, feature("Farming"), error(" 無法辨識準星指向的作物，已關閉"), plain("：請將準星對準作物後再開啟"));
             stopFarming(mc, false);
             saveConfig();
+        }
+        return true;
+    }
+
+    private static boolean pauseFarmingForWrongTool(Minecraft mc, LocalPlayer player) {
+        boolean wasPaused = FARMING_TOOL_GUARD.isPaused();
+        String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
+        if (!FARMING_TOOL_GUARD.update(farmingToolDetectionEnabled, heldTool)) return false;
+        releaseFarmingKeys(mc);
+        if (!wasPaused) {
+            say(mc, feature("Farming"), warning(" 工具錯誤，已暫停：請切換回 "),
+                    warning(FARMING_TOOL_GUARD.expectedTool()), plain(" 後繼續，等待不限時"));
         }
         return true;
     }
