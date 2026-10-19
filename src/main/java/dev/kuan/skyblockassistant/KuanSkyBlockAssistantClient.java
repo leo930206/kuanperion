@@ -198,6 +198,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
+    public static boolean shouldLockManualLook() {
+        return miningEnabled || farmingEnabled || farmingAutoRecovering;
+    }
+
     private static void tick(Minecraft mc) {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         handleShiftHotkeys(mc);

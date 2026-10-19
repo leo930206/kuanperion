@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "kuan-hypixel-skyblock-assistant",
-  "version": "1.0.96",
+  "version": "1.0.97",
   "name": "Kuan Hypixel SkyBlock Assistant",
   "description": "Hypixel SkyBlock assistant for mining and farming",
   "authors": ["Kuan", "Claudian"],
@@ -9,6 +9,12 @@
   "entrypoints": {
     "client": ["dev.kuan.skyblockassistant.KuanSkyBlockAssistantClient"]
   },
+  "mixins": [
+    {
+      "config": "kuan-hypixel-skyblock-assistant.mixins.json",
+      "environment": "client"
+    }
+  ],
   "icon": "assets/kuan-hypixel-skyblock-assistant/icon.png",
   "depends": {
     "fabricloader": ">=0.19.0",

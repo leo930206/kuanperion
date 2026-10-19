@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.96`
+Current mod version: `1.0.97`
 
 ## Features
 
@@ -13,7 +13,7 @@ Current mod version: `1.0.96`
 - Choose targets by configured block-list priority first, then by nearest distance within the same block type; all eligible priority-1 targets in range are mined before priority 2.
 - Always rotate toward the locked target block position and mine only if the crosshair confirms that exact block; automatic rotation is permanently enabled and no longer configurable.
 - Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
-- The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target after the GUI closes without turning Mining off. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed and horizontal movement is frozen.
+- The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target after the GUI closes without turning Mining off. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed, horizontal movement is frozen, and manual mouse look is blocked while automatic target rotation continues to work.
 - Configurable scan radius, rotation speed, and mining delay.
 
 ## Keybinds
@@ -55,7 +55,7 @@ Current mod version: `1.0.96`
 - The single `異常狀況處理` toggle covers five conditions after Farming was started in Garden: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, execute their return commands, and finish once Garden is confirmed without `/home` or automatic Farming restart. A void fall only closes Farming. Hub sidebar detection takes priority over the held `Game Menu` Lobby signal.
 - Optional `/sethome` on start/turn.
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
-- Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed; only movement requested by the active crop state machine is applied. Mushroom farming no longer performs automatic stuck-detection jumps.
+- Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input and manual mouse look are suppressed; only movement and fixed viewing angles requested by the active crop state machine are applied. Mushroom farming no longer performs automatic stuck-detection jumps.
 - The `智慧暫停` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes when it closes without turning Farming off. When disabled, Farming continues through open GUIs.
 - Farming settings include an optional Discord pest notification toggle and local webhook URL field for Hypixel pest chat messages. A saved `Visitor 通知` switch is present as a behavior placeholder for later design.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
@@ -73,7 +73,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.96.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.97.jar
 ```
 
 ## Maintenance rule

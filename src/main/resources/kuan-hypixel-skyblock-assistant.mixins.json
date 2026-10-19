@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "dev.kuan.skyblockassistant.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EntityTurnMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

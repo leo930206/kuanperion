@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.97] - 2026-10-19
+
+### Changed
+
+- Blocked manual mouse-look rotation while Mining or Farming is enabled, including Farming abnormal recovery.
+- Module-controlled Mining target rotation and Farming fixed crop angles continue to work normally.
+
 ## [1.0.96] - 2026-10-18
 
 ### Changed
