@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.105] - 2026-10-19
+
+### Changed
+
+- Standardized every Island, Hub, Lobby, and Limbo return-command wait to 60 client ticks (about three seconds), including the first command and every following step.
+- Kept each route's commands unchanged and preserved immediate recovery completion when Garden is confirmed.
+- Paused the proposed dimension-ID gate pending discussion of world-load events; neither dimension-ID nor world-load gating is included in this release.
+- Updated command-sequence regression tests to verify all waits are three seconds using the production delay constant.
+
 ## [1.0.104] - 2026-10-19
 
 ### Fixed

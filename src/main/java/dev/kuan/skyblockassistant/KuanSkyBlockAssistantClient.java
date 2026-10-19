@@ -74,6 +74,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
     private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
     private static final int UNREACHABLE_SKIP_TICKS = 200;
+    private static final int FARMING_RECOVERY_COMMAND_DELAY_TICKS = 60;
     private static final int FARM_TURN_STOP_TICKS = 4;
     private static final int FARM_TURN_RESUME_TICKS = 10;
     private static final int MUSHROOM_LEFT_SHIFT_TICKS = 10;
@@ -455,7 +456,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (farmingRecoveryScanTicks < 20) return false;
         farmingRecoveryScanTicks = 0;
         if (shouldAutoReturn(location)) {
-            startFarmingAutoRecovery(mc, location, location == FarmingLocation.LOBBY ? 80 : 20);
+            startFarmingAutoRecovery(mc, location);
             return true;
         }
         return false;
@@ -470,7 +471,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return true;
     }
 
-    private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
+    private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location) {
         if (!shouldAutoReturn(location)) return;
         FARMING_TOOL_GUARD.reset(null);
         farmingAutoRecovering = true;
@@ -479,16 +480,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
         say(mc, feature("Farming"), plain(" 偵測到 "), locationName(location.label), warning("，開始自動回傳"));
-        int delay = Math.max(1, firstDelayTicks);
         if (location == FarmingLocation.LIMBO) {
-            enqueueFarmingCommand("lobby", delay);
-            enqueueFarmingCommand("play sb", 100);
-            enqueueFarmingCommand("warp garden", 180);
+            enqueueFarmingCommand("lobby", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
+            enqueueFarmingCommand("play sb", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
+            enqueueFarmingCommand("warp garden", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
         } else if (location == FarmingLocation.LOBBY) {
-            enqueueFarmingCommand("play sb", delay);
-            enqueueFarmingCommand("warp garden", 120);
+            enqueueFarmingCommand("play sb", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
+            enqueueFarmingCommand("warp garden", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
         } else if (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND) {
-            enqueueFarmingCommand("warp garden", delay);
+            enqueueFarmingCommand("warp garden", FARMING_RECOVERY_COMMAND_DELAY_TICKS);
         }
         saveConfig();
     }
@@ -1930,7 +1930,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             limboChatSeenTick = now;
             if (abnormalHandlingEnabled && farmingEnabled && farmingEnabledThisSession
                     && !farmingAutoRecovering && sidebarLines(Minecraft.getInstance()).isEmpty()) {
-                startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO, 20);
+                startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO);
                 return;
             }
         }

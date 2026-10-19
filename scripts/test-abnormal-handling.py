@@ -10,7 +10,7 @@ root = Path(__file__).resolve().parent.parent
 source = (root / "src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistantClient.java").read_text()
 
 
-methods = []
+methods = [re.search(r"    private static final int FARMING_RECOVERY_COMMAND_DELAY_TICKS = \d+;", source).group(0)]
 for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook"]:
     # Find declarations rather than earlier invocations.
     declaration = re.search(r"    (?:private|public) static [^\n]+ " + name + r"\(", source)
@@ -152,12 +152,12 @@ public final class AbnormalHandlingTest {
             check(!FARMING_TOOL_GUARD.isPaused() && FARMING_TOOL_GUARD.expectedTool() == null, "recovery must clear the old tool wait and requirement");
             check(farmingToolDetectionEnabled, "recovery must preserve the tool detection setting");
             List<String> expected = switch (target) {
-                case ISLAND, HUB -> List.of("warp garden@20");
-                case LOBBY -> List.of("play sb@80", "warp garden@120");
-                case LIMBO -> List.of("lobby@20", "play sb@100", "warp garden@180");
+                case ISLAND, HUB -> List.of("warp garden@60");
+                case LOBBY -> List.of("play sb@60", "warp garden@60");
+                case LIMBO -> List.of("lobby@60", "play sb@60", "warp garden@60");
                 default -> throw new AssertionError();
             };
-            check(new ArrayList<>(FARMING_COMMAND_QUEUE).equals(expected), "preserve recovery commands and delays");
+            check(new ArrayList<>(FARMING_COMMAND_QUEUE).equals(expected), "all recovery commands wait 60 ticks (about three seconds)");
             int size = FARMING_COMMAND_QUEUE.size();
             handleFarmingAutoRecovery(mc);
             check(FARMING_COMMAND_QUEUE.size() == size, "recovery cannot enqueue duplicates");
