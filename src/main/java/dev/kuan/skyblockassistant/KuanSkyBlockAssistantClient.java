@@ -460,6 +460,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location, int firstDelayTicks) {
         if (!shouldAutoReturn(location)) return;
+        FARMING_TOOL_GUARD.reset(null);
         farmingAutoRecovering = true;
         farmingEnabled = false;
         farmingRecoveryScanTicks = 0;

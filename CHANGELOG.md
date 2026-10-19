@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.101] - 2026-10-19
+
+### Fixed
+
+- Starting Farming abnormal recovery now clears the pending wrong-tool pause and previous crop-tool requirement before closing Farming and executing return commands. This includes server-changed items in Lobby and empty hands in Limbo.
+- Preserve the saved `工具偵測` toggle so tool validation works normally on the next manual Farming start. Normal wrong-tool waiting remains unchanged outside abnormal recovery.
+- Added regression coverage for clearing tool waits in all four return paths and chat-triggered Limbo recovery while preserving the detection setting and command sequence.
+
 ## [1.0.100] - 2026-10-19
 
 ### Changed
