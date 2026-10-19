@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.99] - 2026-10-19
+
+### Fixed
+
+- Added a one-second GUI-close buffer to both Farming and Mining `智慧暫停` to prevent premature automation during short menu transitions such as Bazaar searches.
+- A new GUI cancels the previous countdown; the full second starts again when that GUI closes. Farming movement, attack, and crop-state progression and Mining rotation/breaking stay paused throughout the buffer.
+- Turning smart pause off bypasses the buffer. Module starts/stops clear stale pause history; Mining and Farming have independent buffers.
+
+### Added
+
+- Deterministic regression tests for the one-second boundary, Bazaar-style GUI transitions, repeated checks within a tick, toggle changes, session reset, and module independence.
+
 ## [1.0.98] - 2026-10-19
 
 ### Changed

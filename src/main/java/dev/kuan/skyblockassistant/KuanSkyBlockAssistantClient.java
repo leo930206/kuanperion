@@ -61,6 +61,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final FarmingBlockProfile FARMING_BLOCK_PROFILE = new FarmingBlockProfile();
     private static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
+    private static final GuiPauseGuard FARMING_GUI_PAUSE_GUARD = new GuiPauseGuard();
+    private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
@@ -245,6 +247,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void toggleMining(Minecraft mc) {
+        MINING_GUI_PAUSE_GUARD.reset();
         if (miningEnabled) {
             miningEnabled = false;
             clearActiveTarget(mc);
@@ -267,6 +270,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             stopFarming(mc, true);
         } else {
             miningEnabled = false;
+            MINING_GUI_PAUSE_GUARD.reset();
             clearActiveTarget(mc);
             farmingEnabled = true;
             farmingEnabledThisSession = true;
@@ -278,6 +282,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
         farmingEnabled = false;
         farmingEnabledThisSession = false;
@@ -289,6 +294,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
         farmingReverseLane = false;
         farmingStateTicks = 0;
@@ -1512,11 +1518,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean isFarmingPauseScreen(Screen screen) {
-        return farmingMenuPauseEnabled && screen != null;
+        return FARMING_GUI_PAUSE_GUARD.shouldPause(farmingMenuPauseEnabled, screen != null, System.nanoTime());
     }
 
     private static boolean isMiningPauseScreen(Screen screen) {
-        return miningMenuPauseEnabled && screen != null;
+        return MINING_GUI_PAUSE_GUARD.shouldPause(miningMenuPauseEnabled, screen != null, System.nanoTime());
     }
 
     private static void pauseMining(Minecraft mc) {

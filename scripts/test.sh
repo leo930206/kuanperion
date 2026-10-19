@@ -6,5 +6,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 "$JAVA_HOME/bin/javac" --release 21 -encoding UTF-8 -d "$TMP" \
     "$ROOT/src/main/java/dev/kuan/skyblockassistant/FarmingToolGuard.java" \
+    "$ROOT/src/main/java/dev/kuan/skyblockassistant/GuiPauseGuard.java" \
+    "$ROOT/src/test/java/dev/kuan/skyblockassistant/GuiPauseGuardTest.java" \
     "$ROOT/src/test/java/dev/kuan/skyblockassistant/FarmingToolGuardTest.java"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.FarmingToolGuardTest
+"$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.GuiPauseGuardTest
