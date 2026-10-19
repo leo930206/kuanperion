@@ -3,6 +3,7 @@ package dev.kuan.skyblockassistant;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
@@ -102,6 +103,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingRightShiftTicks = 0;
     private static boolean farmingReturningToStart = false;
     private static boolean farmingAutoRecovering = false;
+    private static boolean farmingWorldChanged = false;
     private static int farmingRecoveryScanTicks = 0;
     private static int limboChatSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
@@ -197,6 +199,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> onFarmingWorldChange());
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::enforceAutomationMovementLock);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleReceivedMessage(message));
@@ -288,6 +291,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
@@ -300,6 +304,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
         FARMING_TOOL_GUARD.reset(null);
@@ -443,6 +448,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
+    private static void onFarmingWorldChange() {
+        if (farmingEnabled && farmingEnabledThisSession && abnormalHandlingEnabled && !farmingAutoRecovering) {
+            farmingWorldChanged = true;
+        }
+    }
+
     private static boolean handleFarmingAutoRecovery(Minecraft mc) {
         if (!farmingEnabledThisSession || (!abnormalHandlingEnabled && !farmingAutoRecovering)) return false;
         if (finishFarmingRecoveryOnArrival(mc)) return true;
@@ -473,6 +484,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location) {
         if (!shouldAutoReturn(location)) return;
+        farmingWorldChanged = false;
         FARMING_TOOL_GUARD.reset(null);
         farmingAutoRecovering = true;
         farmingEnabled = false;
@@ -494,7 +506,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean shouldAutoReturn(FarmingLocation location) {
-        return abnormalHandlingEnabled && (location == FarmingLocation.ISLAND
+        return abnormalHandlingEnabled && farmingWorldChanged && (location == FarmingLocation.ISLAND
                 || location == FarmingLocation.HUB
                 || location == FarmingLocation.LOBBY
                 || location == FarmingLocation.LIMBO);
@@ -541,11 +553,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void traceFarmingLocation(Minecraft mc, FarmingLocation location) {
         String apiIsland = SKYBLOCK_LOCATION_BRIDGE.islandName();
-        String diagnostic = location.name() + ":" + apiIsland;
+        String diagnostic = location.name() + ":" + apiIsland + ":" + farmingWorldChanged;
         if (diagnostic.equals(lastFarmingLocationDiagnostic)) return;
         lastFarmingLocationDiagnostic = diagnostic;
-        LOGGER.info("[Kuan HSBA] Farming location={} skyblockApi={} nativeSidebar={}",
-                location, apiIsland, sidebarLines(mc));
+        LOGGER.info("[Kuan HSBA] Farming location={} skyblockApi={} worldChanged={} nativeSidebar={}",
+                location, apiIsland, farmingWorldChanged, sidebarLines(mc));
     }
 
     private static boolean isHoldingGameMenu(Minecraft mc) {
@@ -2317,7 +2329,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 22;
             addRenderableWidget(Button.builder(toggleMsg("Farming", farmingEnabled), b -> { toggleFarming(Minecraft.getInstance()); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; farmingWorldChanged = false; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
             addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());

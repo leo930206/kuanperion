@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.106] - 2026-10-19
+
+### Changed
+
+- Require a recorded client-world-load event in addition to the existing Island, Hub, Lobby, or Limbo condition before starting abnormal recovery. Use Fabric `ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE`, not a dimension-ID comparison.
+- Record events only during active Farming with abnormal handling enabled. Allow the event and location update to arrive in either order; consume the event when recovery starts and reset it for new/stopped Farming sessions or abnormal-setting changes. Ignore loads caused by an ongoing recovery.
+- Preserve all existing follow-up actions, three-second command waits, wrong-tool cleanup, and immediate Garden-arrival completion. Void-message stopping remains independent of world loads.
+- Include the pending world-change state in location diagnostics and add regression coverage for both signal orders, all four gated locations, Limbo chat, disabled/inactive safeguards, and unchanged return/void behavior.
+
 ## [1.0.105] - 2026-10-19
 
 ### Changed

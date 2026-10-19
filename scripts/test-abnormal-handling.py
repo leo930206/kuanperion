@@ -11,7 +11,7 @@ source = (root / "src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistant
 
 
 methods = [re.search(r"    private static final int FARMING_RECOVERY_COMMAND_DELAY_TICKS = \d+;", source).group(0)]
-for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook"]:
+for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook", "onFarmingWorldChange"]:
     # Find declarations rather than earlier invocations.
     declaration = re.search(r"    (?:private|public) static [^\n]+ " + name + r"\(", source)
     start = declaration.start()
@@ -42,6 +42,7 @@ public final class AbnormalHandlingTest {
     static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
     static boolean farmingToolDetectionEnabled;
     static boolean miningEnabled;
+    static boolean farmingWorldChanged;
     static int completionMessages;
     static boolean farmingEnabled, farmingEnabledThisSession, abnormalHandlingEnabled;
     static boolean farmingAutoRecovering, farmingWasInGarden, pestNotificationEnabled;
@@ -107,6 +108,7 @@ public final class AbnormalHandlingTest {
     static void saveConfig() {}
     static void enqueueFarmingCommand(String command, int ticks) { FARMING_COMMAND_QUEUE.add(command + "@" + ticks); }
     static void stopFarming(Minecraft mc, boolean announce) {
+        farmingWorldChanged = false;
         farmingAutoRecovering = false;
         FARMING_TOOL_GUARD.reset(null);
         farmingEnabled = false;
@@ -125,6 +127,7 @@ public final class AbnormalHandlingTest {
     static String plain(String s) { return s; }
     static void sendPestDiscordNotification(String plot, String text) {}
     static void reset() {
+        farmingWorldChanged = false;
         miningEnabled = false;
         completionMessages = 0;
         FARMING_TOOL_GUARD.reset("Euclid's Wheat Sickle");
@@ -146,9 +149,19 @@ public final class AbnormalHandlingTest {
         for (FarmingLocation target : List.of(FarmingLocation.ISLAND, FarmingLocation.HUB, FarmingLocation.LOBBY, FarmingLocation.LIMBO)) {
             reset();
             location = target;
+            check(!handleFarmingAutoRecovery(mc) && !farmingAutoRecovering, "location alone must not trigger " + target);
+        }
+        reset();
+        handleReceivedMessage(new Component("Use /limbo for more information"));
+        check(!farmingAutoRecovering, "Limbo chat must not bypass the world-change prerequisite");
+        for (FarmingLocation target : List.of(FarmingLocation.ISLAND, FarmingLocation.HUB, FarmingLocation.LOBBY, FarmingLocation.LIMBO)) {
+            reset();
+            location = target;
+            onFarmingWorldChange();
             check(FARMING_TOOL_GUARD.update(true, target == FarmingLocation.LIMBO ? "" : "Game Menu"), "precondition: teleport caused a wrong-tool wait");
             check(handleFarmingAutoRecovery(mc), "must react to " + target + " without prior Garden");
             check(farmingAutoRecovering && !farmingEnabled, "recovery disables Farming");
+            check(!farmingWorldChanged, "one world change is consumed by one recovery");
             check(!FARMING_TOOL_GUARD.isPaused() && FARMING_TOOL_GUARD.expectedTool() == null, "recovery must clear the old tool wait and requirement");
             check(farmingToolDetectionEnabled, "recovery must preserve the tool detection setting");
             List<String> expected = switch (target) {
@@ -169,6 +182,7 @@ public final class AbnormalHandlingTest {
         }
         reset();
         location = FarmingLocation.HUB;
+        onFarmingWorldChange();
         handleFarmingAutoRecovery(mc);
         check(shouldLockManualLook(), "recovery locks manual look before arrival");
         location = FarmingLocation.GARDEN;
@@ -184,6 +198,7 @@ public final class AbnormalHandlingTest {
         check(!finishFarmingRecoveryOnArrival(mc) && farmingAutoRecovering, "unknown location must not finish recovery early");
         reset();
         location = FarmingLocation.HUB;
+        onFarmingWorldChange();
         farmingRecoveryScanTicks = 0;
         for (int tick = 0; tick < 19; tick++) check(!handleFarmingAutoRecovery(mc), "retain scan cadence");
         check(handleFarmingAutoRecovery(mc), "scan triggers on tick 20");
@@ -191,12 +206,14 @@ public final class AbnormalHandlingTest {
         handleReceivedMessage(new Component("You fell into the void!"));
         check(stops == 1 && !farmingEnabled && FARMING_COMMAND_QUEUE.isEmpty(), "void stops without warping, no Garden prerequisite");
         reset();
+        onFarmingWorldChange();
         FARMING_TOOL_GUARD.update(true, "");
         handleReceivedMessage(new Component("Use /limbo for more information"));
         check(farmingAutoRecovering && !farmingEnabled, "Limbo message works without prior Garden");
         check(!FARMING_TOOL_GUARD.isPaused(), "chat-triggered Limbo recovery clears wrong-tool wait");
         reset();
         sidebarEmpty = false;
+        onFarmingWorldChange();
         handleReceivedMessage(new Component("Use /limbo for more information"));
         check(!farmingAutoRecovering, "retain empty-sidebar safeguard for Limbo");
         for (boolean disableSetting : List.of(true, false)) {
@@ -209,6 +226,36 @@ public final class AbnormalHandlingTest {
             handleReceivedMessage(new Component("Use /limbo for more information"));
             check(stops == 0 && !farmingAutoRecovering && FARMING_COMMAND_QUEUE.isEmpty(), "messages respect setting and session guards");
         }
+        reset();
+        onFarmingWorldChange();
+        check(!handleFarmingAutoRecovery(mc) && !farmingAutoRecovering, "world load alone does not choose a destination");
+        location = FarmingLocation.HUB;
+        farmingRecoveryScanTicks = 19;
+        check(handleFarmingAutoRecovery(mc) && farmingAutoRecovering, "world load may precede destination update");
+        reset();
+        location = FarmingLocation.HUB;
+        check(!handleFarmingAutoRecovery(mc), "destination may arrive before world load");
+        onFarmingWorldChange();
+        farmingRecoveryScanTicks = 19;
+        check(handleFarmingAutoRecovery(mc), "destination and world load need not occur in the same tick");
+        reset();
+        handleReceivedMessage(new Component("Use /limbo for more information"));
+        onFarmingWorldChange();
+        location = FarmingLocation.LIMBO;
+        check(handleFarmingAutoRecovery(mc), "Limbo message before world load still works after both signals");
+        reset();
+        abnormalHandlingEnabled = false;
+        onFarmingWorldChange();
+        check(!farmingWorldChanged, "disabled abnormal handling does not record events");
+        reset();
+        farmingEnabled = farmingEnabledThisSession = false;
+        onFarmingWorldChange();
+        check(!farmingWorldChanged, "inactive farming does not record initial join or unrelated loads");
+        reset();
+        farmingAutoRecovering = true;
+        farmingEnabled = false;
+        onFarmingWorldChange();
+        check(!farmingWorldChanged, "return-route loads cannot arm a second recovery");
         reset();
         FARMING_TOOL_GUARD.update(true, "Unrelated Tool");
         check(!handleFarmingAutoRecovery(mc), "unknown location does not issue commands");
@@ -262,7 +309,7 @@ public final class AbnormalHandlingTest {
         check(detectSidebarLocation(mc) == FarmingLocation.UNKNOWN, "known unsupported API island must not trigger a false Hub return");
         SKYBLOCK_LOCATION_BRIDGE.island = null;
         check(detectSidebarLocation(mc) == FarmingLocation.HUB, "native fallback still works when API unavailable");
-        System.out.println("AbnormalHandlingTest: PASS (API-first location, native fallback, recovery, tool wait cleanup, screenshots, symbols, Limbo)");
+        System.out.println("AbnormalHandlingTest: PASS (world-load prerequisite, both signal orders, three-second commands, void unchanged, API/native locations, arrival cleanup)");
     }
     // CLIENT_METHODS
 }
