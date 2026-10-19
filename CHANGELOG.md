@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.100] - 2026-10-19
+
+### Changed
+
+- Removed the prior-Garden requirement from all five Farming abnormal-handling triggers. With Farming active and `異常狀況處理` enabled, detected Island, Hub, Lobby, Limbo, or a void-fall message is handled without needing to recognize Garden first.
+- Removed obsolete Garden-history state and changed recovery messages to report the detected location rather than assuming departure from Garden.
+- Preserved existing location detection, return commands and delays, disabled-setting/session safeguards, and the rule that Farming stays off after returning to Garden.
+
+### Added
+
+- Dependency-free regression tests exercising the actual client recovery/message methods with fake Minecraft boundaries, covering all five triggers without prior Garden recognition, command sequences, disabled safeguards, and no automatic restart.
+
 ## [1.0.99] - 2026-10-19
 
 ### Fixed

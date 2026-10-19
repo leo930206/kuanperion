@@ -11,3 +11,4 @@ trap 'rm -rf "$TMP"' EXIT
     "$ROOT/src/test/java/dev/kuan/skyblockassistant/FarmingToolGuardTest.java"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.FarmingToolGuardTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.GuiPauseGuardTest
+python3 "$ROOT/scripts/test-abnormal-handling.py" "$JAVA_HOME"

@@ -95,7 +95,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static int farmingRightShiftTicks = 0;
     private static boolean farmingReturningToStart = false;
     private static boolean farmingAutoRecovering = false;
-    private static boolean farmingWasInGarden = false;
     private static int farmingRecoveryScanTicks = 0;
     private static int limboChatSeenTick = -100000;
     private static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
@@ -287,7 +286,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingEnabled = false;
         farmingEnabledThisSession = false;
         farmingAutoRecovering = false;
-        farmingWasInGarden = false;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
         if (announce) sayAutoState(mc, "Farming", false);
@@ -321,10 +319,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         flowerMarkerCleared = false;
         flowerTransitionTicks = 0;
         farmingAutoRecovering = false;
-        farmingWasInGarden = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
-        farmingWasInGarden = detectFarmingLocation(mc) == FarmingLocation.GARDEN;
         if (mc.player != null) {
             pumpkinMelonStepStartX = mc.player.getX();
             pumpkinMelonStepStartZ = mc.player.getZ();
@@ -447,7 +443,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 farmingAutoRecovering = false;
                 farmingEnabled = false;
                 farmingEnabledThisSession = false;
-                farmingWasInGarden = false;
                 say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，Farming 維持關閉"));
                 saveConfig();
             }
@@ -456,11 +451,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingRecoveryScanTicks++;
         if (farmingRecoveryScanTicks < 20) return false;
         farmingRecoveryScanTicks = 0;
-        if (location == FarmingLocation.GARDEN) {
-            farmingWasInGarden = true;
-            return false;
-        }
-        if (farmingWasInGarden && shouldAutoReturn(location)) {
+        if (shouldAutoReturn(location)) {
             startFarmingAutoRecovery(mc, location, location == FarmingLocation.LOBBY ? 80 : 20);
             return true;
         }
@@ -474,7 +465,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
         releaseFarmingKeys(mc);
-        say(mc, feature("Farming"), warning(" 離開 "), locationName("Garden"), plain("：偵測到 "), locationName(location.label), warning("，開始自動回傳"));
+        say(mc, feature("Farming"), plain(" 偵測到 "), locationName(location.label), warning("，開始自動回傳"));
         int delay = Math.max(1, firstDelayTicks);
         if (location == FarmingLocation.LIMBO) {
             enqueueFarmingCommand("lobby", delay);
@@ -1895,13 +1886,13 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         String text = StringUtil.stripColor(message.getString());
         int now = farmingTicksNow();
         if (text.contains("You fell into the void") && abnormalHandlingEnabled && farmingEnabled
-                && farmingEnabledThisSession && farmingWasInGarden && !farmingAutoRecovering) {
+                && farmingEnabledThisSession && !farmingAutoRecovering) {
             stopFarming(Minecraft.getInstance(), true);
             return;
         }
         if (text.contains("/limbo for more information")) {
             limboChatSeenTick = now;
-            if (abnormalHandlingEnabled && farmingEnabled && farmingEnabledThisSession && farmingWasInGarden
+            if (abnormalHandlingEnabled && farmingEnabled && farmingEnabledThisSession
                     && !farmingAutoRecovering && sidebarLines(Minecraft.getInstance()).isEmpty()) {
                 startFarmingAutoRecovery(Minecraft.getInstance(), FarmingLocation.LIMBO, 20);
                 return;
