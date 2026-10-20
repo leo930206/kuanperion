@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.107] - 2026-10-20
+
+### Changed
+
+- Replace pest spawn-chat notifications with direct cached Tab data: read `Pests` → `Alive` and notify Discord when the count reaches or exceeds a configurable threshold.
+- Enabling `害蟲通知` now opens a Mining-style dialog accepting only a single digit from 1–8. Invalid/blank input cannot confirm; Cancel/Esc leaves notifications off. Persist the threshold and display it on the enabled toggle (existing configs default to 1).
+- Implement `Visitor 通知` using Tab `Visitors: (number)`, notifying when the value is exactly 5. Reuse the existing local Discord Webhook for both features.
+- Poll independently of Farming/Mining once per 20 client ticks, without requiring the Tab overlay to be open. Match vanilla Tab ordering and read formatted display names rather than scoreboard text or screenshots.
+- Notify once per qualifying episode, separately for pests and visitors. Rearm after a valid nonqualifying count or an explicit toggle; absent/loading Tab data does not reset an episode. Keep existing world-load recovery, tool detection, and GUI smart pause unchanged.
+- Add pure parsing/threshold/episode tests and production-code integration coverage for ordering, polling, toggles, missing data, and threshold-screen validation/cancellation. Keep HTTP asynchronous with a ten-second timeout and token-safe failure logging.
+
 ## [1.0.106] - 2026-10-19
 
 ### Changed

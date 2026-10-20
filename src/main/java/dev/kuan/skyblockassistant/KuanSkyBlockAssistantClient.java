@@ -56,8 +56,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final String MOD_ID = "kuan-hypixel-skyblock-assistant";
@@ -70,7 +68,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
     private static final GuiPauseGuard FARMING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
-    private static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("GROSS!.*Pest.*appeared in.*Plot\\s*-\\s*([0-9]+)", Pattern.CASE_INSENSITIVE);
+    private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
+    private static int pestNotificationThreshold = 1;
+    private static int tabNotificationTicks;
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
     private static final Map<BlockPos, String> DEPLETED_TARGETS = new HashMap<>();
@@ -183,8 +183,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean rightWasDown = false;
     private static boolean miningComboWasDown = false;
     private static boolean farmingComboWasDown = false;
-    private static String lastPestMessage = "";
-    private static int lastPestMessageTick = 0;
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -216,6 +214,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void tick(Minecraft mc) {
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
+        tickTabNotifications(mc);
         handleShiftHotkeys(mc);
         handleRightClickSelection(mc);
         enforceAutomationMovementLock(mc);
@@ -1946,26 +1945,40 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 return;
             }
         }
-        if (!pestNotificationEnabled || pestWebhookUrl.isBlank()) return;
-        Matcher matcher = PEST_MESSAGE_PATTERN.matcher(text);
-        if (!matcher.find()) return;
-        if (text.equals(lastPestMessage) && now - lastPestMessageTick < 200) return;
-        lastPestMessage = text;
-        lastPestMessageTick = now;
-        String plot = matcher.group(1);
-        sendPestDiscordNotification(plot, text);
     }
 
-    private static void sendPestDiscordNotification(String plot, String rawMessage) {
+    private static void tickTabNotifications(Minecraft mc) {
+        if (!pestNotificationEnabled && !visitorNotificationEnabled) return;
+        if (mc.player == null || mc.level == null || pestWebhookUrl.isBlank()) return;
+        if (++tabNotificationTicks < 20) return;
+        tabNotificationTicks = 0;
+        GardenTabNotifications.Counts counts = GardenTabNotifications.parse(GardenTabReader.read(mc));
+        if (TAB_NOTIFICATIONS.pestReached(pestNotificationEnabled, counts.pests(), pestNotificationThreshold)) {
+            sendDiscordNotification("Garden 害蟲通知：目前 " + counts.pests()
+                    + " 隻（通知門檻：" + pestNotificationThreshold + "）。");
+        }
+        if (TAB_NOTIFICATIONS.visitorsFull(visitorNotificationEnabled, counts.visitors())) {
+            sendDiscordNotification("Garden Visitor 通知：Visitors 已達 5 位。");
+        }
+    }
+
+    private static void sendDiscordNotification(String content) {
         try {
-            String content = "害蟲出現！Plot " + plot + "\n" + rawMessage;
             String json = "{\"content\":\"" + jsonEscape(content) + "\"}";
             HttpRequest request = HttpRequest.newBuilder(URI.create(pestWebhookUrl.trim()))
+                    .timeout(java.time.Duration.ofSeconds(10))
                     .header("Content-Type", "application/json; charset=utf-8")
                     .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                     .build();
-            HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding()).exceptionally(err -> null);
-        } catch (Throwable ignored) {}
+            HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding()).whenComplete((response, error) -> {
+                // Never log the webhook URL or exception message, which can contain its secret token.
+                if (error != null) LOGGER.warn("[Kuan HSBA] Discord notification request failed");
+                else if (response.statusCode() < 200 || response.statusCode() >= 300)
+                    LOGGER.warn("[Kuan HSBA] Discord notification HTTP status={}", response.statusCode());
+            });
+        } catch (IllegalArgumentException error) {
+            LOGGER.warn("[Kuan HSBA] Invalid Discord notification webhook URL");
+        }
     }
 
     private static String jsonEscape(String s) {
@@ -2003,6 +2016,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         farmingCrop = FarmingCrop.fromConfig(p.getProperty("farmingCrop", "WHEAT"));
         farmingAutoSetHome = Boolean.parseBoolean(p.getProperty("farmingAutoSetHome", "false"));
         pestNotificationEnabled = Boolean.parseBoolean(p.getProperty("pestNotificationEnabled", "false"));
+        pestNotificationThreshold = GardenTabNotifications.parseThreshold(p.getProperty("pestNotificationThreshold", "1"));
+        if (pestNotificationThreshold == 0) pestNotificationThreshold = 1;
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
         farmingMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("farmingMenuPauseEnabled", "true"));
         miningMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("miningMenuPauseEnabled", "true"));
@@ -2035,6 +2050,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingCrop", farmingCrop.name());
         p.setProperty("farmingAutoSetHome", Boolean.toString(farmingAutoSetHome));
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
+        p.setProperty("pestNotificationThreshold", Integer.toString(pestNotificationThreshold));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
         p.setProperty("farmingMenuPauseEnabled", Boolean.toString(farmingMenuPauseEnabled));
         p.setProperty("miningMenuPauseEnabled", Boolean.toString(miningMenuPauseEnabled));
@@ -2331,8 +2347,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; farmingWorldChanged = false; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("害蟲通知", pestNotificationEnabled), b -> { pestNotificationEnabled = !pestNotificationEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; TAB_NOTIFICATIONS.resetVisitors(); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("害蟲通知" + (pestNotificationEnabled ? " ≥" + pestNotificationThreshold : ""), pestNotificationEnabled), b -> togglePestNotifications()).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("智慧暫停", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 36;
             addSectionTitle("Mining", y);
@@ -2386,6 +2402,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return Component.literal(label + "：")
                     .withStyle(ChatFormatting.WHITE)
                     .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+
+        private void togglePestNotifications() {
+            if (pestNotificationEnabled) {
+                pestNotificationEnabled = false;
+                TAB_NOTIFICATIONS.resetPests();
+                saveConfig();
+                rebuild();
+                return;
+            }
+            Minecraft.getInstance().setScreenAndShow(new PestThresholdScreen(this, threshold -> {
+                pestNotificationThreshold = threshold;
+                pestNotificationEnabled = true;
+                TAB_NOTIFICATIONS.resetPests();
+                saveConfig();
+                rebuild();
+            }));
         }
 
         private void openMiningTargetCountScreen() {
