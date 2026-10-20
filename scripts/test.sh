@@ -19,3 +19,5 @@ trap 'rm -rf "$TMP"' EXIT
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.GardenTabNotificationsTest
 python3 "$ROOT/scripts/test-abnormal-handling.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-tab-notifications.py" "$JAVA_HOME"
+
+python3 "$ROOT/scripts/test-mining-attack-lock.py"

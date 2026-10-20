@@ -208,6 +208,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
+    public static boolean shouldLockManualAttack() {
+        return miningEnabled;
+    }
+
     public static boolean shouldLockManualLook() {
         return miningEnabled || farmingEnabled || farmingAutoRecovering;
     }

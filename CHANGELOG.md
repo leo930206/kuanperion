@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.111] - 2026-10-20
+
+### Changed
+
+- Lock vanilla single-click and held attack handlers whenever Mining is enabled, including GUI smart pause, without blocking GUI clicks or direct automatic mining calls. Disabling Mining restores vanilla handling; Farming is unchanged.
+- Add source-contract regression checks for both attack injections, Mining-only gating, registration, and preserved automatic mining calls.
+
 ## [1.0.110] - 2026-10-20
 
 ### Fixed
