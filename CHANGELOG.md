@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.110] - 2026-10-20
+
+### Fixed
+
+- Fix Limbo → Lobby recovery consuming `/play sb` during a slow transfer, then sending `/warp garden` in Lobby where the command is unknown. The old queue advanced only on elapsed ticks without confirming each command's destination context.
+- Keep each pending command until its required location is ready, then count a fresh 60 client ticks (about three seconds): `/lobby` in Limbo, `/play sb` in Lobby, and `/warp garden` only after SkyBlock is confirmed. Reset the full countdown if readiness is lost; missing player/world data and transfer time cannot consume queued steps.
+- Accept other SkyBlock islands through the optional location API or native SKYBLOCK title, while explicitly rejecting Lobby/Limbo for Garden warps. Preserve immediate completion if `/play sb` lands directly in Garden, Farming remaining off, input cleanup, initial world-load gating, and the separate void stop.
+- Log command/location phase changes and dispatch attempts once per transition. Extend tests to execute the actual queue and command objects through slow Limbo/Lobby/SkyBlock loads, transient location loss, missing player/world data, all existing routes, and direct Garden arrival.
+
 ## [1.0.109] - 2026-10-20
 
 ### Changed

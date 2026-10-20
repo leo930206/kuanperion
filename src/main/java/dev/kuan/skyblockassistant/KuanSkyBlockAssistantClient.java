@@ -515,10 +515,35 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         if (finishFarmingRecoveryOnArrival(mc)) return;
         if (FARMING_COMMAND_QUEUE.isEmpty()) return;
         QueuedCommand current = FARMING_COMMAND_QUEUE.peekFirst();
+        FarmingLocation location = detectFarmingLocation(mc);
+        boolean ready = isFarmingRecoveryCommandReady(mc, current.command, location);
+        if (current.ready == null || current.ready != ready) {
+            current.ready = ready;
+            LOGGER.info("[Kuan HSBA] Farming recovery command=/{} phase={} location={}",
+                    current.command, ready ? "delay_3s" : "wait_location", location);
+        }
+        if (!ready) {
+            // Transfer/loading time must not consume the next command's three-second wait.
+            current.ticks = FARMING_RECOVERY_COMMAND_DELAY_TICKS;
+            return;
+        }
         current.ticks--;
         if (current.ticks > 0) return;
         FARMING_COMMAND_QUEUE.removeFirst();
+        LOGGER.info("[Kuan HSBA] Farming recovery command=/{} phase=dispatch location={}", current.command, location);
         sendCommand(mc, current.command);
+    }
+
+    private static boolean isFarmingRecoveryCommandReady(Minecraft mc, String command, FarmingLocation location) {
+        if (mc.player == null || mc.level == null) return false;
+        return switch (command) {
+            case "lobby" -> location == FarmingLocation.LIMBO;
+            case "play sb" -> location == FarmingLocation.LOBBY;
+            case "warp garden" -> location != FarmingLocation.LOBBY && location != FarmingLocation.LIMBO
+                    && (location == FarmingLocation.HUB || location == FarmingLocation.ISLAND
+                    || SKYBLOCK_LOCATION_BRIDGE.islandName() != null || containsLine(sidebarLines(mc), "SKYBLOCK"));
+            default -> false;
+        };
     }
 
     private static void enqueueFarmingCommand(String command, int delayTicks) {
@@ -2077,6 +2102,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final class QueuedCommand {
         final String command;
         int ticks;
+        Boolean ready;
         QueuedCommand(String command, int ticks) { this.command = command; this.ticks = ticks; }
     }
 

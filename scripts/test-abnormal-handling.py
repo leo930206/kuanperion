@@ -11,7 +11,7 @@ source = (root / "src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistant
 
 
 methods = [re.search(r"    private static final int FARMING_RECOVERY_COMMAND_DELAY_TICKS = \d+;", source).group(0)]
-for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook", "onFarmingWorldChange"]:
+for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "startFarmingAutoRecovery", "shouldAutoReturn", "handleReceivedMessage", "shouldLockManualLook", "onFarmingWorldChange", "tickFarmingCommandQueue", "enqueueFarmingCommand", "isFarmingRecoveryCommandReady"]:
     # Find declarations rather than earlier invocations.
     declaration = re.search(r"    (?:private|public) static [^\n]+ " + name + r"\(", source)
     start = declaration.start()
@@ -21,6 +21,14 @@ for name in ["handleFarmingAutoRecovery", "finishFarmingRecoveryOnArrival", "sta
         depth += (source[end] == "{") - (source[end] == "}")
         end += 1
     methods.append(source[start:end])
+
+start = source.index("    private static final class QueuedCommand")
+opening = source.index("{", start)
+depth, end = 1, opening + 1
+while depth:
+    depth += (source[end] == "{") - (source[end] == "}")
+    end += 1
+methods.append(source[start:end])
 
 for name in ["detectFarmingLocation", "sidebarLines", "containsLine", "cleanSidebarText"]:
     declaration = re.search(r"    private static [^\n]+ " + name + r"\(", source)
@@ -49,7 +57,14 @@ public final class AbnormalHandlingTest {
     static int farmingRecoveryScanTicks, limboChatSeenTick, lastPestMessageTick, stops;
     static String pestWebhookUrl = "", lastPestMessage = "";
     static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("a^ ");
-    static final Deque<String> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
+    static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
+    static final List<String> sentCommands = new ArrayList<>();
+    static final TestLogger LOGGER = new TestLogger();
+    static class TestLogger { void info(String message, Object... values) {} }
+    static void sendCommand(Minecraft mc, String command) { sentCommands.add(command); }
+    static void queueTicks(Minecraft mc, int ticks) {
+        for (int tick = 0; tick < ticks; tick++) tickFarmingCommandQueue(mc);
+    }
     static FarmingLocation location;
     static boolean sidebarEmpty;
     enum FarmingLocation {
@@ -106,7 +121,6 @@ public final class AbnormalHandlingTest {
     static List<String> sidebarLines(Minecraft mc) { return sidebarEmpty ? List.of() : List.of("SKYBLOCK"); }
     static void releaseFarmingKeys(Minecraft mc) {}
     static void saveConfig() {}
-    static void enqueueFarmingCommand(String command, int ticks) { FARMING_COMMAND_QUEUE.add(command + "@" + ticks); }
     static void stopFarming(Minecraft mc, boolean announce) {
         farmingWorldChanged = false;
         farmingAutoRecovering = false;
@@ -128,6 +142,8 @@ public final class AbnormalHandlingTest {
     static void sendPestDiscordNotification(String plot, String text) {}
     static void reset() {
         farmingWorldChanged = false;
+        sentCommands.clear();
+        SKYBLOCK_LOCATION_BRIDGE.island = null;
         miningEnabled = false;
         completionMessages = 0;
         FARMING_TOOL_GUARD.reset("Euclid's Wheat Sickle");
@@ -170,7 +186,7 @@ public final class AbnormalHandlingTest {
                 case LIMBO -> List.of("lobby@60", "play sb@60", "warp garden@60");
                 default -> throw new AssertionError();
             };
-            check(new ArrayList<>(FARMING_COMMAND_QUEUE).equals(expected), "all recovery commands wait 60 ticks (about three seconds)");
+            check(FARMING_COMMAND_QUEUE.stream().map(c -> c.command + "@" + c.ticks).toList().equals(expected), "all recovery commands wait 60 ticks (about three seconds)");
             int size = FARMING_COMMAND_QUEUE.size();
             handleFarmingAutoRecovery(mc);
             check(FARMING_COMMAND_QUEUE.size() == size, "recovery cannot enqueue duplicates");
@@ -260,6 +276,64 @@ public final class AbnormalHandlingTest {
         FARMING_TOOL_GUARD.update(true, "Unrelated Tool");
         check(!handleFarmingAutoRecovery(mc), "unknown location does not issue commands");
         check(FARMING_TOOL_GUARD.isPaused(), "normal wrong-tool wait remains active without abnormal recovery");
+        // Reproduce the live incident: /lobby takes longer than the next command delay.
+        reset(); mc = new Minecraft(); location = FarmingLocation.LIMBO;
+        onFarmingWorldChange(); startFarmingAutoRecovery(mc, location);
+        queueTicks(mc, 59);
+        check(sentCommands.isEmpty(), "initial /lobby still waits a full three seconds");
+        queueTicks(mc, 1);
+        check(sentCommands.equals(List.of("lobby")), "first command leaves Limbo");
+        location = FarmingLocation.UNKNOWN;
+        queueTicks(mc, 300);
+        check(sentCommands.equals(List.of("lobby")) && FARMING_COMMAND_QUEUE.size() == 2,
+                "slow Lobby load must not consume /play sb or /warp garden");
+        location = FarmingLocation.LOBBY;
+        queueTicks(mc, 30);
+        check(sentCommands.size() == 1, "Lobby arrival starts, rather than bypasses, the three-second wait");
+        location = FarmingLocation.UNKNOWN; queueTicks(mc, 1);
+        location = FarmingLocation.LOBBY; queueTicks(mc, 59);
+        check(sentCommands.size() == 1, "losing destination readiness resets the full three-second countdown");
+        queueTicks(mc, 1);
+        check(sentCommands.equals(List.of("lobby", "play sb")), "send /play sb only after confirmed Lobby wait");
+        queueTicks(mc, 180);
+        check(sentCommands.size() == 2 && FARMING_COMMAND_QUEUE.size() == 1,
+                "never dispatch /warp garden while still in Lobby");
+        location = FarmingLocation.UNKNOWN; queueTicks(mc, 300);
+        check(sentCommands.size() == 2, "slow SkyBlock load does not consume the Garden command");
+        location = FarmingLocation.HUB;
+        mc.player = null; queueTicks(mc, 120);
+        check(sentCommands.size() == 2 && FARMING_COMMAND_QUEUE.size() == 1, "no player cannot discard pending commands");
+        mc.player = new Object(); mc.level = null; queueTicks(mc, 120);
+        check(sentCommands.size() == 2, "missing world cannot advance command countdown");
+        mc.level = new Level(); queueTicks(mc, 59);
+        check(sentCommands.size() == 2, "SkyBlock arrival also waits three seconds");
+        queueTicks(mc, 1);
+        check(sentCommands.equals(List.of("lobby", "play sb", "warp garden")), "complete route in order after real arrivals");
+        location = FarmingLocation.GARDEN;
+        check(finishFarmingRecoveryOnArrival(mc) && !shouldLockManualLook(), "arrival still finishes immediately and unlocks controls");
+        for (FarmingLocation start : List.of(FarmingLocation.HUB, FarmingLocation.ISLAND, FarmingLocation.LOBBY)) {
+            reset(); mc = new Minecraft(); location = start;
+            onFarmingWorldChange(); startFarmingAutoRecovery(mc, location);
+            queueTicks(mc, 59); check(sentCommands.isEmpty(), "retain initial three-second wait for " + start);
+            queueTicks(mc, 1);
+            check(sentCommands.equals(List.of(start == FarmingLocation.LOBBY ? "play sb" : "warp garden")), "retain first command for " + start);
+        }
+        // /play sb can land directly in Garden: do not send an unnecessary Garden warp.
+        reset(); mc = new Minecraft(); location = FarmingLocation.LOBBY;
+        onFarmingWorldChange(); startFarmingAutoRecovery(mc, location); queueTicks(mc, 60);
+        location = FarmingLocation.GARDEN; tickFarmingCommandQueue(mc);
+        check(sentCommands.equals(List.of("play sb")) && FARMING_COMMAND_QUEUE.isEmpty()
+                && !farmingAutoRecovering, "direct Garden arrival cancels pending warp immediately");
+        // SkyBlock can resume on another island, with either API or native title confirmation.
+        for (boolean useApi : List.of(true, false)) {
+            reset(); mc = new Minecraft(); location = FarmingLocation.LOBBY;
+            onFarmingWorldChange(); startFarmingAutoRecovery(mc, location); queueTicks(mc, 60);
+            location = FarmingLocation.UNKNOWN;
+            if (useApi) SKYBLOCK_LOCATION_BRIDGE.island = "DWARVEN_MINES";
+            else sidebarEmpty = false;
+            queueTicks(mc, 60);
+            check(sentCommands.equals(List.of("play sb", "warp garden")), "any confirmed SkyBlock island may warp to Garden");
+        }
         reset();
         mc = new Minecraft();
         sidebarRow(mc, "§a⏣ Pri", "vate Island");
@@ -309,7 +383,7 @@ public final class AbnormalHandlingTest {
         check(detectSidebarLocation(mc) == FarmingLocation.UNKNOWN, "known unsupported API island must not trigger a false Hub return");
         SKYBLOCK_LOCATION_BRIDGE.island = null;
         check(detectSidebarLocation(mc) == FarmingLocation.HUB, "native fallback still works when API unavailable");
-        System.out.println("AbnormalHandlingTest: PASS (world-load prerequisite, both signal orders, three-second commands, void unchanged, API/native locations, arrival cleanup)");
+        System.out.println("AbnormalHandlingTest: PASS (world-load prerequisite, both signal orders, arrival-gated three-second commands, slow world loads, void unchanged, API/native locations, arrival cleanup)");
     }
     // CLIENT_METHODS
 }
