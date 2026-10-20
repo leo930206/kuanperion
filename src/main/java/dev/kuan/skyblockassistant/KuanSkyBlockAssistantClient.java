@@ -1734,6 +1734,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return;
         }
         LocalPlayer player = mc.player;
+        // Finish the current block; every subsequent selection starts at highest priority.
         if (activeTarget != null && mineActiveTarget(mc, player, activeTarget)) return;
         if (cooldown > 0) return;
 
@@ -1746,16 +1747,19 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             BlockState state = mc.level.getBlockState(pos);
             if (state.isAir()) continue;
             String id = blockId(state);
+            if (!isAllowedTargetBlock(id) || !TARGET_BLOCKS.contains(id)) continue;
+            int priority = TARGET_BLOCKS.indexOf(id);
             String waitingFor = DEPLETED_TARGETS.get(pos);
             if (waitingFor != null) {
-                if (!waitingFor.equals(id)) continue;
+                int previousPriority = TARGET_BLOCKS.indexOf(waitingFor);
+                // A higher-priority respawn is eligible even when its type differs.
+                // Still ignore lower-priority depleted forms until the original returns.
+                if (!waitingFor.equals(id) && previousPriority >= 0 && priority >= previousPriority) continue;
                 DEPLETED_TARGETS.remove(pos);
             }
-            if (!isAllowedTargetBlock(id) || !TARGET_BLOCKS.contains(id)) continue;
             double dist = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
             if (dist > (r + 1.5) * (r + 1.5)) continue;
             if (!canSeeBlockCenter(player, mc, pos, r + 1.5)) continue;
-            int priority = TARGET_BLOCKS.indexOf(id);
             Candidate c = new Candidate(pos, priority, dist);
             if (best == null || c.betterThan(best)) best = c;
         }

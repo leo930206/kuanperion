@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.111`
+Current mod version: `1.0.112`
 
 ## Features
 
@@ -10,7 +10,7 @@ Current mod version: `1.0.111`
 
 - Scan nearby loaded blocks around the player.
 - Select one or more target block types in-game.
-- Choose targets by configured block-list priority first, then by nearest distance within the same block type; all eligible priority-1 targets in range are mined before priority 2.
+- Finish the current block without interruption, then rescan all candidates from the highest configured priority after the mining delay. Newly available priority-1 blocks are chosen before priority 2, even if farther away. Distance only breaks ties within the same priority. Depletion history cannot hide a higher-priority replacement at a previously mined position; lower-priority depleted forms remain ignored until the original type returns.
 - Always rotate toward the locked target block position and mine only if the crosshair confirms that exact block; automatic rotation is permanently enabled and no longer configurable.
 - Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
 - The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target only after no GUI has been open for 0.5 continuous seconds, without turning Mining off. Any new GUI restarts the buffer, covering short Bazaar search transitions. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed, horizontal movement is frozen, and manual mouse look is blocked while automatic target rotation continues to work.
@@ -80,12 +80,12 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.111.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.112.jar
 ```
 
 ## Tests
 
-Run the dependency-free tool detection, GUI smart-pause, abnormal-handling, and Tab notification/parser/threshold-screen regression tests (requires Python 3 and the PrismLauncher Java runtime):
+Run the dependency-free tool detection, GUI smart-pause, abnormal-handling, Mining priority/attack-lock, and Tab notification/parser/threshold-screen regression tests (requires Python 3 and the PrismLauncher Java runtime):
 
 ```bash
 ./scripts/test.sh

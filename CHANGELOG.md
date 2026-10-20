@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.112] - 2026-10-20
+
+### Fixed
+
+- Preserve finish-current-block behavior and rescan from the highest configured priority for every new target, after the existing mining delay; do not preempt an unfinished block.
+- Fix depletion history hiding a higher-priority replacement at a previously mined position while waiting for the old block type to respawn. Permit higher-priority replacements and discard obsolete history if the old type is no longer configured; retain lower-priority depleted-form suppression.
+- Add regression tests executing production target selection with a fake world: finish before switching, higher-priority versus distance, replacement/respawn eligibility, visibility, temporary skips, and cooldown.
+
 ## [1.0.111] - 2026-10-20
 
 ### Changed
