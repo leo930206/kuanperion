@@ -109,28 +109,36 @@ public class TabNotificationIntegrationTest {
         scan(mc);
         check(sent.size() == 2, "both alerts without Farming, GUI or Tab-key dependencies");
         check(sent.get(0).contains("4") && sent.get(1).contains("5"), "include actual count in alerts");
-        scan(mc); check(sent.size() == 2, "sustained matching values stay silent");
+        int expected = 2;
+        scan(mc); check(sent.size() == expected, "sustained matching values stay silent");
+        for (int count = 5; count <= 8; count++) {
+            garden(mc, count, 5); scan(mc);
+            check(sent.size() == ++expected, "new pest count notifies while Visitor stays five: " + count);
+            scan(mc); check(sent.size() == expected, "sustained new count stays silent");
+        }
+        garden(mc, 4, 5); scan(mc);
+        check(sent.size() == expected, "returning to a previously notified count stays silent");
         mc.player.connection.entries.clear(); scan(mc);
         garden(mc, 7, 5); scan(mc);
-        check(sent.size() == 2, "missing Tab must not rearm alerts");
+        check(sent.size() == expected, "missing Tab must not clear per-count history");
         garden(mc, 3, 4); scan(mc);
-        garden(mc, 8, 5); scan(mc);
-        check(sent.size() == 4, "both rearm after their own conditions clear");
+        garden(mc, 8, 5); scan(mc); expected += 2;
+        check(sent.size() == expected, "reset sends only observed pest count and full visitors, not skipped counts");
         visitorNotificationEnabled = false; TAB_NOTIFICATIONS.resetVisitors();
         garden(mc, 1, 5); scan(mc); garden(mc, 4, 5); scan(mc);
-        check(sent.size() == 5, "visitor toggle does not affect pests");
+        check(sent.size() == ++expected, "visitor toggle does not affect pests");
         pestNotificationEnabled = false; TAB_NOTIFICATIONS.resetPests();
         visitorNotificationEnabled = true; scan(mc);
-        check(sent.size() == 6, "visitor still works when pests are disabled");
+        check(sent.size() == ++expected, "visitor still works when pests are disabled");
         garden(mc, 4, 4); scan(mc);
         pestWebhookUrl = ""; garden(mc, 4, 5); scan(mc);
-        check(sent.size() == 6, "blank webhook skips sending and preserves pending alert");
+        check(sent.size() == expected, "blank webhook skips sending and preserves pending alert");
         pestWebhookUrl = "test-only"; scan(mc);
-        check(sent.size() == 7, "setting webhook after a match allows notification");
+        check(sent.size() == ++expected, "setting webhook after a match allows notification");
         mc.player = null; scan(mc);
-        check(sent.size() == 7 && GardenTabReader.read(mc).isEmpty(), "disconnect safety");
+        check(sent.size() == expected && GardenTabReader.read(mc).isEmpty(), "disconnect safety");
         mc.player = new Player(); garden(mc, 4, 5); mc.level = null; scan(mc);
-        check(sent.size() == 7, "world loading safety"); mc.level = new Object();
+        check(sent.size() == expected, "world loading safety"); mc.level = new Object();
 
         mc.player.connection.entries = new ArrayList<>(List.of(
                 row("z", "spectator", 0, "a", GameType.SPECTATOR),

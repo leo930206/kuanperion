@@ -1,16 +1,18 @@
 package dev.kuan.skyblockassistant;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Parses server-supplied Tab text and sends at most one alert per qualifying episode. */
+/** Parses Tab text; deduplicates pest counts and visitor-full episodes independently. */
 final class GardenTabNotifications {
     private static final Pattern COLORS = Pattern.compile("§[0-9a-fk-orx]", Pattern.CASE_INSENSITIVE);
     private static final Pattern PESTS = Pattern.compile("pests\\s*:", Pattern.CASE_INSENSITIVE);
     private static final Pattern ALIVE = Pattern.compile("alive\\s*:\\s*(?:[x×]\\s*)?([0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern PEST_FIELD = Pattern.compile("(?:plots|spray|repellent|bonus|cooldown)\\s*:.*", Pattern.CASE_INSENSITIVE);
     private static final Pattern VISITORS = Pattern.compile("visitors?\\s*:\\s*(?:\\(\\s*([0-9]+)\\s*\\)|([0-9]+))", Pattern.CASE_INSENSITIVE);
-    private boolean pestNotified;
+    private final Set<Integer> notifiedPestCounts = new HashSet<>();
     private boolean visitorNotified;
 
     record Counts(int pests, int visitors) {}
@@ -54,9 +56,7 @@ final class GardenTabNotifications {
         if (!enabled) { resetPests(); return false; }
         if (count < 0 || threshold < 1 || threshold > 8) return false;
         if (count < threshold) { resetPests(); return false; }
-        if (pestNotified) return false;
-        pestNotified = true;
-        return true;
+        return notifiedPestCounts.add(count);
     }
 
     boolean visitorsFull(boolean enabled, int count) {
@@ -68,6 +68,6 @@ final class GardenTabNotifications {
         return true;
     }
 
-    void resetPests() { pestNotified = false; }
+    void resetPests() { notifiedPestCounts.clear(); }
     void resetVisitors() { visitorNotified = false; }
 }

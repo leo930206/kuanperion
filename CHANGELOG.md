@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.108] - 2026-10-20
+
+### Changed
+
+- Notify Discord once per distinct observed pest count at or above the configured threshold, rather than once for the entire above-threshold episode. With threshold 4, observed counts 4, 5, 6, 7, and 8 each notify once.
+- Keep a set of notified counts so sustained values and revisits such as 4 → 5 → 4 do not resend. Clear it only after a valid below-threshold count or explicit pest-notification reset; unknown/loading Tab data preserves it. Jumped-over counts do not generate invented alerts.
+- Leave Visitor notifications unchanged: exactly 5 notifies once until the count leaves 5 or its toggle rearms it. Preserve independent toggles, direct cached Tab reading, the 1–8 threshold dialog, and all Farming/Mining behavior.
+- Extend unit and production-polling integration tests for per-count notifications, revisits, missing-data retention, reset behavior, jumps, and unchanged Visitor deduplication.
+
 ## [1.0.107] - 2026-10-20
 
 ### Changed

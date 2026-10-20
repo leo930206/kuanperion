@@ -35,12 +35,19 @@ public final class GardenTabNotificationsTest {
 
         var tracker = new GardenTabNotifications();
         check(!tracker.pestReached(true, 3, 4), "below pest threshold");
-        check(tracker.pestReached(true, 4, 4), "pests equal threshold notify");
-        check(!tracker.pestReached(true, 8, 4), "pests above threshold do not spam");
+        for (int count = 4; count <= 8; count++) {
+            check(tracker.pestReached(true, count, 4), "each qualifying pest count notifies once: " + count);
+            check(!tracker.pestReached(true, count, 4), "sustained count stays silent: " + count);
+        }
+        for (int count = 8; count >= 4; count--)
+            check(!tracker.pestReached(true, count, 4), "revisiting a notified count stays silent: " + count);
         check(!tracker.pestReached(true, -1, 4), "missing pests do not notify");
-        check(!tracker.pestReached(true, 5, 4), "missing Tab does not rearm pests");
+        check(!tracker.pestReached(true, 5, 4), "missing Tab does not clear notified counts");
+        check(tracker.pestReached(true, 12, 4), "pest counts above eight still qualify");
+        check(!tracker.pestReached(true, 12, 4), "multi-digit counts also notify once");
         check(!tracker.pestReached(true, 0, 4), "zero rearms pests");
-        check(tracker.pestReached(true, 6, 4), "crossing threshold again notifies");
+        for (int count = 4; count <= 8; count++)
+            check(tracker.pestReached(true, count, 4), "below threshold rearms every count: " + count);
         check(!tracker.pestReached(false, 7, 4), "disabled pests stay silent");
         check(tracker.pestReached(true, 7, 4), "re-enabled pests notify once");
         tracker.resetPests();
@@ -62,6 +69,12 @@ public final class GardenTabNotificationsTest {
         check(tracker.pestReached(true, 4, 4), "visitor state does not suppress pests");
         tracker.resetPests();
         check(!tracker.visitorsFull(true, 5), "pest reset does not rearm visitors");
-        System.out.println("GardenTabNotificationsTest passed");
+        for (int threshold = 1; threshold <= 8; threshold++) {
+            var perThreshold = new GardenTabNotifications();
+            check(perThreshold.pestReached(true, threshold + 2, threshold), "jump directly to observed count");
+            check(perThreshold.pestReached(true, threshold, threshold), "new lower qualifying count still notifies");
+            check(!perThreshold.pestReached(true, threshold + 2, threshold), "jumping back does not notify twice");
+        }
+        System.out.println("GardenTabNotificationsTest passed (per-count pest deduplication, visitor episodes unchanged)");
     }
 }

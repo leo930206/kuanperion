@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.107`
+Current mod version: `1.0.108`
 
 ## Features
 
@@ -63,7 +63,7 @@ Current mod version: `1.0.107`
 - The `智慧暫停` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes only after no GUI has been open for one continuous second, without turning Farming off. Any new GUI restarts the buffer, covering short Bazaar search transitions. Movement, attack, and crop-state progression remain paused during the buffer. When disabled, Farming continues through open GUIs.
 - `害蟲通知`: turning it on opens a Mining-style number dialog. Only a single integer from `1` through `8` can be confirmed (blank, text, spaces, and multi-digit input are invalid); Cancel/Esc leaves it off. Notify Discord when the server Tab list's `Pests` → `Alive` count is **at least** the saved threshold. The enabled button shows the threshold; turn it off and on to choose another. Missing/invalid saved thresholds default to `1` for existing installations. Spawn-chat messages and sidebar pest counts no longer trigger this notification.
 - `Visitor 通知`: notify Discord when the server Tab list's `Visitors: (number)` is **exactly `5`**. Both notifications use the existing local Discord Webhook field (`pestWebhookUrl`) and check cached game data every 20 client ticks (about one second), without holding Tab or enabling Farming/Mining. The server must supply these Tab fields; temporarily missing data is not treated as zero.
-- Each notification fires once per qualifying episode, independently. Pest counts must fall below the threshold, or Visitors must leave `5`, before the next qualifying count notifies again; toggling that notification also rearms it. Missing Tab/world data does not rearm or spam notifications. No automatic action is taken on the pests or visitors. Webhook requests are asynchronous with a ten-second timeout; failures/status codes are logged without exposing the webhook token and are not retried during the same episode.
+- Pest notifications fire **once for each distinct observed count at or above the threshold** until a valid count falls below it. With threshold `4`, counts `4`, `5`, `6`, `7`, and `8` each notify once; holding a count or returning to a previously notified count (such as `4 → 5 → 4`) does not repeat that count. Only observed counts notify: jumping from `4` to `7` does not invent notifications for `5` or `6`. Falling below the threshold or toggling pest notifications clears the count history. Visitor behavior is unchanged: `5` notifies once until a valid different count or its own toggle rearms it. The two notifications remain independent, and missing Tab/world data does not clear either history. No automatic action is taken on the pests or visitors. Webhook requests remain asynchronous with a ten-second timeout; failures/status codes are logged without exposing the webhook token and are not retried for that already-notified count/episode.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
 - Block names shown in chat omit the technical `minecraft:` namespace while retaining full IDs internally for matching and configuration.
@@ -79,7 +79,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.107.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.108.jar
 ```
 
 ## Tests
