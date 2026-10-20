@@ -1,7 +1,7 @@
 package dev.kuan.skyblockassistant;
 
 final class GuiPauseGuard {
-    private static final long RESUME_DELAY_NANOS = 1_000_000_000L;
+    private static final long RESUME_DELAY_NANOS = 500_000_000L;
     private boolean screenWasOpen;
     private boolean buffering;
     private long closedAtNanos;

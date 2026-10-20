@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.109] - 2026-10-20
+
+### Changed
+
+- Shorten the GUI-close smart-pause buffer for both Farming and Mining from 1 second to 0.5 seconds (500ms of continuous GUI-free time, measured with the monotonic clock).
+- Keep pausing throughout open GUIs, restart the buffer if any GUI reopens, and preserve independent module buffers and immediate bypass when smart pause is disabled. Other farming waits, recovery command delays, and notification polling are unchanged.
+- Update regression coverage for the exact 500ms boundary, repeated queries, Bazaar transitions, toggles, session resets, and independent Farming/Mining resume times.
+
 ## [1.0.108] - 2026-10-20
 
 ### Changed
