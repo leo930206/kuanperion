@@ -1,6 +1,8 @@
 package dev.kuan.skyblockassistant;
 
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -8,65 +10,94 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Channels are independent; enabling Discord requires confirming its Webhook. */
+/** One feature owns its switches; only the live Webhook supplier is shared. */
 final class NotificationSettingsScreen extends Screen {
-    record Options(boolean discord, boolean chat, boolean screen, String webhook) {}
+    record Options(boolean enabled, NotificationChannels channels, int threshold, boolean stopActions) {}
     private final Screen parent;
+    private final NotificationType type;
+    private final Supplier<String> getWebhook;
+    private final Consumer<String> setWebhook;
     private final Consumer<Options> saveOptions;
-    private boolean discord;
-    private boolean chat;
-    private boolean screen;
-    private String webhook;
+    private boolean enabled, discord, chat, screen, stopActions;
+    private int threshold;
 
-    NotificationSettingsScreen(Screen parent, boolean discord, boolean chat, boolean screen,
-                               String webhook, Consumer<Options> saveOptions) {
-        super(Component.literal("通知設定"));
+    NotificationSettingsScreen(Screen parent, NotificationType type, Options initial,
+                               Supplier<String> getWebhook, Consumer<String> setWebhook, Consumer<Options> saveOptions) {
+        super(Component.literal(type.label));
         this.parent = parent;
-        this.discord = discord;
-        this.chat = chat;
-        this.screen = screen;
-        this.webhook = webhook;
+        this.type = type;
+        this.getWebhook = getWebhook;
+        this.setWebhook = setWebhook;
         this.saveOptions = saveOptions;
+        enabled = initial.enabled();
+        discord = initial.channels().discord();
+        chat = initial.channels().chat();
+        screen = initial.channels().screen();
+        threshold = initial.threshold();
+        stopActions = initial.stopActions();
     }
 
     @Override
     protected void init() {
         int x = this.width / 2 - 140;
-        int y = this.height / 2 - 78;
-        addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal("通知設定"), this.font));
+        int y = this.height / 2 - (type == NotificationType.JERRY ? 86 : 114);
+        addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
+        y += 24;
+        if (type != NotificationType.JERRY) {
+            addRenderableWidget(Button.builder(toggleMsg(type.label, enabled), b -> {
+                if (enabled) { enabled = false; saveAndRefresh(); }
+                else openThreshold(true);
+            }).bounds(x, y, 280, 20).build());
+            y += 28;
+            addRenderableWidget(Button.builder(Component.literal("數量門檻：" + threshold), b -> openThreshold(false))
+                    .bounds(x, y, 280, 20).build());
+            y += 28;
+        }
         addRenderableWidget(Button.builder(toggleMsg("Discord 訊息通知", discord), b -> {
-            if (discord) {
-                discord = false;
+            if (discord) { discord = false; saveAndRefresh(); }
+            else Minecraft.getInstance().setScreenAndShow(new WebhookSettingsScreen(this, getWebhook.get(), value -> {
+                setWebhook.accept(value);
+                discord = true;
                 saveAndRefresh();
-            } else {
-                Minecraft.getInstance().setScreenAndShow(new WebhookSettingsScreen(this, webhook, value -> {
-                    webhook = value;
-                    discord = true;
-                    saveAndRefresh();
-                }));
-            }
-        }).bounds(x, y + 24, 280, 20).build());
+            }));
+        }).bounds(x, y, 280, 20).build());
+        y += 28;
         addRenderableWidget(Button.builder(toggleMsg("遊戲聊天室通知", chat), b -> {
-            chat = !chat;
-            saveAndRefresh();
-        }).bounds(x, y + 52, 280, 20).build());
+            chat = !chat; saveAndRefresh();
+        }).bounds(x, y, 280, 20).build());
+        y += 28;
         addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知", screen), b -> {
-            screen = !screen;
-            saveAndRefresh();
-        }).bounds(x, y + 80, 280, 20).build());
+            screen = !screen; saveAndRefresh();
+        }).bounds(x, y, 280, 20).build());
+        y += 28;
+        if (type == NotificationType.JERRY) {
+            addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
+                stopActions = !stopActions; saveAndRefresh();
+            }).bounds(x, y, 280, 20).build());
+            y += 28;
+        }
         addRenderableWidget(Button.builder(Component.literal("完成"), b -> onClose())
-                .bounds(this.width / 2 - 65, y + 116, 130, 20).build());
+                .bounds(this.width / 2 - 65, y + 8, 130, 20).build());
+    }
+
+    private void openThreshold(boolean enableOnConfirm) {
+        IntConsumer confirm = value -> {
+            threshold = value;
+            if (enableOnConfirm) enabled = true;
+            saveAndRefresh();
+        };
+        Minecraft.getInstance().setScreenAndShow(type == NotificationType.PESTS
+                ? new PestThresholdScreen(this, confirm) : new VisitorThresholdScreen(this, confirm));
     }
 
     private void saveAndRefresh() {
-        saveOptions.accept(new Options(discord, chat, screen, webhook));
+        saveOptions.accept(new Options(enabled, new NotificationChannels(discord, chat, screen), threshold, stopActions));
         Minecraft.getInstance().setScreenAndShow(this);
     }
 
-    private Component toggleMsg(String label, boolean enabled) {
+    private Component toggleMsg(String label, boolean on) {
         return Component.literal(label + "：").withStyle(ChatFormatting.WHITE)
-                .append(Component.literal(enabled ? "開啟" : "關閉")
-                        .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED));
+                .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     @Override public void onClose() { Minecraft.getInstance().setScreenAndShow(parent); }

@@ -31,7 +31,7 @@ final class PestThresholdScreen extends Screen {
         countBox.setMaxLength(32);
         addRenderableWidget(countBox);
         addRenderableWidget(new StringWidget(centerX - 140, y + 44, 280, 12,
-                Component.literal("Tab 的 Pests → Alive 達到門檻時通知 Discord"), this.font));
+                Component.literal("Tab 的 Pests → Alive 達到門檻時發送通知"), this.font));
         Button confirm = Button.builder(Component.literal("確認"), b -> {
             int threshold = GardenTabNotifications.parseThreshold(countBox.getValue());
             if (threshold != 0) confirmThreshold.accept(threshold);

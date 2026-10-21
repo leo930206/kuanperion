@@ -27,7 +27,7 @@ final class WebhookSettingsScreen extends Screen {
         int centerX = this.width / 2;
         int y = this.height / 2 - 45;
         addRenderableWidget(new StringWidget(centerX - 160, y, 320, 12,
-                Component.literal("請輸入 Discord Webhook 網址"), this.font));
+                Component.literal("共用 Discord Webhook 網址"), this.font));
         EditBox webhookBox = new EditBox(this.font, centerX - 160, y + 24, 320, 20,
                 Component.literal("Discord Webhook"));
         webhookBox.setMaxLength(300);

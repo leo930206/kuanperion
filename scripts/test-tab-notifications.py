@@ -15,13 +15,6 @@ screen = (base / "PestThresholdScreen.java").read_text()
 screen = screen[screen.index("final class PestThresholdScreen"):].replace("final class PestThresholdScreen", "static final class PestThresholdScreen", 1)
 visitor_screen = (base / "VisitorThresholdScreen.java").read_text()
 visitor_screen = visitor_screen[visitor_screen.index("final class VisitorThresholdScreen"):].replace("final class VisitorThresholdScreen", "static final class VisitorThresholdScreen", 1)
-match = re.search(r"    private void toggleVisitorNotifications\(", client)
-opening = client.index("{", match.start())
-depth, end = 1, opening + 1
-while depth:
-    depth += (client[end] == "{") - (client[end] == "}")
-    end += 1
-visitor_toggle = client[match.start():end]
 start = re.search(r"    private static void tickTabNotifications\(", client).start()
 opening = client.index("{", start)
 depth, end = 1, opening + 1
@@ -29,9 +22,10 @@ while depth:
     depth += (client[end] == "{") - (client[end] == "}")
     end += 1
 poll = client[start:end]
-channel_start = re.search(r"    private static boolean hasNotificationChannel\(", client).start()
-channel_end = client.index("\n    }", channel_start) + len("\n    }")
-poll += "\n" + client[channel_start:channel_end]
+for name in ["notificationChannels", "hasNotificationChannel"]:
+    start = re.search(r"    private static [^\n]+ " + name + r"\(", client).start()
+    end = client.index("\n    }", start) + len("\n    }")
+    poll += "\n" + client[start:end]
 assert "tickTabNotifications(mc);" in client[client.index("private static void tick(Minecraft"):client.index("private static void handleShiftHotkeys")]
 assert "PEST_MESSAGE_PATTERN" not in client, "old spawn-chat notifications must be removed"
 assert 'p.setProperty("pestNotificationThreshold"' in client, "save threshold"
@@ -45,13 +39,17 @@ import java.util.function.*;
 public class TabNotificationIntegrationTest {
     static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     static boolean pestNotificationEnabled, visitorNotificationEnabled;
-    static boolean discordNotificationEnabled = true, chatNotificationEnabled, screenNotificationEnabled;
+    static final Map<NotificationType,NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
+    static {
+        NOTIFICATION_CHANNELS.put(NotificationType.PESTS,new NotificationChannels(true,false,false));
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(true,false,false));
+    }
     static int pestNotificationThreshold = 4, visitorNotificationThreshold = 5, tabNotificationTicks;
     static int saves;
     static void saveConfig() { saves++; }
     static String pestWebhookUrl = "test-only-not-a-real-webhook";
     static List<String> sent = new ArrayList<>();
-    static void sendNotification(String text, String title) { sent.add(text); }
+    static void sendNotification(NotificationType type, String text, String title) { sent.add(text); }
     record Component(String getString) { static Component literal(String text) { return new Component(text); } }
     record Profile(String name) {}
     record PlayerTeam(String getName) {
@@ -80,12 +78,6 @@ public class TabNotificationIntegrationTest {
         void setInitialFocus(Object widget) {}
         public void onClose() {}
         public boolean isPauseScreen() { return true; }
-    }
-    static class SettingsScreen extends Screen {
-        SettingsScreen() { super(Component.literal("settings")); }
-        int rebuilds;
-        void rebuild() { rebuilds++; Minecraft.getInstance().setScreenAndShow(this); }
-        // VISITOR_TOGGLE
     }
     static class EditBox {
         String value = ""; int maxLength; Consumer<String> responder;
@@ -212,51 +204,51 @@ public class TabNotificationIntegrationTest {
         check(sent.size() == 4, "below threshold resets; jump only notifies observed five");
         garden(mc, 0, 3); scan(mc);
         check(sent.size() == 5, "three was not invented during jump to five");
-        // Actual settings toggle, screen validation, confirm, Cancel/Esc.
-        SettingsScreen settings = new SettingsScreen();
-        settings.toggleVisitorNotifications();
-        check(!visitorNotificationEnabled && saves == 1, "disable saves and resets visitors");
-        settings.toggleVisitorNotifications();
-        VisitorThresholdScreen visitorScreen = (VisitorThresholdScreen) Minecraft.getInstance().shown;
+        // Validate the actual Visitor input screen; feature modal callbacks are covered separately.
+        List<Integer> visitorChosen = new ArrayList<>();
+        VisitorThresholdScreen visitorScreen = new VisitorThresholdScreen(parent, visitorChosen::add);
         visitorScreen.init();
         EditBox visitorInput = (EditBox) visitorScreen.widgets.stream().filter(EditBox.class::isInstance).findFirst().orElseThrow();
         List<Button> visitorButtons = visitorScreen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
         Button visitorConfirm = visitorButtons.get(0);
-        check(!visitorConfirm.active && !visitorNotificationEnabled, "blank visitor dialog leaves notification off");
-        for (String invalid : List.of("", "0", "6", "9", "12", "01", "-1", " 1", "1 ", "a", "１")) {
-            visitorInput.setValue(invalid);
-            check(!visitorConfirm.active, "invalid visitor input: " + invalid);
-            visitorConfirm.callback.accept(visitorConfirm);
-            check(!visitorNotificationEnabled && saves == 1, "invalid callback cannot enable visitors");
+        check(!visitorConfirm.active, "blank visitor input cannot confirm");
+        for(String invalid:List.of("", "0", "6", "9", "12", "01", "-1", " 1", "1 ", "a", "１")) {
+            visitorInput.setValue(invalid);check(!visitorConfirm.active,"invalid visitor input");
+            visitorConfirm.callback.accept(visitorConfirm);check(visitorChosen.isEmpty(),"invalid callback rejected");
         }
-        visitorInput.setValue("3"); visitorButtons.get(1).callback.accept(visitorButtons.get(1));
-        check(!visitorNotificationEnabled && saves == 1 && Minecraft.getInstance().shown == settings, "cancel leaves visitors off");
-        visitorScreen.onClose();
-        check(!visitorNotificationEnabled && saves == 1, "Esc leaves visitors off");
-        for (int i = 1; i <= 5; i++) {
-            visitorInput.setValue(Integer.toString(i));
-            check(visitorConfirm.active, "visitor input 1-5 accepted");
+        for(int i=1;i<=5;i++) {
+            visitorInput.setValue(Integer.toString(i));check(visitorConfirm.active,"valid visitor threshold");
+            visitorConfirm.callback.accept(visitorConfirm);check(visitorChosen.remove(0)==i,"unchanged selected threshold");
         }
-        visitorInput.setValue("3"); visitorConfirm.callback.accept(visitorConfirm);
-        check(visitorNotificationEnabled && visitorNotificationThreshold == 3 && saves == 2, "confirm saves visitor threshold and enables");
-        check(Minecraft.getInstance().shown == settings, "confirm returns to refreshed settings");
-        garden(mc, 0, 3); scan(mc);
-        check(sent.size() == 6, "confirmed new threshold resets only visitor history");
+        visitorButtons.get(1).callback.accept(visitorButtons.get(1));visitorScreen.onClose();
+        check(visitorChosen.isEmpty() && Minecraft.getInstance().shown==parent,"Cancel/Esc unchanged");
         TAB_NOTIFICATIONS.resetVisitors(); sent.clear();
-        discordNotificationEnabled = false; chatNotificationEnabled = true; pestWebhookUrl = "";
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,true,false)); pestWebhookUrl = "";
         garden(mc, 0, 3); scan(mc);
         check(sent.size() == 1, "local channels work without Webhook");
-        chatNotificationEnabled = false; garden(mc, 0, 4); scan(mc);
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,NotificationChannels.NONE); garden(mc, 0, 4); scan(mc);
         check(sent.size() == 1, "all channels off sends nothing and does not consume count");
-        screenNotificationEnabled = true; scan(mc);
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,false,true)); scan(mc);
         check(sent.size() == 2, "screen-only routing processes pending observed count");
+        TAB_NOTIFICATIONS.resetPests(); TAB_NOTIFICATIONS.resetVisitors(); sent.clear();
+        pestNotificationEnabled = visitorNotificationEnabled = true;
+        NOTIFICATION_CHANNELS.put(NotificationType.PESTS,new NotificationChannels(false,true,false));
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,NotificationChannels.NONE);
+        garden(mc,4,3);scan(mc);
+        check(sent.size()==1 && sent.get(0).contains("害蟲"),"visitor channels off cannot block pest notifications");
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,true,false));scan(mc);
+        check(sent.size()==2 && sent.get(1).contains("Visitor"),"pest-only polling must not consume unavailable visitor count");
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,NotificationChannels.NONE);garden(mc,5,4);scan(mc);
+        check(sent.size()==3 && sent.get(2).contains("害蟲"),"independent pest next count");
+        NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,false,true));scan(mc);
+        check(sent.size()==4 && sent.get(3).contains("Visitor"),"new visitor screen channel sees its pending count only");
         System.out.println("TabNotificationIntegrationTest passed (polling, ordering, toggles, missing data, pest/visitor threshold UI)");
     }
-'''.replace('        // VISITOR_TOGGLE', visitor_toggle)
+'''
 with tempfile.TemporaryDirectory(prefix="kuan-tab-test-") as tmp:
     test = Path(tmp) / "TabNotificationIntegrationTest.java"
     test.write_text(harness + reader + "\n" + screen + "\n" + visitor_screen + "\n" + poll + "\n}\n")
     java = Path(sys.argv[1]) / "bin"
     subprocess.run([str(java / "javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp,
-                    str(base / "GardenTabNotifications.java"), str(test)], check=True)
+                    str(base / "GardenTabNotifications.java"), str(base / "NotificationType.java"), str(base / "NotificationChannels.java"), str(test)], check=True)
     subprocess.run([str(java / "java"), "-cp", tmp, "dev.kuan.skyblockassistant.TabNotificationIntegrationTest"], check=True)

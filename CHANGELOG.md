@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.118] - 2026-10-21
+
+### Changed
+
+- Remove the global notification settings button. Visitor, pest, and Jerry buttons each open their own independent Discord/chat/screen channel settings; Visitor/pest keep internal enable and threshold controls.
+- Keep one live shared Webhook URL: editing from any feature changes every Discord destination without changing other features' Discord switches. Cancel/Esc does not alter the URL; old modal instances also read the latest shared URL.
+- Make Jerry a plain settings button with no detection master or generic notification toggle. Its three notification channels and stop-action option independently control behavior; preserve all seven message patterns.
+- Safely migrate legacy global notification preferences. An old disabled Jerry setup stays inert, including its previously hidden default-on stop flag. Persist the new per-feature flags without obsolete master/global flags.
+- Isolate per-feature Tab-count availability/history and screen queue cleanup. Disabling one feature's screen alerts or master switch does not remove other features' queued alerts; preserve centered three-second rendering and asynchronous Discord delivery.
+- Update regression coverage for independent channel combinations, mixed routing, shared live URL edits, threshold validation, masterless Jerry actions, safe migration, feature-specific pending counts, and overlay isolation.
+
 ## [1.0.117] - 2026-10-21
 
 ### Changed

@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.117`
+Current mod version: `1.0.118`
 
 ## Features
 
@@ -62,8 +62,8 @@ Current mod version: `1.0.117`
 - First Fabric port; per-farm tuning may still be needed for your Garden layout.
 - Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input and manual mouse look are suppressed; only movement and fixed viewing angles requested by the active crop state machine are applied. Mushroom farming no longer performs automatic stuck-detection jumps.
 - The `智慧暫停` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes only after no GUI has been open for 0.5 continuous seconds, without turning Farming off. Any new GUI restarts the buffer, covering short Bazaar search transitions. Movement, attack, and crop-state progression remain paused during the buffer. When disabled, Farming continues through open GUIs.
-- `害蟲通知`: turning it on opens a Mining-style number dialog. Only a single integer from `1` through `8` can be confirmed (blank, text, spaces, and multi-digit input are invalid); Cancel/Esc leaves it off. Notify through the shared notification channels when the server Tab list's `Pests` → `Alive` count is **at least** the saved threshold. The enabled button shows the threshold; turn it off and on to choose another. Missing/invalid saved thresholds default to `1` for existing installations. Spawn-chat messages and sidebar pest counts no longer trigger this notification.
-- `Visitor 通知`: turning it on opens the same number-dialog flow as pest notifications, accepting only a single integer from **1–5**. Blank/text/whitespace/multi-digit input cannot confirm; Cancel/Esc leaves it off. Notify through the shared notification channels when the Tab `Visitors: (number)` count reaches the saved threshold. The enabled toggle displays the threshold; turn it off and on to choose another. The saved `visitorNotificationThreshold` defaults to **5** when missing/invalid, preserving the old full-Visitor threshold for existing installations. Both notifications use the shared notification settings and check cached game data every 20 client ticks (about one second), without holding Tab or enabling Farming/Mining. Local chat/screen notifications do not require a Webhook. The server must supply these Tab fields; temporarily missing data is not treated as zero.
+- `害蟲通知`: clicking it opens its own notification settings. Turning on the feature inside that screen opens a Mining-style number dialog. Only a single integer from `1` through `8` can be confirmed (blank, text, spaces, and multi-digit input are invalid); Cancel/Esc leaves it off. Notify through the shared notification channels when the server Tab list's `Pests` → `Alive` count is **at least** the saved threshold. The enabled button shows the threshold; use `數量門檻` inside its settings to change it. Missing/invalid saved thresholds default to `1` for existing installations. Spawn-chat messages and sidebar pest counts no longer trigger this notification.
+- `Visitor 通知`: clicking it opens its own notification settings. Enabling it there opens the same number-dialog flow as pest notifications, accepting only a single integer from **1–5**. Blank/text/whitespace/multi-digit input cannot confirm; Cancel/Esc leaves it off. Notify through the shared notification channels when the Tab `Visitors: (number)` count reaches the saved threshold. The enabled toggle displays the threshold; `數量門檻` edits it directly inside the settings. The saved `visitorNotificationThreshold` defaults to **5** when missing/invalid, preserving the old full-Visitor threshold for existing installations. Both notifications use their own independent channel settings and check cached game data every 20 client ticks (about one second), without holding Tab or enabling Farming/Mining. Local chat/screen notifications do not require a Webhook. The server must supply these Tab fields; temporarily missing data is not treated as zero.
 - Pest notifications fire **once for each distinct observed count at or above the threshold** until a valid count falls below it. With threshold `4`, counts `4`, `5`, `6`, `7`, and `8` each notify once; holding a count or returning to a previously notified count (such as `4 → 5 → 4`) does not repeat that count. Only observed counts notify: jumping from `4` to `7` does not invent notifications for `5` or `6`. Falling below the threshold or toggling pest notifications clears the count history. Visitor notifications use the same per-count rule within **1–5**: with threshold `3`, observed counts `3`, `4`, and `5` each notify once, and `3 → 4 → 3` does not repeat `3`. Only a valid count below `3` (or its own toggle/new threshold confirmation) resets that history. Jumping straight from `2` to `5` sends only the observed `5`, not invented `3`/`4` alerts. Invalid/out-of-range Visitor counts do not rearm notifications. The two notifications remain independent, and missing Tab/world data does not clear either history. No automatic action is taken on the pests or visitors. Webhook requests remain asynchronous with a ten-second timeout; failures/status codes are logged without exposing the webhook token and are not retried for that already-notified count.
 - Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
@@ -71,18 +71,19 @@ Current mod version: `1.0.117`
 
 ## Other
 
-### Shared notification settings
+### Per-feature notification settings
 
-- Open Other → `通知設定` to independently toggle `Discord 訊息通知`, `遊戲聊天室通知`, and `遊戲螢幕通知`. Any combination, including all on or all off, is supported. Visitor, pest, and Jerry event notifications all use these settings; their own detection/threshold switches remain independent.
-- The old bottom-left Webhook field is removed. Turning Discord on opens a URL-entry dialog; confirmation requires an absolute HTTP(S) URL. Cancel/Esc leaves Discord off and the old URL unchanged. The existing URL is prefilled and retained when Discord is disabled; turn Discord off/on to edit it. Requests remain asynchronous with a ten-second timeout and token-safe logging. No real Webhook is sent by the tests.
-- Chat notifications are local `[Kuan HSBA]` messages, not messages sent to the server. Screen notifications show large centered yellow text for **3 real seconds** each (up to 4× normal text size, fitted to the viewport). Simultaneous events queue rather than overwrite each other; server titles are not modified. F1 respects hidden HUD. Disabling screen notifications or leaving/changing worlds clears pending alerts.
-- All channel options persist. Existing installations with a saved Webhook retain Discord notifications by default; chat/screen default off. Fresh installations without a Webhook start with all channels off. Jerry's old Discord-specific notification preference migrates to the generic Jerry notification switch.
-- Without an available channel, Tab polling does not consume qualifying counts; enabling a channel can notify the currently observed count. Changing channels does not replay counts already notified in the current threshold episode. Jerry still stops Mining/Farming when its stop option is on, even if every notification channel is off; no extra forced Jerry-related status messages bypass the channel settings. Routine manual toggle/recovery status messages are unchanged.
+- There is no global `通知設定` button. Clicking `Visitor 通知`, `害蟲通知`, or `Jerry 偵測` opens that feature's own settings, with independent `Discord 訊息通知`, `遊戲聊天室通知`, and `遊戲螢幕通知` switches. Each feature can enable any combination, including all off; changing one feature never changes another feature's switches.
+- Visitor/pest dialogs retain their own enable switch and `數量門檻` button. Enabling opens the strict 1–5 / 1–8 number dialog; Cancel/Esc leaves it unchanged. Channel settings can be adjusted without enabling detection. Threshold/enable changes reset only that feature's notification history.
+- **One Webhook URL is shared by every feature.** Turning a feature's Discord switch on opens URL entry, prefilled from the latest shared value. Confirming updates the common URL and enables only that feature's Discord switch. Other features' Discord switches are untouched, but all enabled Discord channels use the newly saved URL. Cancel/Esc leaves the URL and switches unchanged; turning a Discord switch off retains the URL. The main footer has no Webhook field.
+- Chat alerts remain local `[Kuan HSBA]` messages. Screen alerts remain centered, fitted large yellow text for **3 real seconds** per event; simultaneous events queue without altering server titles. Turning off one feature's screen/master switch removes only its screen alerts, not other features' alerts. Leaving/changing worlds clears all pending screen alerts; F1 respects hidden HUD.
+- All channel flags persist separately. Existing global flags migrate into independent Visitor/pest preferences. Jerry notifications and stop actions migrate only if its old master was enabled, preventing an old disabled Jerry setup from unexpectedly stopping automation. Fresh installations default to all channels and Jerry stop actions off.
+- A feature without an available channel does not consume its Tab count notifications, even while another feature is polling. Channel changes do not replay already-notified counts. Discord remains asynchronous with a ten-second timeout and token-safe logging; tests never contact a real Webhook.
 
 ### Jerry detection
 
-- Other sits below the Mining target list, with `通知設定` on the left and `Jerry 偵測` on the right (both 130×20). Jerry detection is off by default.
-- Turning it on opens a dialog with independent `出現 Jerry 是否通知` and `出現 Jerry 是否停下動作` toggles (both initially on). Confirm saves the options and enables detection; Cancel/Esc leaves everything unchanged. Turn detection off and on to reconfigure. Detection and both options persist across restarts, but Mining/Farming still never auto-start on login.
+- Other sits below the Mining target list and has a plain 130×20 `Jerry 偵測` settings button, **not a master on/off switch**.
+- Clicking Jerry opens its three independent notification-channel switches plus `出現 Jerry 是否停下動作`. Changes save immediately; Done/Esc returns to the main settings. There is no separate generic notification or detection toggle. All channels can be off while stop actions remain on, or vice versa; Mining/Farming never auto-start on login.
 - Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and detect any of the seven patterns below **anywhere inside the message**, ignoring arbitrary surrounding text. Matching is case-insensitive with flexible whitespace, and `[type]` is any color/name (not a whitelist; multi-word/custom/missing types work). Mere Jerry mentions, non-Jerry discoveries, `Jerryfish`, and incomplete hiding/spawn messages do not trigger it. Detection is text-based, not entity scanning.
   - `You found a [type] Jerry!`
   - `You discovered a [type] Jerry!`
@@ -91,7 +92,7 @@ Current mod version: `1.0.117`
   - `[type] Jerry appeared!`
   - `There is a [type] Jerry!`
   - `You located a hidden [type] Jerry!`
-- Jerry sends `Jerry 通知：發現 Jerry！` through the selected shared channels, independently of Farming/Mining and the pest/visitor toggles. Its own notification option enables/disables all selected notification channels for Jerry only; stop actions remain independent. Each matching received message is a new notification; no cooldown suppresses later spawns.
+- Jerry sends `Jerry 通知：發現 Jerry！` through its own selected channels, independently of Farming/Mining and the pest/visitor settings. Stop actions remain independent. Each matching received message is a new notification; no cooldown suppresses later spawns.
 - Stop actions immediately turns Mining/Farming off, clears the mining target, releases attack/movement and manual-input locks, resets smart-pause state, and cancels any queued Farming recovery commands. It does not auto-resume. Missing/invalid Webhook configuration cannot prevent stopping. If both automations are already off, notifications still work without releasing the player's manual movement keys.
 
 ## Build
@@ -105,7 +106,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.117.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.118.jar
 ```
 
 ## Tests
