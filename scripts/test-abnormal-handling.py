@@ -48,6 +48,7 @@ import java.util.*;
 import java.util.regex.*;
 public final class AbnormalHandlingTest {
     static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
+    static final FarmingStallGuard FARMING_STALL_GUARD = new FarmingStallGuard();
     static boolean farmingToolDetectionEnabled;
     static boolean miningEnabled;
     static boolean farmingWorldChanged;
@@ -142,6 +143,7 @@ public final class AbnormalHandlingTest {
     static String plain(String s) { return s; }
     static void sendPestDiscordNotification(String plot, String text) {}
     static void reset() {
+        FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         sentCommands.clear();
         SKYBLOCK_LOCATION_BRIDGE.island = null;
@@ -394,5 +396,5 @@ java_home = Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as tmp:
     path = Path(tmp) / "AbnormalHandlingTest.java"
     path.write_text(harness)
-    subprocess.run([str(java_home / "bin/javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp, str(root / "src/main/java/dev/kuan/skyblockassistant/FarmingToolGuard.java"), str(path)], check=True)
+    subprocess.run([str(java_home / "bin/javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp, str(root / "src/main/java/dev/kuan/skyblockassistant/FarmingToolGuard.java"), str(root / "src/main/java/dev/kuan/skyblockassistant/FarmingStallGuard.java"), str(path)], check=True)
     subprocess.run([str(java_home / "bin/java"), "-cp", tmp, "dev.kuan.skyblockassistant.AbnormalHandlingTest"], check=True)

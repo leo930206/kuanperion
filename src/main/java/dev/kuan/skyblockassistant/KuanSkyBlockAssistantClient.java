@@ -71,6 +71,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final List<String> TARGET_BLOCKS = new ArrayList<>();
     private static final FarmingBlockProfile FARMING_BLOCK_PROFILE = new FarmingBlockProfile();
     private static final FarmingToolGuard FARMING_TOOL_GUARD = new FarmingToolGuard();
+    private static final FarmingStallGuard FARMING_STALL_GUARD = new FarmingStallGuard();
     private static final GuiPauseGuard FARMING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
@@ -259,6 +260,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
             tickFarming(mc);
         }
+        tickFarmingStallNotification(mc, System.nanoTime());
     }
 
     private static void handleShiftHotkeys(Minecraft mc) {
@@ -309,6 +311,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
@@ -322,6 +325,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
         FARMING_GUI_PAUSE_GUARD.reset();
@@ -466,7 +470,36 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
+    private static void tickFarmingStallNotification(Minecraft mc, long now) {
+        if (!abnormalHandlingEnabled || !farmingEnabled || !farmingEnabledThisSession
+                || !farmingCropDetected || farmingAutoRecovering || mc == null
+                || mc.player == null || mc.level == null || mc.options == null
+                || !mc.player.isAlive() || mc.isPaused() || mc.gui.screen() != null
+                || isFarmingPauseScreen(null) || isFarmingIntentionalWait() || pestWebhookUrl.isBlank()) {
+            FARMING_STALL_GUARD.reset();
+            return;
+        }
+        // A deliberately changed tool is not an unexpected stall, even with tool detection disabled.
+        String heldTool = StringUtil.stripColor(mc.player.getMainHandItem().getHoverName().getString());
+        boolean correctTool = FARMING_TOOL_GUARD.matches(heldTool);
+        if (FARMING_STALL_GUARD.update(correctTool, mc.player.getX(), mc.player.getZ(), now)) {
+            sendDiscordNotification("Farming 異常通知：已連續 5 秒沒有移動，請檢查遊戲狀況。");
+        }
+    }
+
+    private static boolean isFarmingIntentionalWait() {
+        if (farmingStateTicks > 0) return true;
+        if (isAlternatingRowCrop(farmingCrop)) {
+            return rowCropState == RowCropState.PRIMARY_JUMP_THREE_SECONDS
+                    || rowCropState == RowCropState.SECONDARY_JUMP_THREE_SECONDS
+                    || rowCropState == RowCropState.WAIT_ONE_SECOND;
+        }
+        return farmingCrop == FarmingCrop.CACTUS && (cactusState == CactusState.WAIT_BEFORE_HARVEST_LEFT
+                || cactusState == CactusState.WAIT_BEFORE_HARVEST_RIGHT);
+    }
+
     private static void onFarmingWorldChange() {
+        FARMING_STALL_GUARD.reset();
         if (farmingEnabled && farmingEnabledThisSession && abnormalHandlingEnabled && !farmingAutoRecovering) {
             farmingWorldChanged = true;
         }
@@ -502,6 +535,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void startFarmingAutoRecovery(Minecraft mc, FarmingLocation location) {
         if (!shouldAutoReturn(location)) return;
+        FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         FARMING_TOOL_GUARD.reset(null);
         farmingAutoRecovering = true;
