@@ -29,6 +29,9 @@ while depth:
     depth += (client[end] == "{") - (client[end] == "}")
     end += 1
 poll = client[start:end]
+channel_start = re.search(r"    private static boolean hasNotificationChannel\(", client).start()
+channel_end = client.index("\n    }", channel_start) + len("\n    }")
+poll += "\n" + client[channel_start:channel_end]
 assert "tickTabNotifications(mc);" in client[client.index("private static void tick(Minecraft"):client.index("private static void handleShiftHotkeys")]
 assert "PEST_MESSAGE_PATTERN" not in client, "old spawn-chat notifications must be removed"
 assert 'p.setProperty("pestNotificationThreshold"' in client, "save threshold"
@@ -42,12 +45,13 @@ import java.util.function.*;
 public class TabNotificationIntegrationTest {
     static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     static boolean pestNotificationEnabled, visitorNotificationEnabled;
+    static boolean discordNotificationEnabled = true, chatNotificationEnabled, screenNotificationEnabled;
     static int pestNotificationThreshold = 4, visitorNotificationThreshold = 5, tabNotificationTicks;
     static int saves;
     static void saveConfig() { saves++; }
     static String pestWebhookUrl = "test-only-not-a-real-webhook";
     static List<String> sent = new ArrayList<>();
-    static void sendDiscordNotification(String text) { sent.add(text); }
+    static void sendNotification(String text, String title) { sent.add(text); }
     record Component(String getString) { static Component literal(String text) { return new Component(text); } }
     record Profile(String name) {}
     record PlayerTeam(String getName) {
@@ -238,6 +242,14 @@ public class TabNotificationIntegrationTest {
         check(Minecraft.getInstance().shown == settings, "confirm returns to refreshed settings");
         garden(mc, 0, 3); scan(mc);
         check(sent.size() == 6, "confirmed new threshold resets only visitor history");
+        TAB_NOTIFICATIONS.resetVisitors(); sent.clear();
+        discordNotificationEnabled = false; chatNotificationEnabled = true; pestWebhookUrl = "";
+        garden(mc, 0, 3); scan(mc);
+        check(sent.size() == 1, "local channels work without Webhook");
+        chatNotificationEnabled = false; garden(mc, 0, 4); scan(mc);
+        check(sent.size() == 1, "all channels off sends nothing and does not consume count");
+        screenNotificationEnabled = true; scan(mc);
+        check(sent.size() == 2, "screen-only routing processes pending observed count");
         System.out.println("TabNotificationIntegrationTest passed (polling, ordering, toggles, missing data, pest/visitor threshold UI)");
     }
 '''.replace('        // VISITOR_TOGGLE', visitor_toggle)

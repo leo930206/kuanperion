@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.116] - 2026-10-21
+
+### Added
+
+- Add Other → Notification Settings on the left and move Jerry Detection to the right. Offer independent Discord, local game-chat, and centered screen notification switches; Visitor, pest, and Jerry alerts all share the selected channels.
+- Move Webhook configuration out of the main-screen footer into a confirmation dialog opened when enabling Discord. Preserve existing URLs, validate absolute HTTP(S) input, and leave saved settings unchanged on Cancel/Esc.
+- Show large centered screen text for three monotonic-clock seconds per event, queue simultaneous events, fit labels to the viewport, respect F1, and clear stale alerts when disabled/disconnected/changing worlds without modifying server titles.
+
+### Changed
+
+- Rename Jerry's Discord-specific option to a generic notification option, migrating existing preferences. Stop actions remain independent and no longer force chat status messages outside the selected channels.
+- Keep local notifications usable without a Webhook and avoid consuming Tab notification counts when every channel is unavailable. Preserve existing pest/Visitor thresholds, per-count deduplication, and asynchronous token-safe Discord delivery.
+- Persist channel settings and retain Discord by default for installations with an existing Webhook; fresh installations start with all channels off. Add regression coverage for all eight channel combinations, configuration migration, Webhook input/confirmation/cancellation, local-only routing, centered/scaled rendering, and exact three-second queue boundaries.
+
 ## [1.0.115] - 2026-10-21
 
 ### Changed

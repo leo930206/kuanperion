@@ -26,7 +26,7 @@ methods = '\n'.join(extract(name) for name in [
 screen = (base / 'JerrySettingsScreen.java').read_text()
 screen = screen[screen.index('final class JerrySettingsScreen'):].replace(
     'final class JerrySettingsScreen', 'static final class JerrySettingsScreen', 1)
-for key in ['jerryDetectionEnabled', 'jerryDiscordNotificationEnabled', 'jerryStopActionsEnabled']:
+for key in ['jerryDetectionEnabled', 'jerryNotificationEnabled', 'jerryStopActionsEnabled']:
     assert f'p.getProperty("{key}"' in client, f'Load {key}'
     assert f'p.setProperty("{key}"' in client, f'Save {key}'
 assert client.index('addSectionTitle("Other", y)') > client.index('int maxRows = Math.min(5, TARGET_BLOCKS.size())')
@@ -36,7 +36,7 @@ harness = r'''package dev.kuan.skyblockassistant;
 import java.util.*;
 import java.util.function.*;
 public class JerryDetectionIntegrationTest {
-    static boolean jerryDetectionEnabled, jerryDiscordNotificationEnabled, jerryStopActionsEnabled;
+    static boolean jerryDetectionEnabled, jerryNotificationEnabled, jerryStopActionsEnabled;
     static boolean miningEnabled, farmingEnabled, farmingAutoRecovering, farmingEnabledThisSession;
     static boolean farmingWorldChanged, activeTargetStarted;
     static boolean farmingDesiredForward, farmingDesiredBack, farmingDesiredLeft, farmingDesiredRight, farmingDesiredJump;
@@ -64,7 +64,7 @@ public class JerryDetectionIntegrationTest {
     static void applyLockedMovement(Minecraft mc,boolean f,boolean b,boolean l,boolean r,boolean j) {
         check(!f && !b && !l && !r && !j,"all movement released"); releases++;
     }
-    static void sendDiscordNotification(String message) { sent.add(message); }
+    static void sendNotification(String message, String title) { if (!pestWebhookUrl.isBlank()) sent.add(message); }
     static void saveConfig() { saves++; }
     static void sayAutoState(Minecraft mc,String feature,boolean enabled) {}
     static class StringUtil { static String stripColor(String text) { return text.replaceAll("(?i)§[0-9a-fk-or]", ""); } }
@@ -110,7 +110,7 @@ public class JerryDetectionIntegrationTest {
     static void click(Screen screen,String prefix) { Button b=button(screen,prefix); b.callback.accept(b); }
     static final String APPEARED="§b ☺ §eA §aGreen Jerry§e appeared!";
     static void reset() {
-        jerryDetectionEnabled=true; jerryDiscordNotificationEnabled=true;jerryStopActionsEnabled=true;
+        jerryDetectionEnabled=true; jerryNotificationEnabled=true;jerryStopActionsEnabled=true;
         miningEnabled=farmingEnabled=farmingAutoRecovering=farmingEnabledThisSession=farmingWorldChanged=false;
         farmingDesiredForward=farmingDesiredJump=true;
         pestWebhookUrl="test-only";sent.clear();saves=0;releases=0;
@@ -128,7 +128,7 @@ public class JerryDetectionIntegrationTest {
                 "§eYou discovered a §a" + color + " Jerry§e!",
                 "YOU  DISCOVERED  A  " + color.toUpperCase(Locale.ROOT) + "  JERRY!"))
         for(int notify=0;notify<2;notify++) for(int stop=0;stop<2;stop++) {
-            reset();jerryDiscordNotificationEnabled=notify==1;jerryStopActionsEnabled=stop==1;
+            reset();jerryNotificationEnabled=notify==1;jerryStopActionsEnabled=stop==1;
             miningEnabled=true;
             handleReceivedMessage(Component.literal(message));
             check(sent.size()==notify,"independent notification option: " + message);
@@ -158,22 +158,22 @@ public class JerryDetectionIntegrationTest {
             reset();miningEnabled=true;handleReceivedMessage(Component.literal(wrong));
             check(miningEnabled && sent.isEmpty(),"ignore non-appearance: "+wrong);
         }
-        reset();jerryDetectionEnabled=false;jerryDiscordNotificationEnabled=false;jerryStopActionsEnabled=true;
+        reset();jerryDetectionEnabled=false;jerryNotificationEnabled=false;jerryStopActionsEnabled=true;
         SettingsScreen parent=new SettingsScreen();
         toggleJerryDetection(parent);
         check(mc.shown instanceof JerrySettingsScreen && !jerryDetectionEnabled,"opening modal does not enable yet");
         Screen modal=mc.shown;
-        check(button(modal,"出現 Jerry 是否通知 Discord").label.getString().endsWith("關閉"),"saved option shown");
-        click(modal,"出現 Jerry 是否通知 Discord");click(modal,"出現 Jerry 是否停下動作");
-        check(!jerryDiscordNotificationEnabled && jerryStopActionsEnabled,"modal edits remain local");
+        check(button(modal,"出現 Jerry 是否通知").label.getString().endsWith("關閉"),"saved option shown");
+        click(modal,"出現 Jerry 是否通知");click(modal,"出現 Jerry 是否停下動作");
+        check(!jerryNotificationEnabled && jerryStopActionsEnabled,"modal edits remain local");
         click(modal,"取消");
         check(mc.shown==parent && !jerryDetectionEnabled && saves==0,"cancel changes nothing");
-        toggleJerryDetection(parent);modal=mc.shown;click(modal,"出現 Jerry 是否通知 Discord");
+        toggleJerryDetection(parent);modal=mc.shown;click(modal,"出現 Jerry 是否通知");
         // Reinitialization must not reset the draft.
         modal.widgets.clear();modal.init();
-        check(button(modal,"出現 Jerry 是否通知 Discord").label.getString().endsWith("開啟"),"draft survives resize");
+        check(button(modal,"出現 Jerry 是否通知").label.getString().endsWith("開啟"),"draft survives resize");
         click(modal,"確認");
-        check(jerryDetectionEnabled && jerryDiscordNotificationEnabled && jerryStopActionsEnabled,"confirm commits both options");
+        check(jerryDetectionEnabled && jerryNotificationEnabled && jerryStopActionsEnabled,"confirm commits both options");
         check(saves==1 && parent.rebuilds==1,"confirm saves and returns to refreshed settings");
         toggleJerryDetection(parent);
         check(!jerryDetectionEnabled && saves==2,"enabled master toggles straight off");

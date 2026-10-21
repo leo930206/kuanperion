@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -69,6 +71,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final GuiPauseGuard FARMING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
+    private static final ScreenNotificationQueue SCREEN_NOTIFICATIONS = new ScreenNotificationQueue();
+    private static boolean discordNotificationEnabled = false;
+    private static boolean chatNotificationEnabled = false;
+    private static boolean screenNotificationEnabled = false;
     private static int pestNotificationThreshold = 1;
     private static int visitorNotificationThreshold = 5;
     private static int tabNotificationTicks;
@@ -94,7 +100,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean pestNotificationEnabled = false;
     private static boolean visitorNotificationEnabled = false;
     private static boolean jerryDetectionEnabled = false;
-    private static boolean jerryDiscordNotificationEnabled = true;
+    private static boolean jerryNotificationEnabled = true;
     private static boolean jerryStopActionsEnabled = true;
     private static boolean farmingMenuPauseEnabled = true;
     private static boolean miningMenuPauseEnabled = true;
@@ -201,7 +207,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> onFarmingWorldChange());
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> {
+            SCREEN_NOTIFICATIONS.clear();
+            onFarmingWorldChange();
+        });
+        HudElementRegistry.addLast(id("notifications"), (graphics, delta) -> renderNotificationOverlay(graphics));
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::enforceAutomationMovementLock);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) handleReceivedMessage(message); });
@@ -221,6 +231,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft mc) {
+        if (mc.player == null || mc.level == null) SCREEN_NOTIFICATIONS.clear();
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         tickTabNotifications(mc);
         handleShiftHotkeys(mc);
@@ -1992,18 +2003,14 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                         + "[^.!?\\r\\n]*?\\bjerry\\b).*")) return false;
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
-            boolean wasMining = miningEnabled;
-            boolean wasFarming = farmingEnabled || farmingAutoRecovering;
             miningEnabled = false;
             MINING_GUI_PAUSE_GUARD.reset();
             clearActiveTarget(mc);
             stopFarming(mc, false);
             saveConfig();
-            if (wasMining) sayAutoState(mc, "Mining", false);
-            if (wasFarming) sayAutoState(mc, "Farming", false);
         }
-        if (jerryDiscordNotificationEnabled && !pestWebhookUrl.isBlank()) {
-            sendDiscordNotification("Jerry 通知：出現 Jerry！");
+        if (jerryNotificationEnabled) {
+            sendNotification("Jerry 通知：發現 Jerry！", "發現 Jerry！");
         }
         return true;
     }
@@ -2016,8 +2023,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return;
         }
         Minecraft.getInstance().setScreenAndShow(new JerrySettingsScreen(parent,
-                jerryDiscordNotificationEnabled, jerryStopActionsEnabled, (notifyDiscord, stopActions) -> {
-            jerryDiscordNotificationEnabled = notifyDiscord;
+                jerryNotificationEnabled, jerryStopActionsEnabled, (notifyEnabled, stopActions) -> {
+            jerryNotificationEnabled = notifyEnabled;
             jerryStopActionsEnabled = stopActions;
             jerryDetectionEnabled = true;
             saveConfig();
@@ -2027,18 +2034,82 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static void tickTabNotifications(Minecraft mc) {
         if (!pestNotificationEnabled && !visitorNotificationEnabled) return;
-        if (mc.player == null || mc.level == null || pestWebhookUrl.isBlank()) return;
+        if (mc.player == null || mc.level == null || !hasNotificationChannel()) return;
         if (++tabNotificationTicks < 20) return;
         tabNotificationTicks = 0;
         GardenTabNotifications.Counts counts = GardenTabNotifications.parse(GardenTabReader.read(mc));
         if (TAB_NOTIFICATIONS.pestReached(pestNotificationEnabled, counts.pests(), pestNotificationThreshold)) {
-            sendDiscordNotification("Garden 害蟲通知：目前 " + counts.pests()
-                    + " 隻（通知門檻：" + pestNotificationThreshold + "）。");
+            sendNotification("Garden 害蟲通知：目前 " + counts.pests()
+                    + " 隻（通知門檻：" + pestNotificationThreshold + "）。", "害蟲：" + counts.pests() + " 隻");
         }
         if (TAB_NOTIFICATIONS.visitorsReached(visitorNotificationEnabled, counts.visitors(), visitorNotificationThreshold)) {
-            sendDiscordNotification("Garden Visitor 通知：目前 " + counts.visitors()
-                    + " 位（通知門檻：" + visitorNotificationThreshold + "）。");
+            sendNotification("Garden Visitor 通知：目前 " + counts.visitors()
+                    + " 位（通知門檻：" + visitorNotificationThreshold + "）。", "Visitor：" + counts.visitors() + " 位");
         }
+    }
+
+    private static boolean hasNotificationChannel() {
+        return chatNotificationEnabled || screenNotificationEnabled
+                || (discordNotificationEnabled && !pestWebhookUrl.isBlank());
+    }
+
+    private static void sendNotification(String content, String screenText) {
+        if (discordNotificationEnabled && !pestWebhookUrl.isBlank()) sendDiscordNotification(content);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+        if (chatNotificationEnabled) say(mc, plain(content));
+        if (screenNotificationEnabled) SCREEN_NOTIFICATIONS.add(screenText, System.nanoTime());
+    }
+
+    private static void renderNotificationOverlay(GuiGraphicsExtractor graphics) {
+        Minecraft mc = Minecraft.getInstance();
+        if (!screenNotificationEnabled || mc.player == null || mc.level == null) {
+            SCREEN_NOTIFICATIONS.clear();
+            return;
+        }
+        if (mc.gui.hud.isHidden()) return;
+        String text = SCREEN_NOTIFICATIONS.current(System.nanoTime());
+        if (text == null) return;
+        int textWidth = mc.font.width(text);
+        float scale = Math.min(4.0f, Math.max(0.1f, (graphics.guiWidth() - 32.0f) / Math.max(1, textWidth)));
+        graphics.pose().pushMatrix();
+        try {
+            graphics.pose().translate(graphics.guiWidth() / 2.0f, graphics.guiHeight() / 2.0f);
+            graphics.pose().scale(scale, scale);
+            graphics.text(mc.font, text, -textWidth / 2, -mc.font.lineHeight / 2, 0xFFFFFF55, true);
+        } finally {
+            graphics.pose().popMatrix();
+        }
+    }
+
+    private static void openNotificationSettings(SettingsScreen parent) {
+        Minecraft.getInstance().setScreenAndShow(new NotificationSettingsScreen(parent,
+                discordNotificationEnabled, chatNotificationEnabled, screenNotificationEnabled, pestWebhookUrl, options -> {
+            discordNotificationEnabled = options.discord();
+            chatNotificationEnabled = options.chat();
+            screenNotificationEnabled = options.screen();
+            pestWebhookUrl = options.webhook();
+            if (!screenNotificationEnabled) SCREEN_NOTIFICATIONS.clear();
+            saveConfig();
+        }));
+    }
+
+    private static void loadNotificationConfig(Properties p) {
+        pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
+        discordNotificationEnabled = Boolean.parseBoolean(p.getProperty("discordNotificationEnabled",
+                Boolean.toString(!pestWebhookUrl.isBlank())));
+        chatNotificationEnabled = Boolean.parseBoolean(p.getProperty("chatNotificationEnabled", "false"));
+        screenNotificationEnabled = Boolean.parseBoolean(p.getProperty("screenNotificationEnabled", "false"));
+        jerryNotificationEnabled = Boolean.parseBoolean(p.getProperty("jerryNotificationEnabled",
+                p.getProperty("jerryDiscordNotificationEnabled", "true")));
+    }
+
+    private static void saveNotificationConfig(Properties p) {
+        p.setProperty("discordNotificationEnabled", Boolean.toString(discordNotificationEnabled));
+        p.setProperty("chatNotificationEnabled", Boolean.toString(chatNotificationEnabled));
+        p.setProperty("screenNotificationEnabled", Boolean.toString(screenNotificationEnabled));
+        p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
+        p.setProperty("jerryNotificationEnabled", Boolean.toString(jerryNotificationEnabled));
     }
 
     private static void sendDiscordNotification(String content) {
@@ -2101,7 +2172,6 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         visitorNotificationThreshold = GardenTabNotifications.parseVisitorThreshold(p.getProperty("visitorNotificationThreshold", "5"));
         if (visitorNotificationThreshold == 0) visitorNotificationThreshold = 5;
         jerryDetectionEnabled = Boolean.parseBoolean(p.getProperty("jerryDetectionEnabled", "false"));
-        jerryDiscordNotificationEnabled = Boolean.parseBoolean(p.getProperty("jerryDiscordNotificationEnabled", "true"));
         jerryStopActionsEnabled = Boolean.parseBoolean(p.getProperty("jerryStopActionsEnabled", "true"));
         farmingMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("farmingMenuPauseEnabled", "true"));
         miningMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("miningMenuPauseEnabled", "true"));
@@ -2112,7 +2182,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 || Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
         abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
                 Boolean.toString(legacyAbnormalHandling)));
-        pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
+        loadNotificationConfig(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
         rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
@@ -2138,13 +2208,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
         p.setProperty("visitorNotificationThreshold", Integer.toString(visitorNotificationThreshold));
         p.setProperty("jerryDetectionEnabled", Boolean.toString(jerryDetectionEnabled));
-        p.setProperty("jerryDiscordNotificationEnabled", Boolean.toString(jerryDiscordNotificationEnabled));
         p.setProperty("jerryStopActionsEnabled", Boolean.toString(jerryStopActionsEnabled));
         p.setProperty("farmingMenuPauseEnabled", Boolean.toString(farmingMenuPauseEnabled));
         p.setProperty("miningMenuPauseEnabled", Boolean.toString(miningMenuPauseEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
-        p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
+        saveNotificationConfig(p);
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
@@ -2474,16 +2543,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             y += 12;
             addSectionTitle("Other", y);
             y += 22;
+            addRenderableWidget(Button.builder(Component.literal("通知設定"),
+                    b -> openNotificationSettings(this)).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("Jerry 偵測", jerryDetectionEnabled),
-                    b -> toggleJerryDetection(this)).bounds(x, y, 130, 20).build());
-            int webhookY = this.height - 34;
-            addRenderableWidget(new StringWidget(20, webhookY + 5, 110, 12, Component.literal("Discord Webhook:"), this.font));
-            EditBox webhookBox = new EditBox(this.font, 130, webhookY, 300, 20, Component.literal("Discord Webhook"));
-            webhookBox.setMaxLength(300);
-            webhookBox.setValue(pestWebhookUrl == null ? "" : pestWebhookUrl);
-            webhookBox.setResponder(value -> { pestWebhookUrl = value.trim(); saveConfig(); });
-            addRenderableWidget(webhookBox);
-            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent)).bounds(x + 145, webhookY, 130, 20).build());
+                    b -> toggleJerryDetection(this)).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("完成"), b -> Minecraft.getInstance().setScreenAndShow(parent))
+                    .bounds(x + 145, this.height - 34, 130, 20).build());
         }
 
         private void addSectionTitle(String label, int y) {

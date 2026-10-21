@@ -12,14 +12,14 @@ import net.minecraft.network.chat.Component;
 final class JerrySettingsScreen extends Screen {
     private final Screen parent;
     private final BiConsumer<Boolean, Boolean> confirmOptions;
-    private boolean notifyDiscord;
+    private boolean notifyEnabled;
     private boolean stopActions;
 
-    JerrySettingsScreen(Screen parent, boolean notifyDiscord, boolean stopActions,
+    JerrySettingsScreen(Screen parent, boolean notifyEnabled, boolean stopActions,
                         BiConsumer<Boolean, Boolean> confirmOptions) {
         super(Component.literal("Jerry 偵測設定"));
         this.parent = parent;
-        this.notifyDiscord = notifyDiscord;
+        this.notifyEnabled = notifyEnabled;
         this.stopActions = stopActions;
         this.confirmOptions = confirmOptions;
     }
@@ -30,16 +30,16 @@ final class JerrySettingsScreen extends Screen {
         int y = this.height / 2 - 58;
         addRenderableWidget(new StringWidget(centerX - 160, y, 320, 12,
                 Component.literal("Jerry 偵測設定"), this.font));
-        addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否通知 Discord", notifyDiscord), b -> {
-            notifyDiscord = !notifyDiscord;
-            b.setMessage(toggleMsg("出現 Jerry 是否通知 Discord", notifyDiscord));
+        addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否通知", notifyEnabled), b -> {
+            notifyEnabled = !notifyEnabled;
+            b.setMessage(toggleMsg("出現 Jerry 是否通知", notifyEnabled));
         }).bounds(centerX - 160, y + 24, 320, 20).build());
         addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
             stopActions = !stopActions;
             b.setMessage(toggleMsg("出現 Jerry 是否停下動作", stopActions));
         }).bounds(centerX - 160, y + 52, 320, 20).build());
         addRenderableWidget(Button.builder(Component.literal("確認"), b ->
-                confirmOptions.accept(notifyDiscord, stopActions))
+                confirmOptions.accept(notifyEnabled, stopActions))
                 .bounds(centerX - 105, y + 84, 100, 20).build());
         addRenderableWidget(Button.builder(Component.literal("取消"), b -> onClose())
                 .bounds(centerX + 5, y + 84, 100, 20).build());
