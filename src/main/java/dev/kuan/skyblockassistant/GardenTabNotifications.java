@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Parses Tab text; deduplicates pest counts and visitor-full episodes independently. */
+/** Parses Tab text; deduplicates pest and visitor counts independently. */
 final class GardenTabNotifications {
     private static final Pattern COLORS = Pattern.compile("§[0-9a-fk-orx]", Pattern.CASE_INSENSITIVE);
     private static final Pattern PESTS = Pattern.compile("pests\\s*:", Pattern.CASE_INSENSITIVE);
@@ -13,7 +13,7 @@ final class GardenTabNotifications {
     private static final Pattern PEST_FIELD = Pattern.compile("(?:plots|spray|repellent|bonus|cooldown)\\s*:.*", Pattern.CASE_INSENSITIVE);
     private static final Pattern VISITORS = Pattern.compile("visitors?\\s*:\\s*(?:\\(\\s*([0-9]+)\\s*\\)|([0-9]+))", Pattern.CASE_INSENSITIVE);
     private final Set<Integer> notifiedPestCounts = new HashSet<>();
-    private boolean visitorNotified;
+    private final Set<Integer> notifiedVisitorCounts = new HashSet<>();
 
     record Counts(int pests, int visitors) {}
 
@@ -21,6 +21,11 @@ final class GardenTabNotifications {
     static int parseThreshold(String value) {
         return value != null && value.length() == 1 && value.charAt(0) >= '1' && value.charAt(0) <= '8'
                 ? value.charAt(0) - '0' : 0;
+    }
+
+    static int parseVisitorThreshold(String value) {
+        int threshold = parseThreshold(value);
+        return threshold <= 5 ? threshold : 0;
     }
 
     static Counts parse(List<String> tabLines) {
@@ -59,15 +64,13 @@ final class GardenTabNotifications {
         return notifiedPestCounts.add(count);
     }
 
-    boolean visitorsFull(boolean enabled, int count) {
+    boolean visitorsReached(boolean enabled, int count, int threshold) {
         if (!enabled) { resetVisitors(); return false; }
-        if (count < 0) return false;
-        if (count != 5) { resetVisitors(); return false; }
-        if (visitorNotified) return false;
-        visitorNotified = true;
-        return true;
+        if (count < 0 || count > 5 || threshold < 1 || threshold > 5) return false;
+        if (count < threshold) { resetVisitors(); return false; }
+        return notifiedVisitorCounts.add(count);
     }
 
     void resetPests() { notifiedPestCounts.clear(); }
-    void resetVisitors() { visitorNotified = false; }
+    void resetVisitors() { notifiedVisitorCounts.clear(); }
 }

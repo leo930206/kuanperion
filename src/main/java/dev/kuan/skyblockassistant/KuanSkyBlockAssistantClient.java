@@ -70,6 +70,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     private static int pestNotificationThreshold = 1;
+    private static int visitorNotificationThreshold = 5;
     private static int tabNotificationTicks;
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Map<BlockPos, Integer> SKIPPED_TARGETS = new HashMap<>();
@@ -2032,8 +2033,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             sendDiscordNotification("Garden 害蟲通知：目前 " + counts.pests()
                     + " 隻（通知門檻：" + pestNotificationThreshold + "）。");
         }
-        if (TAB_NOTIFICATIONS.visitorsFull(visitorNotificationEnabled, counts.visitors())) {
-            sendDiscordNotification("Garden Visitor 通知：Visitors 已達 5 位。");
+        if (TAB_NOTIFICATIONS.visitorsReached(visitorNotificationEnabled, counts.visitors(), visitorNotificationThreshold)) {
+            sendDiscordNotification("Garden Visitor 通知：目前 " + counts.visitors()
+                    + " 位（通知門檻：" + visitorNotificationThreshold + "）。");
         }
     }
 
@@ -2094,6 +2096,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pestNotificationThreshold = GardenTabNotifications.parseThreshold(p.getProperty("pestNotificationThreshold", "1"));
         if (pestNotificationThreshold == 0) pestNotificationThreshold = 1;
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
+        visitorNotificationThreshold = GardenTabNotifications.parseVisitorThreshold(p.getProperty("visitorNotificationThreshold", "5"));
+        if (visitorNotificationThreshold == 0) visitorNotificationThreshold = 5;
         jerryDetectionEnabled = Boolean.parseBoolean(p.getProperty("jerryDetectionEnabled", "false"));
         jerryDiscordNotificationEnabled = Boolean.parseBoolean(p.getProperty("jerryDiscordNotificationEnabled", "true"));
         jerryStopActionsEnabled = Boolean.parseBoolean(p.getProperty("jerryStopActionsEnabled", "true"));
@@ -2130,6 +2134,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("pestNotificationThreshold", Integer.toString(pestNotificationThreshold));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
+        p.setProperty("visitorNotificationThreshold", Integer.toString(visitorNotificationThreshold));
         p.setProperty("jerryDetectionEnabled", Boolean.toString(jerryDetectionEnabled));
         p.setProperty("jerryDiscordNotificationEnabled", Boolean.toString(jerryDiscordNotificationEnabled));
         p.setProperty("jerryStopActionsEnabled", Boolean.toString(jerryStopActionsEnabled));
@@ -2429,7 +2434,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; farmingWorldChanged = false; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知", visitorNotificationEnabled), b -> { visitorNotificationEnabled = !visitorNotificationEnabled; TAB_NOTIFICATIONS.resetVisitors(); saveConfig(); rebuild(); }).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知" + (visitorNotificationEnabled ? " ≥" + visitorNotificationThreshold : ""), visitorNotificationEnabled), b -> toggleVisitorNotifications()).bounds(x, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("害蟲通知" + (pestNotificationEnabled ? " ≥" + pestNotificationThreshold : ""), pestNotificationEnabled), b -> togglePestNotifications()).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("智慧暫停", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 36;
@@ -2489,6 +2494,23 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             return Component.literal(label + "：")
                     .withStyle(ChatFormatting.WHITE)
                     .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+
+        private void toggleVisitorNotifications() {
+            if (visitorNotificationEnabled) {
+                visitorNotificationEnabled = false;
+                TAB_NOTIFICATIONS.resetVisitors();
+                saveConfig();
+                rebuild();
+                return;
+            }
+            Minecraft.getInstance().setScreenAndShow(new VisitorThresholdScreen(this, threshold -> {
+                visitorNotificationThreshold = threshold;
+                visitorNotificationEnabled = true;
+                TAB_NOTIFICATIONS.resetVisitors();
+                saveConfig();
+                rebuild();
+            }));
         }
 
         private void togglePestNotifications() {

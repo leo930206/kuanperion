@@ -55,26 +55,44 @@ public final class GardenTabNotificationsTest {
         check(!tracker.pestReached(true, 0, 4), "prepare below threshold");
         check(!tracker.pestReached(true, 9, 9), "invalid threshold never sends");
 
-        check(!tracker.visitorsFull(true, 4), "four visitors silent");
-        check(tracker.visitorsFull(true, 5), "five visitors notify");
-        check(!tracker.visitorsFull(true, 5), "five visitors do not spam");
-        check(!tracker.visitorsFull(true, -1), "unknown visitors silent");
-        check(!tracker.visitorsFull(true, 5), "missing Tab does not rearm visitors");
-        check(!tracker.visitorsFull(true, 6), "only exactly five visitors");
-        check(tracker.visitorsFull(true, 5), "return to five notifies");
-        check(!tracker.visitorsFull(false, 5), "disabled visitors silent");
-        check(tracker.visitorsFull(true, 5), "re-enable visitors rearms");
+        for (int i = 1; i <= 5; i++)
+            check(GardenTabNotifications.parseVisitorThreshold(Integer.toString(i)) == i, "valid visitor threshold " + i);
+        for (String value : new String[]{"", "0", "6", "8", "10", "01", "-1", "1.0", " 1", "1 ", "a", "１", "1\n"})
+            check(GardenTabNotifications.parseVisitorThreshold(value) == 0, "reject visitor threshold " + value);
+        check(GardenTabNotifications.parseVisitorThreshold(null) == 0, "reject null visitor threshold");
+        for (int threshold = 1; threshold <= 5; threshold++) {
+            var visitorTracker = new GardenTabNotifications();
+            check(!visitorTracker.visitorsReached(true, threshold - 1, threshold), "below visitor threshold");
+            for (int count = threshold; count <= 5; count++) {
+                check(visitorTracker.visitorsReached(true, count, threshold), "each visitor count notifies: " + count);
+                check(!visitorTracker.visitorsReached(true, count, threshold), "sustained visitor count silent");
+            }
+            for (int count = 5; count >= threshold; count--)
+                check(!visitorTracker.visitorsReached(true, count, threshold), "revisited visitor count silent");
+            check(!visitorTracker.visitorsReached(true, -1, threshold), "missing visitors preserve history");
+            check(!visitorTracker.visitorsReached(true, 6, threshold), "invalid count preserves history");
+            check(!visitorTracker.visitorsReached(true, threshold, threshold), "unknown counts cannot rearm");
+            check(!visitorTracker.visitorsReached(true, threshold - 1, threshold), "below threshold resets visitors");
+            check(visitorTracker.visitorsReached(true, 5, threshold), "jump to five notifies only observed five");
+            if (threshold < 5)
+                check(visitorTracker.visitorsReached(true, threshold, threshold), "skipped-over counts not invented");
+            check(!visitorTracker.visitorsReached(false, 5, threshold), "disabled visitors silent");
+            check(visitorTracker.visitorsReached(true, 5, threshold), "re-enabling rearms visitors");
+            visitorTracker.resetVisitors();
+            check(visitorTracker.visitorsReached(true, 5, threshold), "explicit reset rearms visitors");
+        }
+        check(!tracker.visitorsReached(true, 5, 0) && !tracker.visitorsReached(true, 5, 6), "invalid visitor thresholds silent");
         tracker.resetVisitors();
-        check(tracker.visitorsFull(true, 5), "explicit visitor reset");
+        check(tracker.visitorsReached(true, 3, 3), "three visitor notification");
         check(tracker.pestReached(true, 4, 4), "visitor state does not suppress pests");
         tracker.resetPests();
-        check(!tracker.visitorsFull(true, 5), "pest reset does not rearm visitors");
+        check(!tracker.visitorsReached(true, 3, 3), "pest reset does not rearm visitors");
         for (int threshold = 1; threshold <= 8; threshold++) {
             var perThreshold = new GardenTabNotifications();
             check(perThreshold.pestReached(true, threshold + 2, threshold), "jump directly to observed count");
             check(perThreshold.pestReached(true, threshold, threshold), "new lower qualifying count still notifies");
             check(!perThreshold.pestReached(true, threshold + 2, threshold), "jumping back does not notify twice");
         }
-        System.out.println("GardenTabNotificationsTest passed (per-count pest deduplication, visitor episodes unchanged)");
+        System.out.println("GardenTabNotificationsTest passed (per-count pest and visitor thresholds, independent histories)");
     }
 }

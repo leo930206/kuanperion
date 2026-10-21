@@ -13,6 +13,15 @@ reader = (base / "GardenTabReader.java").read_text()
 reader = reader[reader.index("final class GardenTabReader"):].replace("final class GardenTabReader", "static final class GardenTabReader", 1)
 screen = (base / "PestThresholdScreen.java").read_text()
 screen = screen[screen.index("final class PestThresholdScreen"):].replace("final class PestThresholdScreen", "static final class PestThresholdScreen", 1)
+visitor_screen = (base / "VisitorThresholdScreen.java").read_text()
+visitor_screen = visitor_screen[visitor_screen.index("final class VisitorThresholdScreen"):].replace("final class VisitorThresholdScreen", "static final class VisitorThresholdScreen", 1)
+match = re.search(r"    private void toggleVisitorNotifications\(", client)
+opening = client.index("{", match.start())
+depth, end = 1, opening + 1
+while depth:
+    depth += (client[end] == "{") - (client[end] == "}")
+    end += 1
+visitor_toggle = client[match.start():end]
 start = re.search(r"    private static void tickTabNotifications\(", client).start()
 opening = client.index("{", start)
 depth, end = 1, opening + 1
@@ -24,6 +33,8 @@ assert "tickTabNotifications(mc);" in client[client.index("private static void t
 assert "PEST_MESSAGE_PATTERN" not in client, "old spawn-chat notifications must be removed"
 assert 'p.setProperty("pestNotificationThreshold"' in client, "save threshold"
 assert 'p.getProperty("pestNotificationThreshold"' in client, "load threshold"
+assert 'p.setProperty("visitorNotificationThreshold"' in client, "save visitor threshold"
+assert 'p.getProperty("visitorNotificationThreshold"' in client, "load visitor threshold"
 
 harness = r'''package dev.kuan.skyblockassistant;
 import java.util.*;
@@ -31,7 +42,9 @@ import java.util.function.*;
 public class TabNotificationIntegrationTest {
     static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     static boolean pestNotificationEnabled, visitorNotificationEnabled;
-    static int pestNotificationThreshold = 4, tabNotificationTicks;
+    static int pestNotificationThreshold = 4, visitorNotificationThreshold = 5, tabNotificationTicks;
+    static int saves;
+    static void saveConfig() { saves++; }
     static String pestWebhookUrl = "test-only-not-a-real-webhook";
     static List<String> sent = new ArrayList<>();
     static void sendDiscordNotification(String text) { sent.add(text); }
@@ -63,6 +76,12 @@ public class TabNotificationIntegrationTest {
         void setInitialFocus(Object widget) {}
         public void onClose() {}
         public boolean isPauseScreen() { return true; }
+    }
+    static class SettingsScreen extends Screen {
+        SettingsScreen() { super(Component.literal("settings")); }
+        int rebuilds;
+        void rebuild() { rebuilds++; Minecraft.getInstance().setScreenAndShow(this); }
+        // VISITOR_TOGGLE
     }
     static class EditBox {
         String value = ""; int maxLength; Consumer<String> responder;
@@ -174,12 +193,57 @@ public class TabNotificationIntegrationTest {
         check(chosen.isEmpty() && Minecraft.getInstance().shown == parent, "cancel does not confirm");
         screen.onClose();
         check(chosen.isEmpty() && Minecraft.getInstance().shown == parent && !screen.isPauseScreen(), "Escape returns unchanged");
-        System.out.println("TabNotificationIntegrationTest passed (polling, ordering, toggles, missing data, threshold UI)");
+        // Production polling uses the selected visitor threshold and per-count history.
+        visitorNotificationThreshold = 3; visitorNotificationEnabled = true;
+        pestNotificationEnabled = false; TAB_NOTIFICATIONS.resetVisitors(); sent.clear();
+        garden(mc, 0, 3); scan(mc);
+        check(sent.size() == 1 && sent.get(0).contains("3"), "visitor three notifies at threshold three");
+        garden(mc, 0, 4); scan(mc); garden(mc, 0, 5); scan(mc);
+        check(sent.size() == 3, "3, 4, 5 notify individually");
+        garden(mc, 0, 3); scan(mc); garden(mc, 0, 5); scan(mc);
+        check(sent.size() == 3, "revisiting qualifying visitor counts stays silent");
+        mc.player.connection.entries.clear(); scan(mc); garden(mc, 0, 4); scan(mc);
+        check(sent.size() == 3, "missing Tab preserves visitor count history");
+        garden(mc, 0, 2); scan(mc); garden(mc, 0, 5); scan(mc);
+        check(sent.size() == 4, "below threshold resets; jump only notifies observed five");
+        garden(mc, 0, 3); scan(mc);
+        check(sent.size() == 5, "three was not invented during jump to five");
+        // Actual settings toggle, screen validation, confirm, Cancel/Esc.
+        SettingsScreen settings = new SettingsScreen();
+        settings.toggleVisitorNotifications();
+        check(!visitorNotificationEnabled && saves == 1, "disable saves and resets visitors");
+        settings.toggleVisitorNotifications();
+        VisitorThresholdScreen visitorScreen = (VisitorThresholdScreen) Minecraft.getInstance().shown;
+        visitorScreen.init();
+        EditBox visitorInput = (EditBox) visitorScreen.widgets.stream().filter(EditBox.class::isInstance).findFirst().orElseThrow();
+        List<Button> visitorButtons = visitorScreen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
+        Button visitorConfirm = visitorButtons.get(0);
+        check(!visitorConfirm.active && !visitorNotificationEnabled, "blank visitor dialog leaves notification off");
+        for (String invalid : List.of("", "0", "6", "9", "12", "01", "-1", " 1", "1 ", "a", "１")) {
+            visitorInput.setValue(invalid);
+            check(!visitorConfirm.active, "invalid visitor input: " + invalid);
+            visitorConfirm.callback.accept(visitorConfirm);
+            check(!visitorNotificationEnabled && saves == 1, "invalid callback cannot enable visitors");
+        }
+        visitorInput.setValue("3"); visitorButtons.get(1).callback.accept(visitorButtons.get(1));
+        check(!visitorNotificationEnabled && saves == 1 && Minecraft.getInstance().shown == settings, "cancel leaves visitors off");
+        visitorScreen.onClose();
+        check(!visitorNotificationEnabled && saves == 1, "Esc leaves visitors off");
+        for (int i = 1; i <= 5; i++) {
+            visitorInput.setValue(Integer.toString(i));
+            check(visitorConfirm.active, "visitor input 1-5 accepted");
+        }
+        visitorInput.setValue("3"); visitorConfirm.callback.accept(visitorConfirm);
+        check(visitorNotificationEnabled && visitorNotificationThreshold == 3 && saves == 2, "confirm saves visitor threshold and enables");
+        check(Minecraft.getInstance().shown == settings, "confirm returns to refreshed settings");
+        garden(mc, 0, 3); scan(mc);
+        check(sent.size() == 6, "confirmed new threshold resets only visitor history");
+        System.out.println("TabNotificationIntegrationTest passed (polling, ordering, toggles, missing data, pest/visitor threshold UI)");
     }
-'''
+'''.replace('        // VISITOR_TOGGLE', visitor_toggle)
 with tempfile.TemporaryDirectory(prefix="kuan-tab-test-") as tmp:
     test = Path(tmp) / "TabNotificationIntegrationTest.java"
-    test.write_text(harness + reader + "\n" + screen + "\n" + poll + "\n}\n")
+    test.write_text(harness + reader + "\n" + screen + "\n" + visitor_screen + "\n" + poll + "\n}\n")
     java = Path(sys.argv[1]) / "bin"
     subprocess.run([str(java / "javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp,
                     str(base / "GardenTabNotifications.java"), str(test)], check=True)

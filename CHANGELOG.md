@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.114] - 2026-10-21
+
+### Changed
+
+- Replace the fixed five-Visitor notification with a configurable 1–5 threshold dialog, matching the pest notification enable/confirm/Cancel/Esc flow and showing the saved threshold on the enabled toggle.
+- Notify once per distinct observed Visitor count at or above the threshold: threshold 3 sends separately at 3, 4, and 5. Sustained or revisited counts do not repeat until a valid below-threshold count or explicit Visitor reset; skipped-over counts are not invented.
+- Persist the threshold, defaulting missing/invalid saved values to 5 for existing configurations. Keep missing/invalid Tab data from clearing Visitor history, and keep pest and Visitor notification histories independent. Farming, Mining, Jerry detection, and asynchronous Webhook delivery are unchanged.
+- Extend unit and production polling/UI regression tests for every threshold, per-count deduplication/reset, jump behavior, unknown data, strict 1–5 validation, confirmation, cancellation, and independent pest behavior.
+
 ## [1.0.113] - 2026-10-21
 
 ### Added
