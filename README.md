@@ -2,7 +2,7 @@
 
 為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、Pest、Jerry 通知功能。
 
-**目前版本：`1.0.123`**
+**目前版本：`1.0.124`**
 
 | 項目 | 說明 |
 | --- | --- |
@@ -30,7 +30,7 @@
 
 1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
 2. 依[建置與測試](#建置與測試)產生 jar。
-3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.123.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.124.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
 4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
 5. 重新啟動 Minecraft。
 
@@ -234,7 +234,7 @@ Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用�
 | --- | --- |
 | Farming 區的「Visitor 通知」 | 外層總開關；內層四行：「出現多少 Visitor 要通知：」數量（1～5）、三種通知管道 |
 | Farming 區的「Pest 通知」 | 外層總開關；內層四行：「出現多少 Pest 要通知：」數量（1～8）、三種通知管道 |
-| Other 區的「Jerry 偵測」 | 第一行為「出現 Jerry 是否停下動作」，接著三種通知管道；**沒有 Jerry 總開關** |
+| Other 區的「Jerry 偵測」 | 第一行為「出現 Jerry 是否停下動作」，接著四色開關列與三種通知管道；**沒有 Jerry 總開關** |
 
 每個功能都有下列三個開關，可以全開、全關或任意搭配，互不影響：
 
@@ -304,7 +304,14 @@ Webhook 請求非同步送出，逾時為十秒；失敗或 HTTP 狀態碼只記
 
 點選 Other 的「Jerry 偵測」即可設定，不需要先開啟任何 Jerry 總開關。
 
-模組會先去除聊天室訊息的顏色碼，再比對下列 **7 種訊息**。忽略大小寫、額外空白、前後附加文字；`[type]` 可為任意顏色名稱，不使用顏色白名單。
+Discord 訊息通知上方有一列四等寬獨立開關，依序為 **Green／Blue／Purple／Golden**。名稱使用對應的 Minecraft 綠色、藍色、深紫色與金色，並顯示「顏色：開啟／關閉」。
+
+- 四色預設全開，各自保存，重啟後保留；舊設定缺少這些選項時也預設全開。
+- 例如只開 Green 與 Golden，就只處理 `Green Jerry`／`Golden Jerry`；Blue 與 Purple 不通知，也不觸發停下動作。
+- 四色全關就不處理任何 Jerry；顏色開關不變更三種通知管道、顯示秒數、共用 Webhook 或停下動作開關。
+- 顏色取自符合提示格式的「顏色 Jerry」，不看訊息顏色碼，也不以其他前後文字的顏色名稱判斷。
+
+模組會先去除聊天室訊息的顏色碼，再比對下列 **7 種訊息**。忽略大小寫、額外空白、前後附加文字；`[type]` 必須是 `Green`、`Blue`、`Purple` 或 `Golden`，而且該顏色開關需啟用。
 
 ```text
 You found a [type] Jerry!
@@ -334,7 +341,7 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 | 資料 | 行為 |
 | --- | --- |
 | Mining／Farming 執行狀態 | 不會在重新啟動後自動恢復 |
-| 方塊清單、農耕選項、門檻、各功能管道與秒數 | 個別保存 |
+| 方塊清單、農耕選項、門檻、各功能管道與秒數、Jerry 四色開關 | 個別保存 |
 | Discord Webhook | 全功能共用；請勿公開設定檔內容 |
 | 舊版共用通知設定 | 轉移為個別功能設定；舊 Jerry 總開關關閉時，不會意外啟用通知或停下動作 |
 | 首次安裝 | 通知管道與 Jerry 停下動作預設關閉 |
@@ -369,10 +376,10 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.123.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.124.jar
 ```
 
-測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。
+測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、四色全部 16 種組合與開關位置／顏色／保存、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。
 
 測試使用遊戲與網路邊界的替身，不會真的呼叫 Webhook；通過回歸測試不代表已完成 Hypixel 遊戲內實測。
 
@@ -389,7 +396,7 @@ build/libs/kuan-hypixel-skyblock-assistant-1.0.123.jar
 | `NotificationChannels.java`／`NotificationType.java` | 個別管道與顯示時間資料 |
 | `ScreenDurationScreen.java`／`ScreenNotificationQueue.java` | 秒數輸入與螢幕通知佇列 |
 | `GardenTabReader.java`／`GardenTabNotifications.java` | Tab 資料讀取、數量解析與通知紀錄 |
-| `JerryMessageMatcher.java` | 七種 Jerry 訊息比對 |
+| `JerryMessageMatcher.java`／`JerryColor.java` | 七種 Jerry 訊息比對、四色過濾與顏色定義 |
 | `GuiPauseGuard.java`／`FarmingToolGuard.java` | GUI 與工具暫停狀態 |
 | `SkyBlockLocationBridge.java` | 可選的 SkyBlock API 地點橋接 |
 | `mixin/` | 手動視角與攻擊輸入攔截 |

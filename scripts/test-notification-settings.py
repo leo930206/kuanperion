@@ -38,6 +38,7 @@ public class NotificationSettingsTest {
     static final ScreenNotificationQueue SCREEN_NOTIFICATIONS=new ScreenNotificationQueue();
     static final GardenTabNotifications TAB_NOTIFICATIONS=new GardenTabNotifications();
     static boolean pestNotificationEnabled,visitorNotificationEnabled,jerryStopActionsEnabled;
+    static Set<JerryColor> jerryColors=Set.of(JerryColor.values());
     static int pestNotificationThreshold=1,visitorNotificationThreshold=5,saves;
     static String pestWebhookUrl="";
     record Sent(String text,String url) {}
@@ -49,9 +50,10 @@ public class NotificationSettingsTest {
     static void saveConfig() { saves++; }
     enum ChatFormatting { WHITE,GREEN,RED }
     static class Component {
-        String text; Component(String text) { this.text=text; }
+        int rgb; String text; Component(String text) { this.text=text; }
         static Component literal(String text) { return new Component(text); }
         String getString() { return text; }
+        Component withColor(int rgb) { this.rgb=rgb;return this; }
         Component withStyle(ChatFormatting style) { return this; }
         Component append(Component more) { text+=more.text; return this; }
     }
@@ -102,14 +104,14 @@ public class NotificationSettingsTest {
         void setTextColor(int color) {}
     }
     static class Button {
-        boolean active=true;Component label;Consumer<Button> callback;
+        boolean active=true;Component label;Consumer<Button> callback;int x,y,width,height;
         static Builder builder(Component label,Consumer<Button> cb) { return new Builder(label,cb); }
         void setMessage(Component value) { label=value; }
         static class Builder {
-            Component label;Consumer<Button> cb;
+            Component label;Consumer<Button> cb;int x,y,width,height;
             Builder(Component label,Consumer<Button> cb) { this.label=label;this.cb=cb; }
-            Builder bounds(int x,int y,int width,int height) { return this; }
-            Button build() { Button b=new Button();b.label=label;b.callback=cb;return b; }
+            Builder bounds(int x,int y,int width,int height) { this.x=x;this.y=y;this.width=width;this.height=height;return this; }
+            Button build() { Button b=new Button();b.label=label;b.callback=cb;b.x=x;b.y=y;b.width=width;b.height=height;return b; }
         }
     }
     static void check(boolean ok,String message) { if(!ok) throw new AssertionError(message); }
@@ -119,11 +121,22 @@ public class NotificationSettingsTest {
     static void checkRows(Screen screen,NotificationType type) {
         List<Button> rows=screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
         List<String> expected=type==NotificationType.JERRY
-                ? List.of("出現 Jerry 是否停下動作","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
+                ? List.of("出現 Jerry 是否停下動作","Green：","Blue：","Purple：","Golden：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
                 : List.of(type==NotificationType.PESTS ? "出現多少 Pest 要通知：" : "出現多少 Visitor 要通知：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
-        check(rows.size()==5,"four content rows plus Done: "+type);
+        check(rows.size()==(type==NotificationType.JERRY ? 9 : 5),"correct feature button count: "+type);
         for(int i=0;i<expected.size();i++) check(rows.get(i).label.getString().startsWith(expected.get(i)),"row order/wording: "+type+i);
         if(type!=NotificationType.JERRY) check(rows.get(0).label.getString().equals(expected.get(0)+(type==NotificationType.PESTS ? pestNotificationThreshold : visitorNotificationThreshold)),"threshold label retains current saved value");
+        if(type==NotificationType.JERRY) {
+            Button discord=rows.get(5);
+            int[] colors={0x55FF55,0x5555FF,0xAA00AA,0xFFAA00};
+            for(int i=0;i<4;i++) {
+                Button part=rows.get(i+1);
+                check(part.width*4==discord.width && part.height==discord.height && part.x==discord.x+i*part.width,"four equal widths fill one full row");
+                check(part.y==rows.get(1).y && part.y==discord.y-28 && part.y==rows.get(0).y+28,"color row between stop and Discord");
+                check(part.label.rgb==colors[i],"name uses supplied Minecraft color");
+                check(part.label.getString().equals(JerryColor.values()[i].label+"："+(jerryColors.contains(JerryColor.values()[i]) ? "開啟" : "關閉")),"color toggle text reflects saved value");
+            }
+        }
     }
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
@@ -166,6 +179,7 @@ public class NotificationSettingsTest {
         check(notificationChannels(NotificationType.JERRY).screen() && !jerryStopActionsEnabled,"new settings roundtrip without Jerry master");
         check(!saved.containsKey("jerryDetectionEnabled") && !saved.containsKey("discordNotificationEnabled"),"do not save obsolete global/master switches");
         loadNotificationConfig(new Properties());
+        check(jerryColors.equals(Set.of(JerryColor.values())),"fresh and missing color settings default all on");
         check(!jerryStopActionsEnabled && notificationChannels(NotificationType.JERRY).equals(NotificationChannels.NONE),"safe fresh-install defaults");
         long second=1_000_000_000L;
         ScreenNotificationQueue q=new ScreenNotificationQueue();
@@ -221,8 +235,30 @@ public class NotificationSettingsTest {
         click(visitor,"Discord 訊息通知");check(!notificationChannels(NotificationType.VISITORS).discord() && notificationChannels(NotificationType.PESTS).discord(),"disable only visitor Discord");
         click(visitor,"Discord 訊息通知");url=mc.shown;check(input(url).getValue().endsWith("/three"),"existing modal reads latest shared URL, not stale snapshot");url.onClose();
         openNotificationSettings(parent,NotificationType.JERRY);Screen jerry=mc.shown;
+        check(jerry.widgets.stream().filter(Button.class::isInstance).count()==9,"Jerry needs four quarter-width color toggles above Discord");
+        for(String color:List.of("Green","Blue","Purple","Golden")) check(button(jerry,color+"：").label.getString().equals(color+"：開啟"),"default color switch: "+color);
         checkRows(jerry,NotificationType.JERRY);
         check(jerry.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).noneMatch(b->b.label.getString().startsWith("Jerry 偵測：")),"Jerry has no master toggle");
+        NOTIFICATION_CHANNELS.putIfAbsent(NotificationType.JERRY,NotificationChannels.NONE);
+        Map<NotificationType,NotificationChannels> beforeColors=new EnumMap<>(NOTIFICATION_CHANNELS);
+        String sharedBeforeColors=pestWebhookUrl;boolean stopBeforeColors=jerryStopActionsEnabled;
+        click(jerry,"Blue：");click(jerry,"Purple：");
+        check(jerryColors.equals(Set.of(JerryColor.GREEN,JerryColor.GOLDEN)),"Green/Golden-only preference saved independently");
+        check(NOTIFICATION_CHANNELS.equals(beforeColors) && pestWebhookUrl.equals(sharedBeforeColors) && jerryStopActionsEnabled==stopBeforeColors,"color toggles preserve channels, seconds, shared URL, and stop switch");
+        checkRows(jerry,NotificationType.JERRY);
+        jerry.width=634;jerry.height=394;jerry.widgets.clear();jerry.init();checkRows(jerry,NotificationType.JERRY);
+        click(visitor,"出現多少 Visitor 要通知：");input(mc.shown).setValue("4");click(mc.shown,"確認");
+        check(jerryColors.equals(Set.of(JerryColor.GREEN,JerryColor.GOLDEN)),"stale Visitor preferences cannot overwrite Jerry color selection");
+        Properties colorConfig=new Properties();saveNotificationConfig(colorConfig);jerryColors=Set.of();loadNotificationConfig(colorConfig);
+        check(jerryColors.equals(Set.of(JerryColor.GREEN,JerryColor.GOLDEN)),"color preferences survive restart");
+        openNotificationSettings(parent,NotificationType.JERRY);jerry=mc.shown;checkRows(jerry,NotificationType.JERRY);
+        click(jerry,"Green：");click(jerry,"Golden：");check(jerryColors.isEmpty(),"all four colors can be off");
+        click(jerry,"遊戲內聊天室通知");check(jerryColors.isEmpty(),"other settings do not re-enable colors");
+        click(jerry,"遊戲內聊天室通知");
+        saveNotificationConfig(colorConfig);loadNotificationConfig(colorConfig);check(jerryColors.isEmpty(),"all-off preference persists");
+        openNotificationSettings(parent,NotificationType.JERRY);jerry=mc.shown;checkRows(jerry,NotificationType.JERRY);
+        for(JerryColor color:JerryColor.values()) click(jerry,color.label+"：");
+        check(jerryColors.equals(Set.of(JerryColor.values())),"all colors can be re-enabled");
         click(jerry,"遊戲內聊天室通知");check(notificationChannels(NotificationType.JERRY).chat() && !notificationChannels(NotificationType.VISITORS).chat(),"Jerry chat independent");
         click(jerry,"出現 Jerry 是否停下動作");check(jerryStopActionsEnabled,"Jerry stop configurable without master");
         click(jerry,"遊戲內螢幕通知");Screen duration=mc.shown;
@@ -289,7 +325,7 @@ public class NotificationSettingsTest {
             checkRows(mc.shown,type);
         }
 
-        System.out.println("NotificationSettingsTest: PASS (four-row dialogs, outer master switches, renamed labels, independent channels, shared Webhook, thresholds, safe migration, overlay isolation, decimal durations)");
+        System.out.println("NotificationSettingsTest: PASS (color row geometry/name colors/persistence, four-row Visitor/Pest dialogs, outer master switches, renamed labels, independent channels, shared Webhook, thresholds, safe migration, overlay isolation, decimal durations)");
     }
     // METHODS
     // SCREENS
@@ -298,6 +334,6 @@ public class NotificationSettingsTest {
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'NotificationSettingsTest.java';path.write_text(harness)
     java=Path(sys.argv[1])/'bin'
-    deps=[base/(n+'.java') for n in ['ScreenNotificationQueue','NotificationType','NotificationChannels','GardenTabNotifications']]
+    deps=[base/(n+'.java') for n in ['ScreenNotificationQueue','NotificationType','NotificationChannels','GardenTabNotifications','JerryColor']]
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,deps),str(path)],check=True)
     subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.NotificationSettingsTest'],check=True)

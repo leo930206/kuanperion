@@ -1,6 +1,8 @@
 package dev.kuan.skyblockassistant;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
@@ -13,7 +15,9 @@ import net.minecraft.network.chat.Component;
 
 /** One feature owns its switches; only the live Webhook supplier is shared. */
 final class NotificationSettingsScreen extends Screen {
-    record Options(NotificationChannels channels, int threshold, boolean stopActions) {}
+    record Options(NotificationChannels channels, int threshold, boolean stopActions, Set<JerryColor> colors) {
+        Options { colors = Set.copyOf(colors); }
+    }
     private final Screen parent;
     private final NotificationType type;
     private final Supplier<String> getWebhook;
@@ -22,6 +26,7 @@ final class NotificationSettingsScreen extends Screen {
     private boolean discord, chat, screen, stopActions;
     private int threshold;
     private BigDecimal screenSeconds;
+    private final EnumSet<JerryColor> colors = EnumSet.noneOf(JerryColor.class);
 
     NotificationSettingsScreen(Screen parent, NotificationType type, Options initial,
                                Supplier<String> getWebhook, Consumer<String> setWebhook, Consumer<Options> saveOptions) {
@@ -37,18 +42,26 @@ final class NotificationSettingsScreen extends Screen {
         screenSeconds = initial.channels().screenSeconds();
         threshold = initial.threshold();
         stopActions = initial.stopActions();
+        colors.addAll(initial.colors());
     }
 
     @Override
     protected void init() {
         int x = this.width / 2 - 140;
-        int y = this.height / 2 - 86;
+        int y = this.height / 2 - (type == NotificationType.JERRY ? 100 : 86);
         addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
         y += 24;
         if (type == NotificationType.JERRY) {
             addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
                 stopActions = !stopActions; saveAndRefresh();
             }).bounds(x, y, 280, 20).build());
+            y += 28;
+            for (JerryColor color : JerryColor.values()) {
+                addRenderableWidget(Button.builder(colorMsg(color), b -> {
+                    if (!colors.remove(color)) colors.add(color);
+                    saveAndRefresh();
+                }).bounds(x + color.ordinal() * 70, y, 70, 20).build());
+            }
             y += 28;
         } else {
             addRenderableWidget(Button.builder(Component.literal("出現多少 " + (type == NotificationType.PESTS ? "Pest" : "Visitor") + " 要通知：" + threshold), b -> openThreshold())
@@ -91,8 +104,15 @@ final class NotificationSettingsScreen extends Screen {
     }
 
     private void saveAndRefresh() {
-        saveOptions.accept(new Options(new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions));
+        saveOptions.accept(new Options(new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions, colors));
         Minecraft.getInstance().setScreenAndShow(this);
+    }
+
+    private Component colorMsg(JerryColor color) {
+        boolean on = colors.contains(color);
+        return Component.literal(color.label).withColor(color.rgb)
+                .append(Component.literal("：").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(on ? "開啟" : "關閉").withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     private Component toggleMsg(String label, boolean on) {

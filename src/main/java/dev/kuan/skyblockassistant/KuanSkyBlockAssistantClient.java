@@ -48,6 +48,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +76,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     private static final ScreenNotificationQueue SCREEN_NOTIFICATIONS = new ScreenNotificationQueue();
     private static final Map<NotificationType, NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
+    private static Set<JerryColor> jerryColors = Set.of(JerryColor.values());
     private static int pestNotificationThreshold = 1;
     private static int visitorNotificationThreshold = 5;
     private static int tabNotificationTicks;
@@ -1994,7 +1997,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean handleJerryMessage(Minecraft mc, String text) {
-        if (!JerryMessageMatcher.matches(text)) return false;
+        if (!JerryMessageMatcher.matches(text, jerryColors)) return false;
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             miningEnabled = false;
@@ -2100,7 +2103,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void openNotificationSettings(SettingsScreen parent, NotificationType type) {
         int threshold = switch (type) { case PESTS -> pestNotificationThreshold; case VISITORS -> visitorNotificationThreshold; case JERRY -> 0; };
         NotificationSettingsScreen.Options initial = new NotificationSettingsScreen.Options(
-                notificationChannels(type), threshold, jerryStopActionsEnabled);
+                notificationChannels(type), threshold, jerryStopActionsEnabled, jerryColors);
         Minecraft.getInstance().setScreenAndShow(new NotificationSettingsScreen(parent, type, initial,
                 () -> pestWebhookUrl, value -> pestWebhookUrl = value, options -> {
             NOTIFICATION_CHANNELS.put(type, options.channels());
@@ -2114,12 +2117,18 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 visitorNotificationThreshold = options.threshold();
             } else {
                 jerryStopActionsEnabled = options.stopActions();
+                jerryColors = options.colors();
             }
             saveConfig();
         }));
     }
 
     private static void loadNotificationConfig(Properties p) {
+        EnumSet<JerryColor> colors = EnumSet.noneOf(JerryColor.class);
+        for (JerryColor color : JerryColor.values()) {
+            if (Boolean.parseBoolean(p.getProperty(color.configKey, "true"))) colors.add(color);
+        }
+        jerryColors = Set.copyOf(colors);
         pestWebhookUrl = p.getProperty("pestWebhookUrl", "").trim();
         NotificationChannels legacy = new NotificationChannels(
                 Boolean.parseBoolean(p.getProperty("discordNotificationEnabled", Boolean.toString(!pestWebhookUrl.isBlank()))),
@@ -2145,6 +2154,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void saveNotificationConfig(Properties p) {
+        for (JerryColor color : JerryColor.values()) {
+            p.setProperty(color.configKey, Boolean.toString(jerryColors.contains(color)));
+        }
         p.setProperty("notificationSettingsVersion", "2");
         p.setProperty("pestWebhookUrl", pestWebhookUrl == null ? "" : pestWebhookUrl.trim());
         p.setProperty("jerryStopActionsEnabled", Boolean.toString(jerryStopActionsEnabled));

@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.function.*;
 public class JerryDetectionIntegrationTest {
     static boolean jerryStopActionsEnabled;
+    static Set<JerryColor> jerryColors=Set.of(JerryColor.values());
     static final Map<NotificationType,NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
     static boolean miningEnabled, farmingEnabled, farmingAutoRecovering, farmingEnabledThisSession;
     static boolean farmingWorldChanged, activeTargetStarted;
@@ -64,8 +65,17 @@ public class JerryDetectionIntegrationTest {
     static class StringUtil { static String stripColor(String text) { return text.replaceAll("(?i)§[0-9a-fk-or]", ""); } }
     record Component(String getString) { static Component literal(String text) { return new Component(text); } }
     static void check(boolean ok,String message) { if (!ok) throw new AssertionError(message); }
+    static final List<String> TEMPLATES=List.of(
+                "You found a %s Jerry!",
+                "You discovered a %s Jerry!",
+                "Some %s Jerry was hiding, but you found it!",
+                "wild %s Jerry spawned!",
+                "%s Jerry appeared!",
+                "There is a %s Jerry!",
+                "You located a hidden %s Jerry!");
     static final String APPEARED="§b ☺ §eA §aGreen Jerry§e appeared!";
     static void reset() {
+        jerryColors=Set.of(JerryColor.values());
         NOTIFICATION_CHANNELS.clear();NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,false,false));jerryStopActionsEnabled=true;
         miningEnabled=farmingEnabled=farmingAutoRecovering=farmingEnabledThisSession=farmingWorldChanged=false;
         farmingDesiredForward=farmingDesiredJump=true;
@@ -77,15 +87,8 @@ public class JerryDetectionIntegrationTest {
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
         handleReceivedMessage(null);
-        for (String color : List.of("Green", "Blue", "Purple", "Golden", "Coler", "Custom Color", "Super-Rare", ""))
-        for (String template : List.of(
-                "You found a %s Jerry!",
-                "You discovered a %s Jerry!",
-                "Some %s Jerry was hiding, but you found it!",
-                "wild %s Jerry spawned!",
-                "%s Jerry appeared!",
-                "There is a %s Jerry!",
-                "You located a hidden %s Jerry!"))
+        for (String color : List.of("Green", "Blue", "Purple", "Golden"))
+        for (String template : TEMPLATES)
         for (String raw : List.of(template.formatted(color), template.formatted(color).toUpperCase(Locale.ROOT).replace(" ", "  ")))
         for (String message : List.of(raw,
                 "§b[Prefix]§e" + raw.replace("Jerry", "§aJerry§e") + "§r[Suffix]",
@@ -103,6 +106,21 @@ public class JerryDetectionIntegrationTest {
                 check(!shouldLockManualAttack() && !shouldLockManualLook(),"manual input unlocked");
             }
         }
+        for(int mask=0;mask<16;mask++) {
+            EnumSet<JerryColor> enabled=EnumSet.noneOf(JerryColor.class);
+            for(JerryColor color:JerryColor.values()) if((mask & (1<<color.ordinal()))!=0) enabled.add(color);
+            for(JerryColor color:JerryColor.values()) for(String template:TEMPLATES) {
+                reset();jerryColors=Set.copyOf(enabled);miningEnabled=true;
+                handleReceivedMessage(Component.literal("§a[Green Jerry] " + template.formatted("§6"+color.label+"§r") + " [Golden Jerry]"));
+                boolean selected=enabled.contains(color);
+                check(sent.size()==(selected?1:0),"only selected color not prefix/suffix colors: "+mask+color+template);
+                check(miningEnabled==!selected,"disabled color cannot stop automation: "+mask+color);
+                if(!selected) check(activeTarget!=null && mc.options.keyAttack.down && releases==0 && saves==0,"disabled color has no side effects");
+            }
+        }
+        reset();jerryColors=Set.of(JerryColor.GREEN,JerryColor.GOLDEN);
+        handleReceivedMessage(Component.literal("You found a Blue Jerry! You found a Golden Jerry!"));
+        check(sent.size()==1,"find enabled second event in same message after disabled event");
         reset();NOTIFICATION_CHANNELS.clear();jerryStopActionsEnabled=false;miningEnabled=true;
         handleReceivedMessage(Component.literal(APPEARED));
         check(miningEnabled && sent.isEmpty(),"no channels and stop off does nothing without needing a master");
@@ -116,9 +134,9 @@ public class JerryDetectionIntegrationTest {
         reset();pestWebhookUrl="";miningEnabled=true;
         handleReceivedMessage(Component.literal(APPEARED));
         check(!miningEnabled && sent.isEmpty(),"missing webhook cannot prevent stop");
-        reset();handleReceivedMessage(Component.literal("JERRY   appeared!"));
+        reset();handleReceivedMessage(Component.literal("GREEN   JERRY   appeared!"));
         check(sent.size()==1 && releases==0,"case/spacing and idle notification without input changes");
-        for(String wrong:List.of("Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello", "You located a hidden Chest!", "You discovered a Sword!", "You discovered a Jerryfish!", "You located a hidden Jerryfish!", "You discovered a Sword! Jerry is nearby", "You found a Blue Jerryfish!", "wild Blue Jerry disappeared!", "wild Blue Jerry spawnedness!", "Some Blue Jerry was hiding, but you missed it!", "Some Blue Jerry was hiding!", "There is a Blue Jerryfish!")) {
+        for(String wrong:List.of("Jerry appeared!", "Red Jerry appeared!", "You discovered a Custom Color Jerry!", "You located a hidden Jerry!", "Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello", "You located a hidden Chest!", "You discovered a Sword!", "You discovered a Jerryfish!", "You located a hidden Jerryfish!", "You discovered a Sword! Jerry is nearby", "You found a Blue Jerryfish!", "wild Blue Jerry disappeared!", "wild Blue Jerry spawnedness!", "Some Blue Jerry was hiding, but you missed it!", "Some Blue Jerry was hiding!", "There is a Blue Jerryfish!")) {
             reset();miningEnabled=true;handleReceivedMessage(Component.literal(wrong));
             check(miningEnabled && sent.isEmpty(),"ignore non-appearance: "+wrong);
         }
@@ -128,7 +146,7 @@ public class JerryDetectionIntegrationTest {
         reset();pestWebhookUrl="";NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
         handleReceivedMessage(Component.literal(APPEARED));
         check(sent.size()==1,"local-only Jerry notifications work with no master or Webhook");
-        System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/any color/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
+        System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/four colors/all 16 color switch combinations/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
     }
     // METHODS
 }
@@ -137,5 +155,5 @@ java_home=Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'JerryDetectionIntegrationTest.java'
     path.write_text(harness)
-    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryMessageMatcher.java'),str(base/'NotificationType.java'),str(base/'NotificationChannels.java'),str(path)],check=True)
+    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryMessageMatcher.java'),str(base/'JerryColor.java'),str(base/'NotificationType.java'),str(base/'NotificationChannels.java'),str(path)],check=True)
     subprocess.run([str(java_home/'bin/java'),'-cp',tmp,'dev.kuan.skyblockassistant.JerryDetectionIntegrationTest'],check=True)
