@@ -31,3 +31,5 @@ python3 "$ROOT/scripts/test-jerry-detection.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-notification-settings.py" "$JAVA_HOME"
 
 python3 "$ROOT/scripts/test-farming-stall.py" "$JAVA_HOME"
+
+python3 "$ROOT/scripts/test-pumpkin-melon-start.py" "$JAVA_HOME"
