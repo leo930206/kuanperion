@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.113] - 2026-10-21
+
+### Added
+
+- Add the centered dashed Other section beneath Mining and its target list, with the same-sized `Jerry 偵測` toggle.
+- Add a confirmation dialog with independent Discord notification and stop-action options. Persist all three settings; master detection defaults off, both draft actions default on. Cancel/Esc leaves saved settings unchanged.
+- Detect `Jerry appeared` in received chat/system text after stripping color codes, case-insensitively and with flexible whitespace. Ignore action-bar overlays and non-appearance mentions.
+- Notify through the existing shared asynchronous Discord Webhook. Independently stop Mining/Farming, clear targets and input locks, reset pause guards, and cancel queued Farming recovery without resuming. Stopping does not depend on a configured/working Webhook, and idle manual controls are untouched.
+- Add production-method and dialog callback regression tests covering the formatted Green Jerry example, color variants, negative matches, all action combinations, inactive detection, missing Webhook, input/recovery cleanup, confirmation, cancellation, and resize drafts.
+
 ## [1.0.112] - 2026-10-20
 
 ### Fixed

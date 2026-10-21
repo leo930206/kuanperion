@@ -92,6 +92,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
     private static boolean visitorNotificationEnabled = false;
+    private static boolean jerryDetectionEnabled = false;
+    private static boolean jerryDiscordNotificationEnabled = true;
+    private static boolean jerryStopActionsEnabled = true;
     private static boolean farmingMenuPauseEnabled = true;
     private static boolean miningMenuPauseEnabled = true;
     private static boolean farmingToolDetectionEnabled = false;
@@ -200,7 +203,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> onFarmingWorldChange());
         ClientTickEvents.START_CLIENT_TICK.register(KuanSkyBlockAssistantClient::enforceAutomationMovementLock);
         ClientTickEvents.END_CLIENT_TICK.register(KuanSkyBlockAssistantClient::tick);
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleReceivedMessage(message));
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) handleReceivedMessage(message); });
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
 
@@ -1964,6 +1967,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void handleReceivedMessage(Component message) {
         if (message == null) return;
         String text = StringUtil.stripColor(message.getString());
+        if (handleJerryMessage(Minecraft.getInstance(), text)) return;
         int now = farmingTicksNow();
         if (text.contains("You fell into the void") && abnormalHandlingEnabled && farmingEnabled
                 && farmingEnabledThisSession && !farmingAutoRecovering) {
@@ -1978,6 +1982,44 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 return;
             }
         }
+    }
+
+    private static boolean handleJerryMessage(Minecraft mc, String text) {
+        if (!jerryDetectionEnabled || text == null
+                || !text.matches("(?is).*\\bjerry\\s+appeared\\b.*")) return false;
+        // Stop first: missing/invalid webhooks must not keep automation running.
+        if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
+            boolean wasMining = miningEnabled;
+            boolean wasFarming = farmingEnabled || farmingAutoRecovering;
+            miningEnabled = false;
+            MINING_GUI_PAUSE_GUARD.reset();
+            clearActiveTarget(mc);
+            stopFarming(mc, false);
+            saveConfig();
+            if (wasMining) sayAutoState(mc, "Mining", false);
+            if (wasFarming) sayAutoState(mc, "Farming", false);
+        }
+        if (jerryDiscordNotificationEnabled && !pestWebhookUrl.isBlank()) {
+            sendDiscordNotification("Jerry 通知：出現 Jerry！");
+        }
+        return true;
+    }
+
+    private static void toggleJerryDetection(SettingsScreen parent) {
+        if (jerryDetectionEnabled) {
+            jerryDetectionEnabled = false;
+            saveConfig();
+            parent.rebuild();
+            return;
+        }
+        Minecraft.getInstance().setScreenAndShow(new JerrySettingsScreen(parent,
+                jerryDiscordNotificationEnabled, jerryStopActionsEnabled, (notifyDiscord, stopActions) -> {
+            jerryDiscordNotificationEnabled = notifyDiscord;
+            jerryStopActionsEnabled = stopActions;
+            jerryDetectionEnabled = true;
+            saveConfig();
+            parent.rebuild();
+        }));
     }
 
     private static void tickTabNotifications(Minecraft mc) {
@@ -2052,6 +2094,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         pestNotificationThreshold = GardenTabNotifications.parseThreshold(p.getProperty("pestNotificationThreshold", "1"));
         if (pestNotificationThreshold == 0) pestNotificationThreshold = 1;
         visitorNotificationEnabled = Boolean.parseBoolean(p.getProperty("visitorNotificationEnabled", "false"));
+        jerryDetectionEnabled = Boolean.parseBoolean(p.getProperty("jerryDetectionEnabled", "false"));
+        jerryDiscordNotificationEnabled = Boolean.parseBoolean(p.getProperty("jerryDiscordNotificationEnabled", "true"));
+        jerryStopActionsEnabled = Boolean.parseBoolean(p.getProperty("jerryStopActionsEnabled", "true"));
         farmingMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("farmingMenuPauseEnabled", "true"));
         miningMenuPauseEnabled = Boolean.parseBoolean(p.getProperty("miningMenuPauseEnabled", "true"));
         farmingToolDetectionEnabled = Boolean.parseBoolean(p.getProperty("farmingToolDetectionEnabled", "false"));
@@ -2085,6 +2130,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("pestNotificationEnabled", Boolean.toString(pestNotificationEnabled));
         p.setProperty("pestNotificationThreshold", Integer.toString(pestNotificationThreshold));
         p.setProperty("visitorNotificationEnabled", Boolean.toString(visitorNotificationEnabled));
+        p.setProperty("jerryDetectionEnabled", Boolean.toString(jerryDetectionEnabled));
+        p.setProperty("jerryDiscordNotificationEnabled", Boolean.toString(jerryDiscordNotificationEnabled));
+        p.setProperty("jerryStopActionsEnabled", Boolean.toString(jerryStopActionsEnabled));
         p.setProperty("farmingMenuPauseEnabled", Boolean.toString(farmingMenuPauseEnabled));
         p.setProperty("miningMenuPauseEnabled", Boolean.toString(miningMenuPauseEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
@@ -2416,6 +2464,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 addRenderableWidget(Button.builder(Component.literal("×"), b -> { TARGET_BLOCKS.remove(idx); saveConfig(); rebuild(); }).bounds(x + 375, y, 45, 20).build());
                 y += 24;
             }
+            y += 12;
+            addSectionTitle("Other", y);
+            y += 22;
+            addRenderableWidget(Button.builder(toggleMsg("Jerry 偵測", jerryDetectionEnabled),
+                    b -> toggleJerryDetection(this)).bounds(x, y, 130, 20).build());
             int webhookY = this.height - 34;
             addRenderableWidget(new StringWidget(20, webhookY + 5, 110, 12, Component.literal("Discord Webhook:"), this.font));
             EditBox webhookBox = new EditBox(this.font, 130, webhookY, 300, 20, Component.literal("Discord Webhook"));

@@ -130,6 +130,7 @@ public final class AbnormalHandlingTest {
         FARMING_COMMAND_QUEUE.clear();
         stops++;
     }
+    static boolean handleJerryMessage(Minecraft mc, String text) { return false; }
     static int farmingTicksNow() { return 10000; }
     static void say(Minecraft mc, String... text) {
         if (String.join("", text).contains("已返回")) completionMessages++;

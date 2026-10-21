@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.112`
+Current mod version: `1.0.113`
 
 ## Features
 
@@ -34,7 +34,7 @@ Current mod version: `1.0.112`
 
 ### Farming Assistant
 
-- The settings screen places Farming above Mining, with centered section headings and a blank-line gap between sections.
+- Settings sections are Farming, Mining, then Other, each with centered dashed headings and a blank-line gap.
 
 - Crop profiles ported from the old `bobscript` Forge mod: Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Pumpkim & Melon, Cocoa Bean, Mushroom, Sunflower/Moonflower, and Wild Rose.
 - Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
@@ -69,6 +69,16 @@ Current mod version: `1.0.112`
 - Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
 - Block names shown in chat omit the technical `minecraft:` namespace while retaining full IDs internally for matching and configuration.
 
+## Other
+
+### Jerry detection
+
+- `Jerry 偵測` sits below the Mining target list and uses the same 130×20 toggle as the other sections. Detection is off by default.
+- Turning it on opens a dialog with independent `出現 Jerry 是否通知 Discord` and `出現 Jerry 是否停下動作` toggles (both initially on). Confirm saves the options and enables detection; Cancel/Esc leaves everything unchanged. Turn detection off and on to reconfigure. Detection and both options persist across restarts, but Mining/Farming still never auto-start on login.
+- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and match `Jerry appeared` case-insensitively, allowing extra whitespace. This recognizes messages such as `☺ A Green Jerry appeared!`, regardless of Jerry color; merely mentioning Jerry or `Jerry disappeared` does not trigger it. Detection is based on message text only, not entity scanning.
+- Discord sends `Jerry 通知：出現 Jerry！` through the existing shared Discord Webhook, independently of Farming/Mining and the pest/visitor toggles. Each matching received message is a new notification; no cooldown suppresses later spawns. Requests retain asynchronous delivery, timeout, and token-safe error logging.
+- Stop actions immediately turns Mining/Farming off, clears the mining target, releases attack/movement and manual-input locks, resets smart-pause state, and cancels any queued Farming recovery commands. It does not auto-resume. Missing/invalid Webhook configuration cannot prevent stopping. If both automations are already off, notifications still work without releasing the player's manual movement keys.
+
 ## Build
 
 This repository uses the Minecraft/Fabric jars already installed by PrismLauncher.
@@ -80,12 +90,12 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.112.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.113.jar
 ```
 
 ## Tests
 
-Run the dependency-free tool detection, GUI smart-pause, abnormal-handling, Mining priority/attack-lock, and Tab notification/parser/threshold-screen regression tests (requires Python 3 and the PrismLauncher Java runtime):
+Run the dependency-free tool detection, GUI smart-pause, abnormal-handling, Mining priority/attack-lock, Jerry chat/actions/settings-dialog, and Tab notification/parser/threshold-screen regression tests (requires Python 3 and the PrismLauncher Java runtime):
 
 ```bash
 ./scripts/test.sh

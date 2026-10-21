@@ -22,3 +22,4 @@ python3 "$ROOT/scripts/test-tab-notifications.py" "$JAVA_HOME"
 
 python3 "$ROOT/scripts/test-mining-attack-lock.py"
 python3 "$ROOT/scripts/test-mining-priority.py" "$JAVA_HOME"
+python3 "$ROOT/scripts/test-jerry-detection.py" "$JAVA_HOME"
