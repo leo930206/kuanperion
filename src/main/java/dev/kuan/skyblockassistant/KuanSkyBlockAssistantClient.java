@@ -1987,7 +1987,9 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
 
     private static boolean handleJerryMessage(Minecraft mc, String text) {
         if (!jerryDetectionEnabled || text == null
-                || !text.matches("(?is).*\\bjerry\\s+appeared\\b.*")) return false;
+                || !text.matches("(?is).*(?:\\bjerry\\s+appeared\\b"
+                        + "|\\byou\\s+(?:located\\s+a\\s+hidden|discovered\\s+a)\\s+"
+                        + "[^.!?\\r\\n]*?\\bjerry\\b).*")) return false;
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             boolean wasMining = miningEnabled;

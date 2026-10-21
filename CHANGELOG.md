@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.115] - 2026-10-21
+
+### Changed
+
+- Extend Jerry detection to `Jerry appeared!`, `You located a hidden [color] Jerry!`, and `You discovered a [color] Jerry!` after stripping Minecraft color codes. Match case-insensitively with flexible whitespace; ignore color names rather than whitelisting known colors.
+- Preserve independent Discord/stop-action settings, immediate automation/recovery cleanup, and existing notification content. Avoid matching non-Jerry discoveries, Jerryfish, or a separate sentence mentioning Jerry.
+- Extend production chat/action regression tests across all three forms, multiple/custom/missing colors, embedded formatting codes, case/spacing variations, negative examples, and all notification/stop combinations.
+
 ## [1.0.114] - 2026-10-21
 
 ### Changed

@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.114`
+Current mod version: `1.0.115`
 
 ## Features
 
@@ -75,7 +75,7 @@ Current mod version: `1.0.114`
 
 - `Jerry 偵測` sits below the Mining target list and uses the same 130×20 toggle as the other sections. Detection is off by default.
 - Turning it on opens a dialog with independent `出現 Jerry 是否通知 Discord` and `出現 Jerry 是否停下動作` toggles (both initially on). Confirm saves the options and enables detection; Cancel/Esc leaves everything unchanged. Turn detection off and on to reconfigure. Detection and both options persist across restarts, but Mining/Farming still never auto-start on login.
-- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and match `Jerry appeared` case-insensitively, allowing extra whitespace. This recognizes messages such as `☺ A Green Jerry appeared!`, regardless of Jerry color; merely mentioning Jerry or `Jerry disappeared` does not trigger it. Detection is based on message text only, not entity scanning.
+- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and recognize all three forms case-insensitively with flexible whitespace: `[any color] Jerry appeared!`, `You located a hidden [any color] Jerry!`, and `You discovered a [any color] Jerry!`. Color names are not whitelisted (multi-word/custom colors and no color name are accepted). Merely mentioning Jerry, `Jerry disappeared`, other discovered items, or `Jerryfish` does not trigger it. Detection is based on message text only, not entity scanning.
 - Discord sends `Jerry 通知：出現 Jerry！` through the existing shared Discord Webhook, independently of Farming/Mining and the pest/visitor toggles. Each matching received message is a new notification; no cooldown suppresses later spawns. Requests retain asynchronous delivery, timeout, and token-safe error logging.
 - Stop actions immediately turns Mining/Farming off, clears the mining target, releases attack/movement and manual-input locks, resets smart-pause state, and cancels any queued Farming recovery commands. It does not auto-resume. Missing/invalid Webhook configuration cannot prevent stopping. If both automations are already off, notifications still work without releasing the player's manual movement keys.
 
@@ -90,7 +90,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.114.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.115.jar
 ```
 
 ## Tests

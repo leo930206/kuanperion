@@ -121,12 +121,18 @@ public class JerryDetectionIntegrationTest {
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
         handleReceivedMessage(null);
+        for (String color : List.of("Green", "Blue", "Purple", "Golden", "Coler", "Custom Color", "Super-Rare", ""))
+        for (String message : List.of(
+                "§b ☺ §e" + color + " §aJerry§e appeared!",
+                "§eYou located a hidden §a" + color + " Jerry§e!",
+                "§eYou discovered a §a" + color + " Jerry§e!",
+                "YOU  DISCOVERED  A  " + color.toUpperCase(Locale.ROOT) + "  JERRY!"))
         for(int notify=0;notify<2;notify++) for(int stop=0;stop<2;stop++) {
             reset();jerryDiscordNotificationEnabled=notify==1;jerryStopActionsEnabled=stop==1;
             miningEnabled=true;
-            handleReceivedMessage(Component.literal(APPEARED));
-            check(sent.size()==notify,"independent notification option");
-            check(miningEnabled==(stop==0),"independent stop option");
+            handleReceivedMessage(Component.literal(message));
+            check(sent.size()==notify,"independent notification option: " + message);
+            check(miningEnabled==(stop==0),"independent stop option: " + message);
             if(stop==1) {
                 check(activeTarget==null && !activeTargetStarted,"mining target cleared");
                 check(!mc.options.keyAttack.down && releases==1,"attack and movement released");
@@ -148,7 +154,7 @@ public class JerryDetectionIntegrationTest {
         check(!miningEnabled && sent.isEmpty(),"missing webhook cannot prevent stop");
         reset();handleReceivedMessage(Component.literal("JERRY   appeared!"));
         check(sent.size()==1 && releases==0,"case/spacing and idle notification without input changes");
-        for(String wrong:List.of("Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello")) {
+        for(String wrong:List.of("Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello", "You located a hidden Chest!", "You discovered a Sword!", "You discovered a Jerryfish!", "You located a hidden Jerryfish!", "You discovered a Sword! Jerry is nearby")) {
             reset();miningEnabled=true;handleReceivedMessage(Component.literal(wrong));
             check(miningEnabled && sent.isEmpty(),"ignore non-appearance: "+wrong);
         }
@@ -173,7 +179,7 @@ public class JerryDetectionIntegrationTest {
         check(!jerryDetectionEnabled && saves==2,"enabled master toggles straight off");
         toggleJerryDetection(parent);mc.shown.onClose();
         check(!jerryDetectionEnabled && mc.shown==parent && saves==2,"Esc does not enable");
-        System.out.println("JerryDetectionIntegrationTest: PASS (formatted chat, action combinations, cleanup, recovery, modal, cancellation)");
+        System.out.println("JerryDetectionIntegrationTest: PASS (three message variants/any color, action combinations, cleanup, recovery, modal, cancellation)");
     }
     // METHODS
     // SCREEN
