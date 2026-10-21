@@ -19,7 +19,7 @@ final class NotificationSettingsScreen extends Screen {
     private final Consumer<String> setWebhook;
     private final Consumer<Options> saveOptions;
     private boolean enabled, discord, chat, screen, stopActions;
-    private int threshold;
+    private int threshold, screenSeconds;
 
     NotificationSettingsScreen(Screen parent, NotificationType type, Options initial,
                                Supplier<String> getWebhook, Consumer<String> setWebhook, Consumer<Options> saveOptions) {
@@ -33,6 +33,7 @@ final class NotificationSettingsScreen extends Screen {
         discord = initial.channels().discord();
         chat = initial.channels().chat();
         screen = initial.channels().screen();
+        screenSeconds = initial.channels().screenSeconds();
         threshold = initial.threshold();
         stopActions = initial.stopActions();
     }
@@ -66,8 +67,13 @@ final class NotificationSettingsScreen extends Screen {
             chat = !chat; saveAndRefresh();
         }).bounds(x, y, 280, 20).build());
         y += 28;
-        addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知", screen), b -> {
-            screen = !screen; saveAndRefresh();
+        addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知" + (screen ? "（" + screenSeconds + " 秒）" : ""), screen), b -> {
+            if (screen) { screen = false; saveAndRefresh(); }
+            else Minecraft.getInstance().setScreenAndShow(new ScreenDurationScreen(this, screenSeconds, seconds -> {
+                screenSeconds = seconds;
+                screen = true;
+                saveAndRefresh();
+            }));
         }).bounds(x, y, 280, 20).build());
         y += 28;
         if (type == NotificationType.JERRY) {
@@ -91,7 +97,7 @@ final class NotificationSettingsScreen extends Screen {
     }
 
     private void saveAndRefresh() {
-        saveOptions.accept(new Options(enabled, new NotificationChannels(discord, chat, screen), threshold, stopActions));
+        saveOptions.accept(new Options(enabled, new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions));
         Minecraft.getInstance().setScreenAndShow(this);
     }
 

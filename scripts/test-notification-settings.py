@@ -17,7 +17,7 @@ def method(name):
     return source[start:end]
 methods='\n'.join(method(n) for n in ['notificationChannels','hasNotificationChannel','sendNotification','loadNotificationConfig','saveNotificationConfig','openNotificationSettings','renderNotificationOverlay'])
 classes=[]
-for name in ['NotificationSettingsScreen','WebhookSettingsScreen','PestThresholdScreen','VisitorThresholdScreen']:
+for name in ['NotificationSettingsScreen','WebhookSettingsScreen','PestThresholdScreen','VisitorThresholdScreen','ScreenDurationScreen']:
     s=(base/(name+'.java')).read_text()
     classes.append(s[s.index('final class '+name):].replace('final class '+name,'static final class '+name,1))
 assert 'Component.literal("通知設定")' not in source, 'No global notification settings button'
@@ -151,15 +151,15 @@ public class NotificationSettingsTest {
         check(!jerryStopActionsEnabled && notificationChannels(NotificationType.JERRY).equals(NotificationChannels.NONE),"safe fresh-install defaults");
         long second=1_000_000_000L;
         ScreenNotificationQueue q=new ScreenNotificationQueue();
-        q.add(NotificationType.PESTS,"one",0);q.add(NotificationType.VISITORS,"two",0);
+        q.add(NotificationType.PESTS,"one",3,0);q.add(NotificationType.VISITORS,"two",3,0);
         check(q.current(3*second-1).equals("one") && q.current(3*second).equals("two"),"each screen alert lasts three seconds");
         check(q.current(6*second)==null,"screen expires exactly at boundary");
-        q.add(NotificationType.PESTS,"pest",10*second);q.add(NotificationType.VISITORS,"visitor",10*second);
+        q.add(NotificationType.PESTS,"pest",3,10*second);q.add(NotificationType.VISITORS,"visitor",3,10*second);
         q.remove(NotificationType.PESTS,10*second);
         check(q.current(10*second).equals("visitor"),"disabling one feature does not remove other feature alerts");
-        q.add(NotificationType.JERRY,"jerry",10*second);q.remove(NotificationType.JERRY,10*second);
+        q.add(NotificationType.JERRY,"jerry",3,10*second);q.remove(NotificationType.JERRY,10*second);
         check(q.current(10*second).equals("visitor") && q.current(13*second)==null,"remove pending alerts only for selected feature");
-        SCREEN_NOTIFICATIONS.clear();SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"Jerry!",System.nanoTime());
+        SCREEN_NOTIFICATIONS.clear();SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"Jerry!",3,System.nanoTime());
         GuiGraphicsExtractor graphics=new GuiGraphicsExtractor();renderNotificationOverlay(graphics);
         check(graphics.draws==1 && graphics.stack.x==480 && graphics.stack.y==270 && graphics.stack.scaleX==4 && graphics.stack.depth==0,"centered large overlay");
         mc.gui.hud.hidden=true;int drawn=graphics.draws;renderNotificationOverlay(graphics);check(graphics.draws==drawn,"hidden HUD");mc.gui.hud.hidden=false;
@@ -192,10 +192,46 @@ public class NotificationSettingsTest {
         check(jerry.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).noneMatch(b->b.label.getString().startsWith("Jerry 偵測：")),"Jerry has no master toggle");
         click(jerry,"遊戲聊天室通知");check(notificationChannels(NotificationType.JERRY).chat() && !notificationChannels(NotificationType.VISITORS).chat(),"Jerry chat independent");
         click(jerry,"出現 Jerry 是否停下動作");check(jerryStopActionsEnabled,"Jerry stop configurable without master");
-        click(jerry,"遊戲螢幕通知");SCREEN_NOTIFICATIONS.clear();SCREEN_NOTIFICATIONS.add(NotificationType.PESTS,"pest",System.nanoTime());SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"jerry",System.nanoTime());
+        click(jerry,"遊戲螢幕通知");Screen duration=mc.shown;
+        check(duration instanceof ScreenDurationScreen && !notificationChannels(NotificationType.JERRY).screen(),"enabling screen prompts before saving");
+        click(duration,"確認");
+        SCREEN_NOTIFICATIONS.clear();SCREEN_NOTIFICATIONS.add(NotificationType.PESTS,"pest",3,System.nanoTime());SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"jerry",3,System.nanoTime());
         click(jerry,"遊戲螢幕通知");check(SCREEN_NOTIFICATIONS.current(System.nanoTime()).equals("pest"),"Jerry screen switch does not clear pest overlay");
         click(jerry,"完成");check(mc.shown==parent,"return to main settings");
-        System.out.println("NotificationSettingsTest: PASS (per-feature channels, shared live Webhook, thresholds, safe migration, Jerry without master, overlay isolation)");
+        // Duration dialogs are independent for all three event types.
+        for(NotificationType type:NotificationType.values()) {
+            NOTIFICATION_CHANNELS.put(type,NotificationChannels.NONE);
+            openNotificationSettings(parent,type);Screen feature=mc.shown;
+            int before=saves;
+            click(feature,"遊戲螢幕通知");Screen dialog=mc.shown;
+            check(dialog instanceof ScreenDurationScreen && input(dialog).getValue().equals("3"),"legacy default prefilled");
+            for(String invalid:List.of("", "0", "-1", "1.5", "a", " 3", "3 ", "03", "2147483648", "999999999999999999999")) {
+                input(dialog).setValue(invalid);check(!button(dialog,"確認").active,"invalid duration rejected");
+                click(dialog,"確認");check(saves==before && !notificationChannels(type).screen(),"invalid callback does not enable");
+            }
+            click(dialog,"取消");check(mc.shown==feature && saves==before,"Cancel leaves duration unchanged");
+            click(feature,"遊戲螢幕通知");dialog=mc.shown;dialog.onClose();
+            check(saves==before && !notificationChannels(type).screen(),"Esc leaves screen off");
+            click(feature,"遊戲螢幕通知");dialog=mc.shown;
+            int seconds=5+type.ordinal();input(dialog).setValue(Integer.toString(seconds));
+            dialog.widgets.clear();dialog.init();check(input(dialog).getValue().equals(Integer.toString(seconds)),"draft survives resize");
+            click(dialog,"確認");check(notificationChannels(type).screen() && notificationChannels(type).screenSeconds()==seconds,"feature duration saved");
+            check(button(feature,"遊戲螢幕通知").label.getString().contains(seconds+" 秒"),"button shows duration");
+            click(feature,"遊戲聊天室通知");check(notificationChannels(type).screenSeconds()==seconds,"other switch preserves duration");
+            click(feature,"遊戲螢幕通知");click(feature,"遊戲螢幕通知");dialog=mc.shown;
+            check(input(dialog).getValue().equals(Integer.toString(seconds)),"re-enabling prefills previous duration");dialog.onClose();
+        }
+        check(notificationChannels(NotificationType.PESTS).screenSeconds()==5 && notificationChannels(NotificationType.VISITORS).screenSeconds()==6 && notificationChannels(NotificationType.JERRY).screenSeconds()==7,"durations stay independent");
+        Properties durations=new Properties();saveNotificationConfig(durations);loadNotificationConfig(durations);
+        check(notificationChannels(NotificationType.JERRY).screenSeconds()==7 && notificationChannels(NotificationType.PESTS).screenSeconds()==5,"durations persist across reload");
+        durations.setProperty("jerryNotificationScreenSeconds","invalid");loadNotificationConfig(durations);
+        check(notificationChannels(NotificationType.JERRY).screenSeconds()==3 && notificationChannels(NotificationType.PESTS).screenSeconds()==5,"invalid saved duration safely defaults only that feature");
+        NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,false,true,9));SCREEN_NOTIFICATIONS.clear();
+        sendNotification(NotificationType.JERRY,"duration","custom");long now=System.nanoTime();
+        check(SCREEN_NOTIFICATIONS.current(now+4_000_000_000L).equals("custom"),"dispatcher passes selected duration, not fixed three seconds");
+        check(SCREEN_NOTIFICATIONS.current(now+10_000_000_000L)==null,"dispatcher duration eventually expires");
+
+        System.out.println("NotificationSettingsTest: PASS (per-feature channels, shared live Webhook, thresholds, safe migration, Jerry without master, overlay isolation, per-feature duration dialogs)");
     }
     // METHODS
     // SCREENS

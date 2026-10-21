@@ -2039,7 +2039,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
         if (channels.chat()) say(mc, plain(content));
-        if (channels.screen()) SCREEN_NOTIFICATIONS.add(type, screenText, System.nanoTime());
+        if (channels.screen()) SCREEN_NOTIFICATIONS.add(type, screenText, channels.screenSeconds(), System.nanoTime());
     }
 
     private static void renderNotificationOverlay(GuiGraphicsExtractor graphics) {
@@ -2102,10 +2102,12 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             NotificationChannels defaults = newSettings || (type == NotificationType.JERRY && !(legacyJerry && legacyJerryNotify))
                     ? NotificationChannels.NONE : legacy;
             String key = type.configKey;
+            int seconds = NotificationChannels.parseScreenSeconds(p.getProperty(key + "ScreenSeconds"));
+            if (seconds == 0) seconds = NotificationChannels.DEFAULT_SCREEN_SECONDS;
             NOTIFICATION_CHANNELS.put(type, new NotificationChannels(
                     Boolean.parseBoolean(p.getProperty(key + "DiscordEnabled", Boolean.toString(defaults.discord()))),
                     Boolean.parseBoolean(p.getProperty(key + "ChatEnabled", Boolean.toString(defaults.chat()))),
-                    Boolean.parseBoolean(p.getProperty(key + "ScreenEnabled", Boolean.toString(defaults.screen())))));
+                    Boolean.parseBoolean(p.getProperty(key + "ScreenEnabled", Boolean.toString(defaults.screen()))), seconds));
         }
         jerryStopActionsEnabled = (newSettings || legacyJerry)
                 && Boolean.parseBoolean(p.getProperty("jerryStopActionsEnabled", newSettings ? "false" : "true"));
@@ -2121,6 +2123,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             p.setProperty(key + "DiscordEnabled", Boolean.toString(channels.discord()));
             p.setProperty(key + "ChatEnabled", Boolean.toString(channels.chat()));
             p.setProperty(key + "ScreenEnabled", Boolean.toString(channels.screen()));
+            p.setProperty(key + "ScreenSeconds", Integer.toString(channels.screenSeconds()));
         }
     }
 

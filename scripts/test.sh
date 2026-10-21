@@ -12,11 +12,16 @@ trap 'rm -rf "$TMP"' EXIT
     "$ROOT/src/test/java/dev/kuan/skyblockassistant/SkyBlockLocationBridgeTest.java" \
     "$ROOT/src/main/java/dev/kuan/skyblockassistant/GuiPauseGuard.java" \
     "$ROOT/src/test/java/dev/kuan/skyblockassistant/GuiPauseGuardTest.java" \
-    "$ROOT/src/test/java/dev/kuan/skyblockassistant/FarmingToolGuardTest.java"
+    "$ROOT/src/test/java/dev/kuan/skyblockassistant/FarmingToolGuardTest.java" \
+    "$ROOT/src/main/java/dev/kuan/skyblockassistant/NotificationType.java" \
+    "$ROOT/src/main/java/dev/kuan/skyblockassistant/NotificationChannels.java" \
+    "$ROOT/src/main/java/dev/kuan/skyblockassistant/ScreenNotificationQueue.java" \
+    "$ROOT/src/test/java/dev/kuan/skyblockassistant/NotificationScreenDurationTest.java"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.FarmingToolGuardTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.GuiPauseGuardTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.SkyBlockLocationBridgeTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.GardenTabNotificationsTest
+"$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.NotificationScreenDurationTest
 python3 "$ROOT/scripts/test-abnormal-handling.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-tab-notifications.py" "$JAVA_HOME"
 

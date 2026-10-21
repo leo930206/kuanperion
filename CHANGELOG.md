@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.119] - 2026-10-21
+
+### Added
+
+- Open a seconds-entry dialog when enabling each feature's game-screen notifications. Confirm a positive integer to enable; reject blank, zero, negative, decimal, malformed, and overflowing input. Cancel/Esc preserves the disabled state and prior duration; resize preserves the draft.
+- Save Visitor, pest, and Jerry screen durations independently, prefill the last value, and show seconds on the enabled switch. Legacy/missing/invalid saved values default to 3 seconds without altering channel switches or shared Webhook settings.
+
+### Changed
+
+- Replace the fixed three-second screen timeout with each event's selected duration. Capture duration on enqueue so mixed notification types display for their own chosen times; retain feature-isolated cancellation, centered/scaled rendering, and monotonic timing.
+- Add parser/queue and production-dialog/routing/configuration regression coverage for input validation, independent durations, confirmation/cancellation, restart persistence, exact boundaries, large-duration arithmetic, and unchanged notification-channel behavior.
+
 ## [1.0.118] - 2026-10-21
 
 ### Changed
