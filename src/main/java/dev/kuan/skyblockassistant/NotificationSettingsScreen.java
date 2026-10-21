@@ -52,16 +52,16 @@ final class NotificationSettingsScreen extends Screen {
         addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
         y += 24;
         if (type == NotificationType.JERRY) {
-            addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
-                stopActions = !stopActions; saveAndRefresh();
-            }).bounds(x, y, 280, 20).build());
-            y += 28;
             for (JerryColor color : JerryColor.values()) {
                 addRenderableWidget(Button.builder(colorMsg(color), b -> {
                     if (!colors.remove(color)) colors.add(color);
                     saveAndRefresh();
                 }).bounds(x + color.ordinal() * 70, y, 70, 20).build());
             }
+            y += 28;
+            addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
+                stopActions = !stopActions; saveAndRefresh();
+            }).bounds(x, y, 280, 20).build());
             y += 28;
         } else {
             addRenderableWidget(Button.builder(Component.literal("出現多少 " + (type == NotificationType.PESTS ? "Pest" : "Visitor") + " 要通知：" + threshold), b -> openThreshold())

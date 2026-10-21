@@ -2,7 +2,7 @@
 
 為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、Pest、Jerry 通知功能。
 
-**目前版本：`1.0.125`**
+**目前版本：`1.0.126`**
 
 | 項目 | 說明 |
 | --- | --- |
@@ -30,7 +30,7 @@
 
 1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
 2. 依[建置與測試](#建置與測試)產生 jar。
-3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.125.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.126.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
 4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
 5. 重新啟動 Minecraft。
 
@@ -234,7 +234,7 @@ Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用�
 | --- | --- |
 | Farming 區的「Visitor 通知」 | 外層總開關；內層四行：「出現多少 Visitor 要通知：」數量（1～5）、三種通知管道 |
 | Farming 區的「Pest 通知」 | 外層總開關；內層四行：「出現多少 Pest 要通知：」數量（1～8）、三種通知管道 |
-| Other 區的「Jerry 偵測」 | 第一行為「出現 Jerry 是否停下動作」，接著四色開關列與三種通知管道；**沒有 Jerry 總開關** |
+| Other 區的「Jerry 偵測」 | 第一行為四色開關列，第二行為「出現 Jerry 是否停下動作」，接著三種通知管道；**沒有 Jerry 總開關** |
 
 每個功能都有下列三個開關，可以全開、全關或任意搭配，互不影響：
 
@@ -304,7 +304,7 @@ Webhook 請求非同步送出，逾時為十秒；失敗或 HTTP 狀態碼只記
 
 點選 Other 的「Jerry 偵測」即可設定，不需要先開啟任何 Jerry 總開關。
 
-Discord 訊息通知上方有一列四等寬獨立開關，依序為 **Green／Blue／Purple／Golden**。名稱使用對應的 Minecraft 綠色、藍色、深紫色與金色，並顯示「顏色：開啟／關閉」。
+Jerry 設定第一行有四等寬獨立開關，依序為 **Green／Blue／Purple／Golden**。名稱使用對應的 Minecraft 綠色、藍色、深紫色與金色，並顯示「顏色：開啟／關閉」。第二行為「出現 Jerry 是否停下動作」，接著才是 Discord、遊戲內聊天室與遊戲內螢幕通知。
 
 - 四色預設全開，各自保存，重啟後保留；舊設定缺少這些選項時也預設全開。
 - 例如只開 Green 與 Golden，就只處理 `Green Jerry`／`Golden Jerry`；Blue 與 Purple 不通知，也不觸發停下動作。
@@ -377,7 +377,7 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.125.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.126.jar
 ```
 
 測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、四色全部 16 種組合與開關位置／顏色／保存、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。

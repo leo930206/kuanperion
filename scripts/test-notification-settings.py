@@ -121,7 +121,7 @@ public class NotificationSettingsTest {
     static void checkRows(Screen screen,NotificationType type) {
         List<Button> rows=screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
         List<String> expected=type==NotificationType.JERRY
-                ? List.of("出現 Jerry 是否停下動作","Green：","Blue：","Purple：","Golden：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
+                ? List.of("Green：","Blue：","Purple：","Golden：","出現 Jerry 是否停下動作","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
                 : List.of(type==NotificationType.PESTS ? "出現多少 Pest 要通知：" : "出現多少 Visitor 要通知：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
         check(rows.size()==(type==NotificationType.JERRY ? 9 : 5),"correct feature button count: "+type);
         for(int i=0;i<expected.size();i++) check(rows.get(i).label.getString().startsWith(expected.get(i)),"row order/wording: "+type+i);
@@ -130,9 +130,9 @@ public class NotificationSettingsTest {
             Button discord=rows.get(5);
             int[] colors={0x55FF55,0x5555FF,0xAA00AA,0xFFAA00};
             for(int i=0;i<4;i++) {
-                Button part=rows.get(i+1);
+                Button part=rows.get(i);
                 check(part.width*4==discord.width && part.height==discord.height && part.x==discord.x+i*part.width,"four equal widths fill one full row");
-                check(part.y==rows.get(1).y && part.y==discord.y-28 && part.y==rows.get(0).y+28,"color row between stop and Discord");
+                check(part.y==rows.get(0).y && part.y==rows.get(4).y-28 && rows.get(4).y==discord.y-28,"color row above stop action row, then Discord");
                 check(part.label.rgb==colors[i],"name uses supplied Minecraft color");
                 check(part.label.getString().equals(JerryColor.values()[i].label+"："+(jerryColors.contains(JerryColor.values()[i]) ? "開啟" : "關閉")),"color toggle text reflects saved value");
             }
