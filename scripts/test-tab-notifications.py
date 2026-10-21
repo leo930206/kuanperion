@@ -235,11 +235,11 @@ public class TabNotificationIntegrationTest {
         NOTIFICATION_CHANNELS.put(NotificationType.PESTS,new NotificationChannels(false,true,false));
         NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,NotificationChannels.NONE);
         garden(mc,4,3);scan(mc);
-        check(sent.size()==1 && sent.get(0).contains("害蟲"),"visitor channels off cannot block pest notifications");
+        check(sent.size()==1 && sent.get(0).contains("Pest"),"visitor channels off cannot block pest notifications");
         NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,true,false));scan(mc);
         check(sent.size()==2 && sent.get(1).contains("Visitor"),"pest-only polling must not consume unavailable visitor count");
         NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,NotificationChannels.NONE);garden(mc,5,4);scan(mc);
-        check(sent.size()==3 && sent.get(2).contains("害蟲"),"independent pest next count");
+        check(sent.size()==3 && sent.get(2).contains("Pest"),"independent pest next count");
         NOTIFICATION_CHANNELS.put(NotificationType.VISITORS,new NotificationChannels(false,false,true));scan(mc);
         check(sent.size()==4 && sent.get(3).contains("Visitor"),"new visitor screen channel sees its pending count only");
         System.out.println("TabNotificationIntegrationTest passed (polling, ordering, toggles, missing data, pest/visitor threshold UI)");

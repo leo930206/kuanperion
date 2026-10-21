@@ -13,13 +13,13 @@ import net.minecraft.network.chat.Component;
 
 /** One feature owns its switches; only the live Webhook supplier is shared. */
 final class NotificationSettingsScreen extends Screen {
-    record Options(boolean enabled, NotificationChannels channels, int threshold, boolean stopActions) {}
+    record Options(NotificationChannels channels, int threshold, boolean stopActions) {}
     private final Screen parent;
     private final NotificationType type;
     private final Supplier<String> getWebhook;
     private final Consumer<String> setWebhook;
     private final Consumer<Options> saveOptions;
-    private boolean enabled, discord, chat, screen, stopActions;
+    private boolean discord, chat, screen, stopActions;
     private int threshold;
     private BigDecimal screenSeconds;
 
@@ -31,7 +31,6 @@ final class NotificationSettingsScreen extends Screen {
         this.getWebhook = getWebhook;
         this.setWebhook = setWebhook;
         this.saveOptions = saveOptions;
-        enabled = initial.enabled();
         discord = initial.channels().discord();
         chat = initial.channels().chat();
         screen = initial.channels().screen();
@@ -43,16 +42,11 @@ final class NotificationSettingsScreen extends Screen {
     @Override
     protected void init() {
         int x = this.width / 2 - 140;
-        int y = this.height / 2 - (type == NotificationType.JERRY ? 86 : 114);
+        int y = this.height / 2 - 86;
         addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
         y += 24;
         if (type != NotificationType.JERRY) {
-            addRenderableWidget(Button.builder(toggleMsg(type.label, enabled), b -> {
-                if (enabled) { enabled = false; saveAndRefresh(); }
-                else openThreshold(true);
-            }).bounds(x, y, 280, 20).build());
-            y += 28;
-            addRenderableWidget(Button.builder(Component.literal("數量門檻：" + threshold), b -> openThreshold(false))
+            addRenderableWidget(Button.builder(Component.literal("數量門檻：" + threshold), b -> openThreshold())
                     .bounds(x, y, 280, 20).build());
             y += 28;
         }
@@ -65,11 +59,11 @@ final class NotificationSettingsScreen extends Screen {
             }));
         }).bounds(x, y, 280, 20).build());
         y += 28;
-        addRenderableWidget(Button.builder(toggleMsg("遊戲聊天室通知", chat), b -> {
+        addRenderableWidget(Button.builder(toggleMsg("遊戲內聊天室通知", chat), b -> {
             chat = !chat; saveAndRefresh();
         }).bounds(x, y, 280, 20).build());
         y += 28;
-        addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知" + (screen ? "（" + screenSeconds.toPlainString() + " 秒）" : ""), screen), b -> {
+        addRenderableWidget(Button.builder(toggleMsg("遊戲內螢幕通知" + (screen ? "（" + screenSeconds.toPlainString() + " 秒）" : ""), screen), b -> {
             if (screen) { screen = false; saveAndRefresh(); }
             else Minecraft.getInstance().setScreenAndShow(new ScreenDurationScreen(this, screenSeconds, seconds -> {
                 screenSeconds = seconds;
@@ -88,10 +82,9 @@ final class NotificationSettingsScreen extends Screen {
                 .bounds(this.width / 2 - 65, y + 8, 130, 20).build());
     }
 
-    private void openThreshold(boolean enableOnConfirm) {
+    private void openThreshold() {
         IntConsumer confirm = value -> {
             threshold = value;
-            if (enableOnConfirm) enabled = true;
             saveAndRefresh();
         };
         Minecraft.getInstance().setScreenAndShow(type == NotificationType.PESTS
@@ -99,7 +92,7 @@ final class NotificationSettingsScreen extends Screen {
     }
 
     private void saveAndRefresh() {
-        saveOptions.accept(new Options(enabled, new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions));
+        saveOptions.accept(new Options(new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions));
         Minecraft.getInstance().setScreenAndShow(this);
     }
 

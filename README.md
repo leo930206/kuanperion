@@ -1,8 +1,8 @@
 # Kuan Hypixel SkyBlock Assistant
 
-為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、害蟲、Jerry 通知功能。
+為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、Pest、Jerry 通知功能。
 
-**目前版本：`1.0.121`**
+**目前版本：`1.0.122`**
 
 | 項目 | 說明 |
 | --- | --- |
@@ -30,7 +30,7 @@
 
 1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
 2. 依[建置與測試](#建置與測試)產生 jar。
-3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.121.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.122.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
 4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
 5. 重新啟動 Minecraft。
 
@@ -232,8 +232,8 @@ Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用�
 
 | 按鈕 | 設定內容 |
 | --- | --- |
-| Farming 區的「Visitor 通知」 | 通知總開關、1～5 數量門檻、三種通知管道 |
-| Farming 區的「害蟲通知」 | 通知總開關、1～8 數量門檻、三種通知管道 |
+| Farming 區的「Visitor 通知」 | 外層總開關；內層四行：1～5 數量門檻、三種通知管道 |
+| Farming 區的「Pest 通知」 | 外層總開關；內層四行：1～8 數量門檻、三種通知管道 |
 | Other 區的「Jerry 偵測」 | 三種通知管道、是否停下動作；**沒有 Jerry 總開關** |
 
 每個功能都有下列三個開關，可以全開、全關或任意搭配，互不影響：
@@ -241,12 +241,17 @@ Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用�
 | 通知管道 | 行為 |
 | --- | --- |
 | Discord 訊息通知 | 透過共用 Webhook 傳送訊息 |
-| 遊戲聊天室通知 | 顯示本機 `[Kuan HSBA]` 提示，不會送到伺服器聊天頻道 |
-| 遊戲螢幕通知 | 在畫面中央顯示放大的黃色文字 |
+| 遊戲內聊天室通知 | 顯示本機 `[Kuan HSBA]` 提示，不會送到伺服器聊天頻道 |
+| 遊戲內螢幕通知 | 在畫面中央顯示放大的黃色文字 |
 
-Visitor／害蟲可先設定管道，再啟用功能。開啟其總開關時輸入數量門檻；也可使用「數量門檻」直接修改。設定變更只重置該功能需要重置的通知紀錄，不會影響另一種通知。
+Visitor／Pest 的總開關只放在 Farming 主設定頁面，不在彈出視窗重複顯示：
 
-關閉「遊戲聊天室通知」只會停止模組額外的提示，不會隱藏原本的伺服器訊息。
+- 關閉時點選外層按鈕：輸入數量門檻，確認後啟用並開啟四行設定視窗；取消／Esc 不啟用。
+- 開啟時點選外層按鈕：直接關閉該功能，保留原門檻、通知管道與秒數。
+- 設定視窗只含「數量門檻、Discord 訊息通知、遊戲內聊天室通知、遊戲內螢幕通知」，另有「完成」按鈕。可從「數量門檻」修改數量，不會改變總開關。
+- 要重新開啟設定，可關閉再開啟外層按鈕。設定變更只重置該功能需要重置的通知紀錄，不會影響另一種通知。
+
+關閉「遊戲內聊天室通知」只會停止模組額外的提示，不會隱藏原本的伺服器訊息。
 
 ### 共用 Discord Webhook
 
@@ -262,7 +267,7 @@ Webhook 請求非同步送出，逾時為十秒；失敗或 HTTP 狀態碼只記
 
 ### 自訂螢幕通知時間
 
-1. 在某個功能內，開啟「遊戲螢幕通知」。
+1. 在某個功能內，開啟「遊戲內螢幕通知」。
 2. 在彈出視窗輸入大於 0 的秒數，可含**最多一個小數點**，例如 `0.5`、`1.25`、`3`。
 3. 確認後啟用，開關上會顯示設定秒數；取消／Esc 則保持關閉且不修改原時間。
 4. 想改時間時，先關閉再開啟，視窗會預填上次儲存的值。
@@ -275,25 +280,25 @@ Webhook 請求非同步送出，逾時為十秒；失敗或 HTTP 狀態碼只記
 - 文字最多放大至一般字體的四倍，並依畫面寬度縮放；F1 隱藏 HUD 時不繪製。
 - 關閉某功能的螢幕通知／總開關，只移除該功能的螢幕提示；離開或切換世界則清除全部待顯示提示。
 
-### Visitor 與害蟲通知規則
+### Visitor 與 Pest 通知規則
 
 | 功能 | 資料來源 | 門檻範圍 |
 | --- | --- | --- |
 | Visitor | Tab 的 `Visitors: (number)` | 1～5 |
-| 害蟲 | Tab 的 `Pests` → `Alive` | 1～8 |
+| Pest | Tab 的 `Pests` → `Alive` | 1～8 |
 
-直接讀取伺服器提供的快取 Tab 資料，約每 20 client ticks 檢查一次；不必按住 Tab，也不必開啟 Farming／Mining。害蟲通知不使用出生聊天訊息或 sidebar 害蟲數。
+直接讀取伺服器提供的快取 Tab 資料，約每 20 client ticks 檢查一次；不必按住 Tab，也不必開啟 Farming／Mining。Pest 通知不使用出生聊天訊息或 sidebar Pest 數。
 
 通知方式是：**每個達到門檻的實際觀察數量，各通知一次**。
 
 - Visitor 設為 `3`：觀察到 `3`、`4`、`5` 位時，各通知一次。
-- 害蟲設為 `4`：觀察到 `4`、`5`、`6`、`7`、`8` 隻時，各通知一次；更高的有效數量同樣依門檻處理。
+- Pest 設為 `4`：觀察到 `4`、`5`、`6`、`7`、`8` 隻時，各通知一次；更高的有效數量同樣依門檻處理。
 - 維持相同數量，或 `3 → 4 → 3` 這種回到已通知數量的情況，不會重複通知。
 - 有效數量降到門檻以下、切換該通知總開關，或實際更改門檻時，會重置該功能的紀錄。
 - 從 `2` 直接跳到 `5`，只通知實際讀到的 `5`，不補發未觀察到的 `3`、`4`。
 - Tab／世界資料暫時缺失不視為零，不會清除紀錄；Visitor 超出 0～5 的數量也不會重置紀錄。
 - 某功能沒有可用管道時，不會消耗該功能的通知數量紀錄；另一個功能仍能獨立通知。
-- 更換通知管道不會重播已通知過的數量，也不會自動清除害蟲或接待 Visitor。
+- 更換通知管道不會重播已通知過的數量，也不會自動清除 Pest 或接待 Visitor。
 
 ### Jerry 偵測
 
@@ -364,7 +369,7 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.121.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.122.jar
 ```
 
 測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。

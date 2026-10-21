@@ -15,7 +15,7 @@ def method(name):
     while depth:
         depth+=(source[end]=='{')-(source[end]=='}');end+=1
     return source[start:end]
-methods='\n'.join(method(n) for n in ['notificationChannels','hasNotificationChannel','sendNotification','loadNotificationConfig','saveNotificationConfig','openNotificationSettings','renderNotificationOverlay'])
+methods='\n'.join(method(n) for n in ['notificationChannels','hasNotificationChannel','sendNotification','loadNotificationConfig','saveNotificationConfig','toggleTabNotification','openNotificationSettings','renderNotificationOverlay'])
 classes=[]
 for name in ['NotificationSettingsScreen','WebhookSettingsScreen','PestThresholdScreen','VisitorThresholdScreen','ScreenDurationScreen']:
     s=(base/(name+'.java')).read_text()
@@ -23,6 +23,11 @@ for name in ['NotificationSettingsScreen','WebhookSettingsScreen','PestThreshold
 assert 'Component.literal("通知設定")' not in source, 'No global notification settings button'
 assert 'toggleMsg("Jerry 偵測"' not in source, 'Jerry has no master toggle'
 assert 'Component.literal("Jerry 偵測")' in source
+for feature in ['PESTS','VISITORS']:
+    assert f'b -> toggleTabNotification(this, NotificationType.{feature})' in source, 'Outer buttons own master switches'
+assert '害蟲' not in ''.join(p.read_text() for p in base.glob('*.java')), 'Use Pest throughout current production text'
+assert '遊戲聊天室通知' not in (base/'NotificationSettingsScreen.java').read_text()
+assert '遊戲螢幕通知' not in (base/'NotificationSettingsScreen.java').read_text()
 harness=r'''package dev.kuan.skyblockassistant;
 import java.util.*;
 import java.util.function.*;
@@ -82,7 +87,10 @@ public class NotificationSettingsTest {
         public void onClose() {}
         public boolean isPauseScreen() { return true; }
     }
-    static class SettingsScreen extends Screen { SettingsScreen() { super(Component.literal("main")); } }
+    static class SettingsScreen extends Screen {
+        SettingsScreen() { super(Component.literal("main")); }
+        void rebuild() { Minecraft.getInstance().setScreenAndShow(this); }
+    }
     static class StringWidget { StringWidget(Object... args) {} }
     static class EditBox {
         String value="";int maxLength=300;Consumer<String> responder;
@@ -108,6 +116,14 @@ public class NotificationSettingsTest {
     static Button button(Screen screen,String prefix) { return screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).filter(b->b.label.getString().startsWith(prefix)).findFirst().orElseThrow(); }
     static void click(Screen screen,String prefix) { Button b=button(screen,prefix);b.callback.accept(b); }
     static EditBox input(Screen screen) { return (EditBox)screen.widgets.stream().filter(EditBox.class::isInstance).findFirst().orElseThrow(); }
+    static void checkRows(Screen screen,NotificationType type) {
+        List<Button> rows=screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
+        List<String> expected=type==NotificationType.JERRY
+                ? List.of("Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","出現 Jerry 是否停下動作","完成")
+                : List.of("數量門檻","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
+        check(rows.size()==5,"four content rows plus Done: "+type);
+        for(int i=0;i<expected.size();i++) check(rows.get(i).label.getString().startsWith(expected.get(i)),"row order/wording: "+type+i);
+    }
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
         for(NotificationType type:NotificationType.values()) for(int mask=0;mask<8;mask++) {
@@ -167,13 +183,19 @@ public class NotificationSettingsTest {
         SettingsScreen parent=new SettingsScreen();
         pestNotificationEnabled=visitorNotificationEnabled=false;jerryStopActionsEnabled=false;
         NOTIFICATION_CHANNELS.clear();pestWebhookUrl="https://example.test/one";
-        openNotificationSettings(parent,NotificationType.VISITORS);Screen visitor=mc.shown;
-        click(visitor,"Visitor 通知");Screen threshold=mc.shown;
-        check(threshold instanceof VisitorThresholdScreen,"visitor enable keeps 1-5 dialog");
+        toggleTabNotification(parent,NotificationType.VISITORS);Screen threshold=mc.shown;
+        check(threshold instanceof VisitorThresholdScreen,"outer Visitor switch opens 1-5 dialog");
         input(threshold).setValue("6");check(!button(threshold,"確認").active,"invalid visitor threshold");
-        click(threshold,"取消");check(!visitorNotificationEnabled && mc.shown==visitor,"cancel cannot enable visitor");
-        click(visitor,"Visitor 通知");threshold=mc.shown;input(threshold).setValue("3");click(threshold,"確認");
-        check(visitorNotificationEnabled && visitorNotificationThreshold==3 && mc.shown==visitor,"visitor threshold confirmed");
+        click(threshold,"確認");check(!visitorNotificationEnabled,"invalid confirmation cannot enable Visitor");
+        click(threshold,"取消");check(!visitorNotificationEnabled && mc.shown==parent,"cancel returns to outer screen without enabling");
+        toggleTabNotification(parent,NotificationType.VISITORS);mc.shown.onClose();
+        check(!visitorNotificationEnabled && mc.shown==parent,"Esc cannot enable Visitor");
+        toggleTabNotification(parent,NotificationType.VISITORS);threshold=mc.shown;input(threshold).setValue("3");click(threshold,"確認");
+        Screen visitor=mc.shown;
+        check(visitorNotificationEnabled && visitorNotificationThreshold==3 && visitor instanceof NotificationSettingsScreen,"confirm enables Visitor then opens preferences");
+        checkRows(visitor,NotificationType.VISITORS);
+        click(visitor,"數量門檻");threshold=mc.shown;input(threshold).setValue("4");click(threshold,"確認");
+        check(visitorNotificationEnabled && visitorNotificationThreshold==4 && mc.shown==visitor,"threshold row edits preferences without changing master");
         click(visitor,"Discord 訊息通知");Screen url=mc.shown;
         for(String invalid:List.of("", "abc", "ftp://example.test/hook", "https://")) {
             input(url).setValue(invalid);click(url,"確認");check(!notificationChannels(NotificationType.VISITORS).discord(),"invalid Webhook cannot enable");
@@ -181,7 +203,15 @@ public class NotificationSettingsTest {
         click(url,"取消");check(pestWebhookUrl.equals("https://example.test/one"),"cancel retains shared URL");
         click(visitor,"Discord 訊息通知");url=mc.shown;input(url).setValue(" https://example.test/two ");click(url,"確認");
         check(notificationChannels(NotificationType.VISITORS).discord() && pestWebhookUrl.endsWith("/two"),"visitor enables only its Discord flag and changes common URL");
-        openNotificationSettings(parent,NotificationType.PESTS);Screen pest=mc.shown;
+        toggleTabNotification(parent,NotificationType.PESTS);threshold=mc.shown;
+        check(threshold instanceof PestThresholdScreen,"outer Pest switch opens 1-8 dialog");
+        input(threshold).setValue("9");check(!button(threshold,"確認").active,"invalid Pest threshold");
+        click(threshold,"取消");check(!pestNotificationEnabled && mc.shown==parent,"cancel cannot enable Pest");
+        toggleTabNotification(parent,NotificationType.PESTS);mc.shown.onClose();
+        check(!pestNotificationEnabled,"Esc cannot enable Pest");
+        toggleTabNotification(parent,NotificationType.PESTS);threshold=mc.shown;input(threshold).setValue("8");click(threshold,"確認");
+        Screen pest=mc.shown;check(pestNotificationEnabled && pestNotificationThreshold==8,"confirm enables Pest");
+        checkRows(pest,NotificationType.PESTS);
         click(pest,"Discord 訊息通知");url=mc.shown;check(input(url).getValue().endsWith("/two"),"pest sees shared URL");
         input(url).setValue("https://example.test/three");click(url,"確認");
         check(notificationChannels(NotificationType.PESTS).discord() && notificationChannels(NotificationType.VISITORS).discord(),"second feature cannot alter first feature flag");
@@ -190,36 +220,37 @@ public class NotificationSettingsTest {
         click(visitor,"Discord 訊息通知");check(!notificationChannels(NotificationType.VISITORS).discord() && notificationChannels(NotificationType.PESTS).discord(),"disable only visitor Discord");
         click(visitor,"Discord 訊息通知");url=mc.shown;check(input(url).getValue().endsWith("/three"),"existing modal reads latest shared URL, not stale snapshot");url.onClose();
         openNotificationSettings(parent,NotificationType.JERRY);Screen jerry=mc.shown;
+        checkRows(jerry,NotificationType.JERRY);
         check(jerry.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).noneMatch(b->b.label.getString().startsWith("Jerry 偵測：")),"Jerry has no master toggle");
-        click(jerry,"遊戲聊天室通知");check(notificationChannels(NotificationType.JERRY).chat() && !notificationChannels(NotificationType.VISITORS).chat(),"Jerry chat independent");
+        click(jerry,"遊戲內聊天室通知");check(notificationChannels(NotificationType.JERRY).chat() && !notificationChannels(NotificationType.VISITORS).chat(),"Jerry chat independent");
         click(jerry,"出現 Jerry 是否停下動作");check(jerryStopActionsEnabled,"Jerry stop configurable without master");
-        click(jerry,"遊戲螢幕通知");Screen duration=mc.shown;
+        click(jerry,"遊戲內螢幕通知");Screen duration=mc.shown;
         check(duration instanceof ScreenDurationScreen && !notificationChannels(NotificationType.JERRY).screen(),"enabling screen prompts before saving");
         click(duration,"確認");
         SCREEN_NOTIFICATIONS.clear();SCREEN_NOTIFICATIONS.add(NotificationType.PESTS,"pest",3,System.nanoTime());SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"jerry",3,System.nanoTime());
-        click(jerry,"遊戲螢幕通知");check(SCREEN_NOTIFICATIONS.current(System.nanoTime()).equals("pest"),"Jerry screen switch does not clear pest overlay");
+        click(jerry,"遊戲內螢幕通知");check(SCREEN_NOTIFICATIONS.current(System.nanoTime()).equals("pest"),"Jerry screen switch does not clear pest overlay");
         click(jerry,"完成");check(mc.shown==parent,"return to main settings");
         // Duration dialogs are independent for all three event types.
         for(NotificationType type:NotificationType.values()) {
             NOTIFICATION_CHANNELS.put(type,NotificationChannels.NONE);
             openNotificationSettings(parent,type);Screen feature=mc.shown;
             int before=saves;
-            click(feature,"遊戲螢幕通知");Screen dialog=mc.shown;
+            click(feature,"遊戲內螢幕通知");Screen dialog=mc.shown;
             check(dialog instanceof ScreenDurationScreen && input(dialog).getValue().equals("3"),"legacy default prefilled");
             for(String invalid:List.of("", "0", "-1", "1..5", "1.2.3", "0.0", "a", " 3", "3 ", "03", "2147483648", "999999999999999999999")) {
                 input(dialog).setValue(invalid);check(!button(dialog,"確認").active,"invalid duration rejected");
                 click(dialog,"確認");check(saves==before && !notificationChannels(type).screen(),"invalid callback does not enable");
             }
             click(dialog,"取消");check(mc.shown==feature && saves==before,"Cancel leaves duration unchanged");
-            click(feature,"遊戲螢幕通知");dialog=mc.shown;dialog.onClose();
+            click(feature,"遊戲內螢幕通知");dialog=mc.shown;dialog.onClose();
             check(saves==before && !notificationChannels(type).screen(),"Esc leaves screen off");
-            click(feature,"遊戲螢幕通知");dialog=mc.shown;
+            click(feature,"遊戲內螢幕通知");dialog=mc.shown;
             BigDecimal seconds=new BigDecimal(List.of("0.5","1.25","2.75").get(type.ordinal()));input(dialog).setValue(seconds.toPlainString());
             dialog.widgets.clear();dialog.init();check(input(dialog).getValue().equals(seconds.toPlainString()),"draft survives resize");
             click(dialog,"確認");check(notificationChannels(type).screen() && notificationChannels(type).screenSeconds().compareTo(seconds)==0,"feature duration saved");
-            check(button(feature,"遊戲螢幕通知").label.getString().contains(seconds.toPlainString()+" 秒"),"button shows duration");
-            click(feature,"遊戲聊天室通知");check(notificationChannels(type).screenSeconds().compareTo(seconds)==0,"other switch preserves duration");
-            click(feature,"遊戲螢幕通知");click(feature,"遊戲螢幕通知");dialog=mc.shown;
+            check(button(feature,"遊戲內螢幕通知").label.getString().contains(seconds.toPlainString()+" 秒"),"button shows duration");
+            click(feature,"遊戲內聊天室通知");check(notificationChannels(type).screenSeconds().compareTo(seconds)==0,"other switch preserves duration");
+            click(feature,"遊戲內螢幕通知");click(feature,"遊戲內螢幕通知");dialog=mc.shown;
             check(input(dialog).getValue().equals(seconds.toPlainString()),"re-enabling prefills previous duration");dialog.onClose();
         }
         check(notificationChannels(NotificationType.PESTS).screenSeconds().compareTo(new BigDecimal("0.5"))==0 && notificationChannels(NotificationType.VISITORS).screenSeconds().compareTo(new BigDecimal("1.25"))==0 && notificationChannels(NotificationType.JERRY).screenSeconds().compareTo(new BigDecimal("2.75"))==0,"durations stay independent");
@@ -232,7 +263,32 @@ public class NotificationSettingsTest {
         check(SCREEN_NOTIFICATIONS.current(now+4_000_000_000L).equals("custom"),"dispatcher passes selected duration, not fixed three seconds");
         check(SCREEN_NOTIFICATIONS.current(now+10_000_000_000L)==null,"dispatcher duration eventually expires");
 
-        System.out.println("NotificationSettingsTest: PASS (per-feature channels, shared live Webhook, thresholds, safe migration, Jerry without master, overlay isolation, per-feature decimal duration dialogs)");
+        for(NotificationType type:List.of(NotificationType.PESTS,NotificationType.VISITORS)) {
+            pestNotificationEnabled=visitorNotificationEnabled=true;
+            TAB_NOTIFICATIONS.resetPests();TAB_NOTIFICATIONS.resetVisitors();
+            check(TAB_NOTIFICATIONS.pestReached(true,8,1) && TAB_NOTIFICATIONS.visitorsReached(true,5,1),"seed both histories");
+            Map<NotificationType,NotificationChannels> before=new EnumMap<>(NOTIFICATION_CHANNELS);
+            int savedPestThreshold=pestNotificationThreshold,savedVisitorThreshold=visitorNotificationThreshold;
+            SCREEN_NOTIFICATIONS.clear();
+            SCREEN_NOTIFICATIONS.add(type,"remove me",9,System.nanoTime());
+            SCREEN_NOTIFICATIONS.add(NotificationType.JERRY,"keep Jerry",9,System.nanoTime());
+            toggleTabNotification(parent,type);
+            check(mc.shown==parent,"outer disable stays in main screen");
+            check((type==NotificationType.PESTS ? !pestNotificationEnabled && visitorNotificationEnabled : pestNotificationEnabled && !visitorNotificationEnabled),"disable only selected master");
+            check(NOTIFICATION_CHANNELS.equals(before) && pestNotificationThreshold==savedPestThreshold && visitorNotificationThreshold==savedVisitorThreshold,"disable preserves thresholds, channels, and durations");
+            check(SCREEN_NOTIFICATIONS.current(System.nanoTime()).equals("keep Jerry"),"disable removes only selected screen alerts");
+            check(TAB_NOTIFICATIONS.pestReached(true,8,1)==(type==NotificationType.PESTS),"reset only selected Pest history");
+            check(TAB_NOTIFICATIONS.visitorsReached(true,5,1)==(type==NotificationType.VISITORS),"reset only selected Visitor history");
+            openNotificationSettings(parent,type);Screen settings=mc.shown;checkRows(settings,type);
+            click(settings,"數量門檻");input(mc.shown).setValue("2");click(mc.shown,"確認");
+            click(settings,"遊戲內聊天室通知");
+            check(type==NotificationType.PESTS ? !pestNotificationEnabled : !visitorNotificationEnabled,"preferences cannot silently re-enable outer master");
+            toggleTabNotification(parent,type);input(mc.shown).setValue("2");click(mc.shown,"確認");
+            check(pestNotificationEnabled && visitorNotificationEnabled,"can re-enable from outer switch");
+            checkRows(mc.shown,type);
+        }
+
+        System.out.println("NotificationSettingsTest: PASS (four-row dialogs, outer master switches, renamed labels, independent channels, shared Webhook, thresholds, safe migration, overlay isolation, decimal durations)");
     }
     // METHODS
     // SCREENS

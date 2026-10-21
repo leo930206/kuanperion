@@ -2016,8 +2016,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         tabNotificationTicks = 0;
         GardenTabNotifications.Counts counts = GardenTabNotifications.parse(GardenTabReader.read(mc));
         if (hasNotificationChannel(NotificationType.PESTS) && TAB_NOTIFICATIONS.pestReached(pestNotificationEnabled, counts.pests(), pestNotificationThreshold)) {
-            sendNotification(NotificationType.PESTS, "Garden 害蟲通知：目前 " + counts.pests()
-                    + " 隻（通知門檻：" + pestNotificationThreshold + "）。", "害蟲：" + counts.pests() + " 隻");
+            sendNotification(NotificationType.PESTS, "Garden Pest 通知：目前 " + counts.pests()
+                    + " 隻（通知門檻：" + pestNotificationThreshold + "）。", "Pest：" + counts.pests() + " 隻");
         }
         if (hasNotificationChannel(NotificationType.VISITORS) && TAB_NOTIFICATIONS.visitorsReached(visitorNotificationEnabled, counts.visitors(), visitorNotificationThreshold)) {
             sendNotification(NotificationType.VISITORS, "Garden Visitor 通知：目前 " + counts.visitors()
@@ -2063,23 +2063,54 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
+    /** The main screen owns Visitor/Pest master switches; their dialogs only edit preferences. */
+    private static void toggleTabNotification(SettingsScreen parent, NotificationType type) {
+        if (type == NotificationType.JERRY) throw new IllegalArgumentException("Jerry has no master switch");
+        boolean enabled = type == NotificationType.PESTS ? pestNotificationEnabled : visitorNotificationEnabled;
+        if (enabled) {
+            if (type == NotificationType.PESTS) {
+                pestNotificationEnabled = false;
+                TAB_NOTIFICATIONS.resetPests();
+            } else {
+                visitorNotificationEnabled = false;
+                TAB_NOTIFICATIONS.resetVisitors();
+            }
+            SCREEN_NOTIFICATIONS.remove(type, System.nanoTime());
+            saveConfig();
+            parent.rebuild();
+            return;
+        }
+        java.util.function.IntConsumer confirm = threshold -> {
+            if (type == NotificationType.PESTS) {
+                pestNotificationThreshold = threshold;
+                pestNotificationEnabled = true;
+                TAB_NOTIFICATIONS.resetPests();
+            } else {
+                visitorNotificationThreshold = threshold;
+                visitorNotificationEnabled = true;
+                TAB_NOTIFICATIONS.resetVisitors();
+            }
+            saveConfig();
+            openNotificationSettings(parent, type);
+        };
+        Minecraft.getInstance().setScreenAndShow(type == NotificationType.PESTS
+                ? new PestThresholdScreen(parent, confirm) : new VisitorThresholdScreen(parent, confirm));
+    }
+
     private static void openNotificationSettings(SettingsScreen parent, NotificationType type) {
-        boolean enabled = switch (type) { case PESTS -> pestNotificationEnabled; case VISITORS -> visitorNotificationEnabled; case JERRY -> false; };
         int threshold = switch (type) { case PESTS -> pestNotificationThreshold; case VISITORS -> visitorNotificationThreshold; case JERRY -> 0; };
         NotificationSettingsScreen.Options initial = new NotificationSettingsScreen.Options(
-                enabled, notificationChannels(type), threshold, jerryStopActionsEnabled);
+                notificationChannels(type), threshold, jerryStopActionsEnabled);
         Minecraft.getInstance().setScreenAndShow(new NotificationSettingsScreen(parent, type, initial,
                 () -> pestWebhookUrl, value -> pestWebhookUrl = value, options -> {
             NOTIFICATION_CHANNELS.put(type, options.channels());
-            if (!options.channels().screen() || (type != NotificationType.JERRY && !options.enabled()))
+            if (!options.channels().screen())
                 SCREEN_NOTIFICATIONS.remove(type, System.nanoTime());
             if (type == NotificationType.PESTS) {
-                if (pestNotificationEnabled != options.enabled() || pestNotificationThreshold != options.threshold()) TAB_NOTIFICATIONS.resetPests();
-                pestNotificationEnabled = options.enabled();
+                if (pestNotificationThreshold != options.threshold()) TAB_NOTIFICATIONS.resetPests();
                 pestNotificationThreshold = options.threshold();
             } else if (type == NotificationType.VISITORS) {
-                if (visitorNotificationEnabled != options.enabled() || visitorNotificationThreshold != options.threshold()) TAB_NOTIFICATIONS.resetVisitors();
-                visitorNotificationEnabled = options.enabled();
+                if (visitorNotificationThreshold != options.threshold()) TAB_NOTIFICATIONS.resetVisitors();
                 visitorNotificationThreshold = options.threshold();
             } else {
                 jerryStopActionsEnabled = options.stopActions();
@@ -2516,8 +2547,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(toggleMsg("工具偵測", farmingToolDetectionEnabled), b -> { farmingToolDetectionEnabled = !farmingToolDetectionEnabled; saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("異常狀況處理", abnormalHandlingEnabled), b -> { abnormalHandlingEnabled = !abnormalHandlingEnabled; farmingWorldChanged = false; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 28;
-            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知" + (visitorNotificationEnabled ? " ≥" + visitorNotificationThreshold : ""), visitorNotificationEnabled), b -> openNotificationSettings(this, NotificationType.VISITORS)).bounds(x, y, 130, 20).build());
-            addRenderableWidget(Button.builder(toggleMsg("害蟲通知" + (pestNotificationEnabled ? " ≥" + pestNotificationThreshold : ""), pestNotificationEnabled), b -> openNotificationSettings(this, NotificationType.PESTS)).bounds(x + 145, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Visitor 通知" + (visitorNotificationEnabled ? " ≥" + visitorNotificationThreshold : ""), visitorNotificationEnabled), b -> toggleTabNotification(this, NotificationType.VISITORS)).bounds(x, y, 130, 20).build());
+            addRenderableWidget(Button.builder(toggleMsg("Pest 通知" + (pestNotificationEnabled ? " ≥" + pestNotificationThreshold : ""), pestNotificationEnabled), b -> toggleTabNotification(this, NotificationType.PESTS)).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(Button.builder(toggleMsg("智慧暫停", farmingMenuPauseEnabled), b -> { farmingMenuPauseEnabled = !farmingMenuPauseEnabled; saveConfig(); rebuild(); }).bounds(x + 290, y, 130, 20).build());
             y += 36;
             addSectionTitle("Mining", y);

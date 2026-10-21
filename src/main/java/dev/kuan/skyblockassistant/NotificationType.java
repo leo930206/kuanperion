@@ -1,7 +1,7 @@
 package dev.kuan.skyblockassistant;
 
 enum NotificationType {
-    PESTS("pestNotification", "害蟲通知"),
+    PESTS("pestNotification", "Pest 通知"),
     VISITORS("visitorNotification", "Visitor 通知"),
     JERRY("jerryNotification", "Jerry 偵測");
 

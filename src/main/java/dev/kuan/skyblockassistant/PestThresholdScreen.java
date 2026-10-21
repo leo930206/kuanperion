@@ -14,7 +14,7 @@ final class PestThresholdScreen extends Screen {
     private final IntConsumer confirmThreshold;
 
     PestThresholdScreen(Screen parent, IntConsumer confirmThreshold) {
-        super(Component.literal("害蟲通知門檻"));
+        super(Component.literal("Pest 通知門檻"));
         this.parent = parent;
         this.confirmThreshold = confirmThreshold;
     }
@@ -24,9 +24,9 @@ final class PestThresholdScreen extends Screen {
         int centerX = this.width / 2;
         int y = this.height / 2 - 45;
         addRenderableWidget(new StringWidget(centerX - 120, y, 240, 12,
-                Component.literal("請輸入害蟲數量門檻（1～8）"), this.font));
+                Component.literal("請輸入 Pest 數量門檻（1～8）"), this.font));
         EditBox countBox = new EditBox(this.font, centerX - 50, y + 20, 100, 20,
-                Component.literal("害蟲數量門檻"));
+                Component.literal("Pest 數量門檻"));
         // Do not truncate a pasted multi-digit value to its first (apparently valid) digit.
         countBox.setMaxLength(32);
         addRenderableWidget(countBox);
