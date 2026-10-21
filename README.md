@@ -1,128 +1,400 @@
 # Kuan Hypixel SkyBlock Assistant
 
-Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
+為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、害蟲、Jerry 通知功能。
 
-Current mod version: `1.0.120`
+**目前版本：`1.0.121`**
 
-## Features
-
-### Mining Assistant
-
-- Scan nearby loaded blocks around the player.
-- Select one or more target block types in-game.
-- Finish the current block without interruption, then rescan all candidates from the highest configured priority after the mining delay. Newly available priority-1 blocks are chosen before priority 2, even if farther away. Distance only breaks ties within the same priority. Depletion history cannot hide a higher-priority replacement at a previously mined position; lower-priority depleted forms remain ignored until the original type returns.
-- Always rotate toward the locked target block position and mine only if the crosshair confirms that exact block; automatic rotation is permanently enabled and no longer configurable.
-- Temporarily skip failed targets so mining does not bounce back and forth between the same blocks.
-- The Mining `智慧暫停` toggle pauses target rotation and block breaking while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes the same target only after no GUI has been open for 0.5 continuous seconds, without turning Mining off. Any new GUI restarts the buffer, covering short Bazaar search transitions. When disabled, Mining continues through open GUIs. While Mining is enabled, manual forward/back/left/right/jump/sneak/sprint input is suppressed, horizontal movement is frozen, and manual mouse look is blocked while automatic target rotation continues to work.
-- While Mining is enabled (including smart pause), manual left-click/held attack cannot attack entities, swing, or mine blocks. Automatic mining and GUI clicks remain available; disabling Mining restores vanilla attack handling. Farming is unchanged.
-- Configurable scan radius, rotation speed, and mining delay.
-
-## Keybinds
-
-| Key | Action |
+| 項目 | 說明 |
 | --- | --- |
-| `'` | Open Setting |
-| `Shift+M` | Toggle Mining Assistant |
-| `Shift+F` | Toggle Farming Assistant |
+| 遊戲版本 | Minecraft `26.2` |
+| 執行環境 | Fabric Client；需安裝 Fabric API |
+| Fabric Loader | `0.19.0` 以上 |
+| 設定分區 | Farming → Mining → Other |
+| 更新紀錄 | [CHANGELOG.md](CHANGELOG.md) |
 
-## Selecting mining blocks
+> Farming 的移動路線依特定農場布局設計，不是任意農場都能直接使用。第一次啟動前，請先確認作物、工具、站位與標記方塊，並在可監看遊戲的情況下測試。
 
-1. Open settings with `'` and click the Mining `選擇目標方塊` button.
-2. Enter a target count from 1 to 5; leaving it blank selects one type. Confirming discards the previous target list.
-3. Aim at blocks and right-click until the requested number of unique block types is reached. Repeated types are ignored and count only once.
-4. The settings list shows each block icon and supports reordering or deletion. Mining exhausts eligible targets in list order first; distance is used only to choose the nearest target within the same priority.
+## 目錄
 
-### Farming Assistant
+- [快速開始](#快速開始)
+- [Mining 挖礦輔助](#mining-挖礦輔助)
+- [Farming 農耕輔助](#farming-農耕輔助)
+- [Other 與通知](#other-與通知)
+- [設定與紀錄](#設定與紀錄)
+- [建置與測試](#建置與測試)
+- [開發與維護](#開發與維護)
 
-- Settings sections are Farming, Mining, then Other, each with centered dashed headings and a blank-line gap.
+## 快速開始
 
-- Crop profiles ported from the old `bobscript` Forge mod: Wheat, Potato, Carrot, Nether Wart, Cactus, Sugar Cane, Pumpkim & Melon, Cocoa Bean, Mushroom, Sunflower/Moonflower, and Wild Rose.
-- Holds attack, locks the configured yaw/pitch, and presses the profile movement key.
-- Row, start, and end detection are permanently enabled and no longer editable in settings. Their hardcoded shared blocks are yellow stained glass, light blue stained glass, and pink stained glass respectively; each crop may still react differently to them.
-- Every Farming start reads the block currently under the crosshair without breaking it, switches immediately to the matching crop profile, and saves the detected crop. Both `pumpkin` and the Hypixel farm's `carved_pumpkin` representation are recognized as Pumpkin; Pumpkin and Melon are distinguished for tool validation even though they share one movement profile. Red and brown Mushroom are distinguished to select the initial direction.
-- Nether Wart/Carrot share a row-harvesting state machine at yaw `-90` and pitch `5.5`; Wheat/Potato use the mirrored yaw `+90`. Each starts by moving forward one block without attacking. Row changes move one block farther sideways, hold jump for three seconds, then hold jump plus the opposite sideways direction for the fourth second; attack remains held throughout the timed transition.
-- For these four row crops, start markers are ignored until an end marker is reached. Attack is then released while movement continues in the current sideways direction for at least one block until the start marker is found, followed by a one-second wait before restarting.
-- Sugar Cane farming locks yaw `45` and pitch `0`, harvests left until a row marker, moves forward five blocks and right one block, harvests backward until the next marker, then moves right seven blocks and repeats. Attack remains held throughout normal harvesting and row transitions.
-- Sugar Cane checks the end marker only while harvesting backward. Attack remains held throughout every active Sugar Cane state, including backing up to the start marker and the two additional return blocks.
-- Cocoa Bean farming locks yaw `0` and pitch `-45`, first moves left one block without attacking, harvests forward until a row marker, moves right one block, harvests backward, then moves right two blocks, forward one block, and left one block before repeating. Attack remains held during the normal cycle after the initial adjustment.
-- Cocoa Bean checks the end marker only while harvesting backward. After it triggers, attack is released and the player moves left while ignoring row markers until the start marker is found, continues left for one measured block, then resumes forward harvesting.
-- Cactus farming locks yaw `90` and pitch `0`, moves forward one block without attacking, then alternates left/right harvesting lanes. Each row change releases attack, moves one extra block in the current sideways direction, moves forward two blocks, waits one second without moving or attacking, and then resumes attack in the opposite direction.
-- Cactus checks the end marker only while harvesting right. It then releases attack, backs up while ignoring row markers until the start marker, moves left one block, moves forward one block, and restarts leftward harvesting.
-- Sunflower (including its Moonflower time-based appearance) and Wild Rose share a fixed yaw `-45` / pitch `0` state machine. It backs up one block, harvests right to a row marker, holds forward for one second with left added during the final half-second, harvests backward, then holds left for one second with forward added during the final half-second before repeating. Attack remains held throughout.
-- Flower end detection is active only while harvesting backward. After the end marker, it keeps attack and backward held, ignores row markers until the start marker, backs up one additional measured block, and restarts rightward harvesting.
-- The former crop-selection button is replaced by `工具偵測`. When enabled, the detected crop must match the held tool name before Farming continues. Supported mappings are Wheat → `Euclid's Wheat Sickle`, Carrot → `Gauss Carrot Shovel`, Potato → `Pythagorean Potato Shovel`, Sugar Cane → `Turing Sugar Cane Cutter`, Cactus → `Cactus Knife`, Cocoa Beans → `Cocoa Chopper`, Nether Wart → `Newton Nether Wart Cutter`, Mushroom → `Fungi Cutter`, Melon → `Melon Dicer`, Pumpkin → `Pumpkin Dicer`, Sunflower/Moonflower → `Eclipse Sickle`, and Wild Rose → `Wild Rose Cutter`. `Mk. I`, `Mk. II`, and `Mk. III` suffixes are accepted because matching uses the base name.
-- With `工具偵測` enabled, startup still rejects an incorrect tool immediately. After startup, the held tool is checked every tick against the initially detected crop, even while a GUI is open. A wrong tool or empty hand pauses movement, attack, and crop-state progression indefinitely without disabling Farming; switching back resumes the same state. Each correct-to-incorrect transition sends one in-game warning, with no repeated warnings while waiting. Switching back and then away again sends a new warning. Disabling tool detection removes this tool pause; abnormal recovery and GUI smart pause still take precedence over harvesting.
-- Pumpkim & Melon uses a fixed west-facing view at yaw `90.0` and pitch `-57.0`, holds attack throughout harvesting and row changes, and follows its dedicated two-marker zigzag state machine. At the first marker it continues one block in its current lateral direction before moving forward to find the second marker. During the end-to-start return run it releases attack, ignores row markers, then moves back one block, left one block, and forward one block before restarting leftward harvesting.
-- Every Pumpkim & Melon action described as “one block” is measured by actual player displacement rather than a fixed number of ticks, so increased movement speed does not intentionally lengthen the step. A step only falls back after ten consecutive ticks with no movement, allowing blocked actions to finish.
-- The single `異常狀況處理` toggle covers five conditions while Farming is active, with no prior Garden recognition required: Island, Hub, Lobby, Limbo, and the `You fell into the void` chat message. The first four close Farming, stop inputs, and execute their return commands. As soon as Garden is confirmed, recovery finishes at the next client-tick start or before command dispatch, cancels any remaining commands, clears tool/GUI pause state, and releases movement/mouse-look locks without waiting for the command queue or GUI buffer. No `/home` or automatic Farming restart is performed. A void fall only closes Farming. Starting any abnormal return also clears a pending wrong-tool wait and its previous crop-tool requirement, including empty hands in Limbo or a Game Menu in Lobby. The saved `工具偵測` setting is not disabled; the next manual Farming start performs normal tool checks. Sidebar detection reads complete rendered score names, including team prefixes/suffixes and display-name overrides, and matches keywords ignoring color codes, icons, punctuation, spacing, invisible characters, and letter case. `Private Island` alone identifies Island; `Hub` identifies Hub and takes priority over Island and the held `Game Menu` Lobby signal. `Your Island` alone is not used because it may also appear in Hub.
-- The four Island/Hub/Lobby/Limbo return triggers now require both their existing location condition and a Fabric `ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE` event recorded while Farming and abnormal handling are enabled. Events count even if the dimension ID stays the same; world load alone or location alone does not trigger return. A pending event can match a later location update, is consumed when recovery starts, and is cleared when Farming starts/stops or abnormal handling is toggled. Loads during recovery do not arm another recovery. The void-message stop does not require a world-load event. Existing Farming movement logic and return actions are otherwise unchanged.
-- Every abnormal-return command still waits 60 client ticks (about three seconds), now **after its required location is confirmed**: Island/Hub → wait 3s → `/warp garden`; Lobby → wait 3s → `/play sb` → confirm SkyBlock → wait 3s → `/warp garden`; Limbo → wait 3s → `/lobby` → confirm Lobby → wait 3s → `/play sb` → confirm SkyBlock → wait 3s → `/warp garden`. Unknown/loading locations, missing player/world data, or the wrong destination hold the pending command and restart its full wait. Any confirmed SkyBlock island is accepted via the existing location API or native SKYBLOCK title; `/warp garden` is never sent while still in Lobby/Limbo. Direct arrival in Garden finishes immediately and cancels leftover commands. The initial four return triggers still require a client-world-load event during active Farming; no dimension-ID comparison or extra world-load trigger for each recovery step is used. Recovery command phases (`wait_location`, `delay_3s`, `dispatch`) are logged to `logs/latest.log` on transitions, without extra chat messages.
-- Location detection now prefers the optional SkyBlock API `LocationAPI` island enum used by CustomScoreboard, rather than assuming its generated Island/Hub labels exist in the native scoreboard. API Private Island, Hub, and Garden map directly to their locations; other known islands remain unhandled. Native sidebar and existing Limbo/Lobby checks remain fallbacks if the API is absent, outside SkyBlock, or not ready. No hard dependency is added. Location/source changes are logged once per transition in `logs/latest.log` as `[Kuan HSBA] Farming location=... skyblockApi=... worldChanged=... nativeSidebar=...`, without extra chat notifications.
-- Optional `/sethome` on start/turn.
-- First Fabric port; per-farm tuning may still be needed for your Garden layout.
-- Farming holds the attack key and directly applies movement input every tick. While Farming is enabled, manual forward/back/left/right/jump/sneak/sprint input and manual mouse look are suppressed; only movement and fixed viewing angles requested by the active crop state machine are applied. Mushroom farming no longer performs automatic stuck-detection jumps.
-- The `智慧暫停` toggle controls GUI pausing. When enabled, Farming pauses movement/attack while any GUI is open—including inventory, chat, Esc, Bazaar, Auction House, and mod settings—and resumes only after no GUI has been open for 0.5 continuous seconds, without turning Farming off. Any new GUI restarts the buffer, covering short Bazaar search transitions. Movement, attack, and crop-state progression remain paused during the buffer. When disabled, Farming continues through open GUIs.
-- `害蟲通知`: clicking it opens its own notification settings. Turning on the feature inside that screen opens a Mining-style number dialog. Only a single integer from `1` through `8` can be confirmed (blank, text, spaces, and multi-digit input are invalid); Cancel/Esc leaves it off. Notify through the shared notification channels when the server Tab list's `Pests` → `Alive` count is **at least** the saved threshold. The enabled button shows the threshold; use `數量門檻` inside its settings to change it. Missing/invalid saved thresholds default to `1` for existing installations. Spawn-chat messages and sidebar pest counts no longer trigger this notification.
-- `Visitor 通知`: clicking it opens its own notification settings. Enabling it there opens the same number-dialog flow as pest notifications, accepting only a single integer from **1–5**. Blank/text/whitespace/multi-digit input cannot confirm; Cancel/Esc leaves it off. Notify through the shared notification channels when the Tab `Visitors: (number)` count reaches the saved threshold. The enabled toggle displays the threshold; `數量門檻` edits it directly inside the settings. The saved `visitorNotificationThreshold` defaults to **5** when missing/invalid, preserving the old full-Visitor threshold for existing installations. Both notifications use their own independent channel settings and check cached game data every 20 client ticks (about one second), without holding Tab or enabling Farming/Mining. Local chat/screen notifications do not require a Webhook. The server must supply these Tab fields; temporarily missing data is not treated as zero.
-- Pest notifications fire **once for each distinct observed count at or above the threshold** until a valid count falls below it. With threshold `4`, counts `4`, `5`, `6`, `7`, and `8` each notify once; holding a count or returning to a previously notified count (such as `4 → 5 → 4`) does not repeat that count. Only observed counts notify: jumping from `4` to `7` does not invent notifications for `5` or `6`. Falling below the threshold or toggling pest notifications clears the count history. Visitor notifications use the same per-count rule within **1–5**: with threshold `3`, observed counts `3`, `4`, and `5` each notify once, and `3 → 4 → 3` does not repeat `3`. Only a valid count below `3` (or its own toggle/new threshold confirmation) resets that history. Jumping straight from `2` to `5` sends only the observed `5`, not invented `3`/`4` alerts. Invalid/out-of-range Visitor counts do not rearm notifications. The two notifications remain independent, and missing Tab/world data does not clear either history. No automatic action is taken on the pests or visitors. Webhook requests remain asynchronous with a ten-second timeout; failures/status codes are logged without exposing the webhook token and are not retried for that already-notified count.
-- Toggle buttons display 開啟 in green and 關閉 in red while keeping the label white.
-- Chat messages use a bold cyan-to-blue `[Kuan HSBA]` gradient prefix and consistent semantic colors. Routine Mining target availability and Farming movement, marker, boundary, direction, and successful tool-check messages are intentionally silent.
-- Block names shown in chat omit the technical `minecraft:` namespace while retaining full IDs internally for matching and configuration.
+### 安裝
 
-## Other
+1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
+2. 依[建置與測試](#建置與測試)產生 jar。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.121.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
+5. 重新啟動 Minecraft。
 
-### Per-feature notification settings
+目前開發使用的 PrismLauncher instance 為 `Hypixel SkyBlock`，macOS 安裝位置：
 
-- There is no global `通知設定` button. Clicking `Visitor 通知`, `害蟲通知`, or `Jerry 偵測` opens that feature's own settings, with independent `Discord 訊息通知`, `遊戲聊天室通知`, and `遊戲螢幕通知` switches. Each feature can enable any combination, including all off; changing one feature never changes another feature's switches.
-- Visitor/pest dialogs retain their own enable switch and `數量門檻` button. Enabling opens the strict 1–5 / 1–8 number dialog; Cancel/Esc leaves it unchanged. Channel settings can be adjusted without enabling detection. Threshold/enable changes reset only that feature's notification history.
-- **One Webhook URL is shared by every feature.** Turning a feature's Discord switch on opens URL entry, prefilled from the latest shared value. Confirming updates the common URL and enables only that feature's Discord switch. Other features' Discord switches are untouched, but all enabled Discord channels use the newly saved URL. Cancel/Esc leaves the URL and switches unchanged; turning a Discord switch off retains the URL. The main footer has no Webhook field.
-- Chat alerts remain local `[Kuan HSBA]` messages. Screen alerts remain centered, fitted large yellow text for the **duration configured for that feature**. Turning its screen switch on opens a seconds dialog: confirm a positive decimal number with at most one decimal point (for example `0.5` or `1.25`) to enable it; Cancel/Esc leaves the switch off and the saved duration unchanged. The last saved value is prefilled and shown on the enabled switch; turn it off/on to edit again. Values must be greater than zero; blank/negative/zero, multiple decimal points, exponent notation, and values outside the nanosecond timing range are rejected. Decimal durations are converted exactly rather than rounded through floating point. Visitor, pest, and Jerry durations persist independently; missing/invalid saved durations default to 3 seconds. Simultaneous events queue with each event retaining its own duration, without altering server titles. Turning off one feature's screen/master switch removes only its screen alerts, not other features' alerts. Leaving/changing worlds clears all pending screen alerts; F1 respects hidden HUD.
-- All channel flags persist separately. Existing global flags migrate into independent Visitor/pest preferences. Jerry notifications and stop actions migrate only if its old master was enabled, preventing an old disabled Jerry setup from unexpectedly stopping automation. Fresh installations default to all channels and Jerry stop actions off.
-- A feature without an available channel does not consume its Tab count notifications, even while another feature is polling. Channel changes do not replay already-notified counts. Discord remains asynchronous with a ten-second timeout and token-safe logging; tests never contact a real Webhook.
+```text
+~/Library/Application Support/PrismLauncher/instances/Hypixel SkyBlock/minecraft/mods
+```
 
-### Jerry detection
+### 快捷鍵
 
-- Other sits below the Mining target list and has a plain 130×20 `Jerry 偵測` settings button, **not a master on/off switch**.
-- Clicking Jerry opens its three independent notification-channel switches plus `出現 Jerry 是否停下動作`. Changes save immediately; Done/Esc returns to the main settings. There is no separate generic notification or detection toggle. All channels can be off while stop actions remain on, or vice versa; Mining/Farming never auto-start on login.
-- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and detect any of the seven patterns below **anywhere inside the message**, ignoring arbitrary surrounding text. Matching is case-insensitive with flexible whitespace, and `[type]` is any color/name (not a whitelist; multi-word/custom/missing types work). Mere Jerry mentions, non-Jerry discoveries, `Jerryfish`, and incomplete hiding/spawn messages do not trigger it. Detection is text-based, not entity scanning.
-  - `You found a [type] Jerry!`
-  - `You discovered a [type] Jerry!`
-  - `Some [type] Jerry was hiding, but you found it!`
-  - `wild [type] Jerry spawned!`
-  - `[type] Jerry appeared!`
-  - `There is a [type] Jerry!`
-  - `You located a hidden [type] Jerry!`
-- Jerry sends `Jerry 通知：發現 Jerry！` through its own selected channels, independently of Farming/Mining and the pest/visitor settings. Stop actions remain independent. Each matching received message is a new notification; no cooldown suppresses later spawns.
-- Stop actions immediately turns Mining/Farming off, clears the mining target, releases attack/movement and manual-input locks, resets smart-pause state, and cancels any queued Farming recovery commands. It does not auto-resume. Missing/invalid Webhook configuration cannot prevent stopping. If both automations are already off, notifications still work without releasing the player's manual movement keys.
+| 按鍵 | 功能 |
+| --- | --- |
+| `'` | 開啟設定頁面 |
+| `Shift + M` | 開啟／關閉 Mining |
+| `Shift + F` | 開啟／關閉 Farming |
 
-## Build
+- Mining 與 Farming 互斥，開啟其中一個會停止另一個。
+- 重新啟動遊戲時，Mining／Farming 不會依上次狀態自動啟動。
+- 設定按鈕以綠色「開啟」、紅色「關閉」顯示狀態。
 
-This repository uses the Minecraft/Fabric jars already installed by PrismLauncher.
+### 智慧暫停與操作鎖定
+
+Mining、Farming 各有自己的「智慧暫停」開關。
+
+| 情況 | 開啟智慧暫停時的行為 |
+| --- | --- |
+| 開啟背包、聊天室、Esc、Bazaar、Auction House 或模組設定等 GUI | 暫停該功能的自動操作，但不關閉功能 |
+| GUI 關閉 | 持續 **0.5 秒**沒有任何 GUI，才恢復 |
+| 緩衝期間又開啟 GUI | 重新計算完整的 0.5 秒 |
+
+關閉智慧暫停後，功能可在 GUI 開啟時繼續執行，請自行留意。
+
+自動化啟用時會鎖定手動移動與滑鼠視角；Farming 只套用作物流程要求的操作。Mining 也會鎖定手動左鍵攻擊／挖掘，但不阻擋 GUI 點擊或模組自己的自動挖礦。手動關閉自動化後恢復一般操作；異常返回期間則依返回流程管理鎖定。
+
+## Mining 挖礦輔助
+
+### 選擇目標方塊
+
+1. 按 `'`，點選 Mining 區的「選擇目標方塊」。
+2. 輸入要選取的種類數量，範圍 **1～5**；留空代表 1 種。
+3. 確認後會清除舊目標清單，進入右鍵選取模式。
+4. 將準星對準方塊並按右鍵，直到選滿指定數量。
+5. 回到設定頁面，用 `↑`、`↓` 調整優先順序，或用 `×` 刪除目標。
+
+重複的方塊種類只計算一次；Bedrock 不能設為目標。目標清單會顯示方塊圖示與 ID。
+
+### 目標選擇規則
+
+- 只掃描玩家周圍、範圍內可讀取且符合條件的方塊。
+- **先挖完當前這顆，再重新從最高優先級選下一顆**，不會因高順位方塊出現就中途切換。
+- 清單順位優先於距離；只有同順位目標，才比較哪一顆較近。
+- 例如正在挖二號時出現一號，挖完二號並經過挖礦延遲後，下一顆會優先找可挖的一號。
+- 自動轉向固定啟用；只有準星確認指向鎖定的那一顆，才進行挖掘。
+- 暫時跳過失敗或無法對準的目標，避免在相同方塊間反覆切換。
+- 已挖位置的耗盡紀錄不會擋住較高順位的新方塊；較低順位的耗盡外觀仍會等待原方塊重生。
+
+### 可調整項目
+
+| 設定 | 範圍 |
+| --- | --- |
+| 偵測半徑 | 1～8 |
+| 轉動速度 | 1～40 |
+| 挖礦延遲 | 1～20 client ticks |
+
+Mining 開啟期間，即使正在智慧暫停，也會阻擋手動左鍵點擊／長按造成的攻擊、揮拳或挖掘。自動挖礦與介面按鈕仍可正常運作。
+
+## Farming 農耕輔助
+
+### 啟動流程
+
+1. 站在對應農場的起始位置，將準星對準作物。
+2. 使用正確工具，按 `Shift + F` 啟動。
+3. 模組先辨識準星作物，不會為了辨識先把作物打掉；辨識後會儲存作物類型並套用固定視角及移動流程。
+4. 若持續無法辨識作物，會關閉 Farming，請重新對準後再啟動。
+
+Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用移動流程，工具驗證仍分開處理。紅、棕 Mushroom 也會區分起始方向。
+
+農耕流程由舊 `bobscript` Forge mod 移植，仍須依 Garden 布局實際測試。
+
+### 農場標記
+
+換列、起點、終點偵測固定啟用，不能在設定介面修改。
+
+| 用途 | 方塊 | ID |
+| --- | --- | --- |
+| 換列 | 黃色染色玻璃 | `minecraft:yellow_stained_glass` |
+| 起點 | 淺藍色染色玻璃 | `minecraft:light_blue_stained_glass` |
+| 終點 | 粉紅色染色玻璃 | `minecraft:pink_stained_glass` |
+
+不同作物對標記的反應與回程方式不同，不能只換作物卻沿用不相容的布局。
+
+### 支援作物與工具偵測
+
+| 作物 | 工具名稱 |
+| --- | --- |
+| 小麥 Wheat | `Euclid's Wheat Sickle` |
+| 馬鈴薯 Potato | `Pythagorean Potato Shovel` |
+| 胡蘿蔔 Carrot | `Gauss Carrot Shovel` |
+| 地獄疙瘩 Nether Wart | `Newton Nether Wart Cutter` |
+| 甘蔗 Sugar Cane | `Turing Sugar Cane Cutter` |
+| 仙人掌 Cactus | `Cactus Knife` |
+| 可可豆 Cocoa Bean | `Cocoa Chopper` |
+| 蘑菇 Mushroom | `Fungi Cutter` |
+| 南瓜 Pumpkin | `Pumpkin Dicer` |
+| 西瓜 Melon | `Melon Dicer` |
+| Sunflower／Moonflower | `Eclipse Sickle` |
+| Wild Rose | `Wild Rose Cutter` |
+
+開啟「工具偵測」後：
+
+- 啟動時工具不符，會直接拒絕開始。
+- 啟動後每個 tick 都檢查工具，GUI 開啟時也不例外。
+- 換錯工具或空手時，無限期暫停移動、攻擊與作物流程，但不關閉 Farming。
+- 換回正確工具後，從原狀態繼續；不會因等待過久自動忽略工具檢查。
+- 每次從正確變成錯誤時，只警告一次，不會持續洗版。
+- 名稱比對接受 `Mk. I`、`Mk. II`、`Mk. III` 等後綴。
+- 關閉工具偵測可解除這項暫停；異常返回與智慧暫停仍各自生效。
+
+<details>
+<summary>各作物的移動與換列規則</summary>
+
+### Wheat／Potato／Carrot／Nether Wart
+
+- Wheat／Potato 使用 yaw `90`，Carrot／Nether Wart 使用 yaw `-90`；pitch 均為 `5.5`。
+- 開始先前進一格，不攻擊，再進入橫向收割。
+- 換列時向原方向多移動一格、跳躍三秒，第 4 秒同時按住跳躍與反向橫移；這段定時換列持續攻擊。
+- 尚未遇到終點時忽略起點標記。遇到終點後停止攻擊，沿當前橫向方向至少走一格並找到起點，等待一秒後重啟循環。
+
+### Sugar Cane
+
+- 固定 yaw `45`、pitch `0`。
+- 向左收割到換列標記 → 前進五格 → 右移一格 → 向後收割到下一標記 → 右移七格，重複循環。
+- 只在向後收割時檢查終點；回到起點及額外後退兩格的過程也維持攻擊。
+
+### Cocoa Bean
+
+- 固定 yaw `0`、pitch `-45`，開始先左移一格，不攻擊。
+- 向前收割 → 右移一格 → 向後收割 → 右移兩格 → 前進一格 → 左移一格，重複循環；初始調整後的正常循環維持攻擊。
+- 只在向後收割時檢查終點。觸發後停止攻擊，忽略換列標記並向左找起點，再左移一格，恢復向前收割。
+
+### Cactus
+
+- 固定 yaw `90`、pitch `0`，先前進一格，不攻擊，再交替左右收割。
+- 換列時停止攻擊，沿當前橫向方向多走一格、前進兩格、原地等待一秒，再反向收割。
+- 只在向右收割時檢查終點；觸發後停止攻擊，向後找起點，再左移一格、前進一格，重新向左收割。
+
+### Pumpkin & Melon
+
+- 介面名稱為 `Pumpkim & Melon`；固定 yaw `90`、pitch `-57`，採雙標記折返流程。
+- 遇到第一個標記後，沿當前橫向方向多走一格，再向前找第二個標記；收割與正常換列期間維持攻擊。
+- 終點回程停止攻擊並忽略換列標記；完成回程後，後退一格、左移一格、前進一格，再重新向左收割。
+- 此流程的一格步進以實際位移計算，不以固定 tick 數代替；連續十個 tick 沒有移動時，才使用受阻處理結束該步。
+
+### Sunflower／Moonflower／Wild Rose
+
+- 固定 yaw `-45`、pitch `0`，先後退一格，再向右收割。
+- 換列時前進一秒，最後半秒同時左移；向後收割後，再左移一秒，最後半秒同時前進，重複循環。
+- 全程維持攻擊；只在向後收割時檢查終點。觸發後保持後退與攻擊，忽略換列標記直到起點，再後退一格，重新向右收割。
+
+### Mushroom
+
+依紅、棕 Mushroom 選擇起始方向，使用自己的往返流程。沒有自動偵測卡住後跳躍的行為。
+
+</details>
+
+### 異常狀況處理
+
+「異常狀況處理」涵蓋 Island、Hub、Lobby、Limbo，以及 `You fell into the void` 訊息。
+
+前四種返回流程，必須同時符合：
+
+1. Farming 與異常狀況處理正在啟用。
+2. 啟用期間記錄到 Fabric 的 client-world-load 事件。
+3. 確認目前位於對應地點。
+
+僅地點符合、僅發生 world load，或只比較 dimension ID，都不會直接觸發返回；不要求先辨識到 Garden。事件與地點可先後更新，但返回開始後的 world load 不會再次啟動另一輪。
+
+| 所在地點 | 返回流程 |
+| --- | --- |
+| Island／Hub | 確認所在地 → 等待三秒 → `/warp garden` |
+| Lobby | 等待三秒 → `/play sb` → 確認進入 SkyBlock → 等待三秒 → `/warp garden` |
+| Limbo | 等待三秒 → `/lobby` → 確認進入 Lobby → 等待三秒 → `/play sb` → 確認進入 SkyBlock → 等待三秒 → `/warp garden` |
+| 掉入虛空訊息 | 只關閉 Farming，不執行返回指令；不需要 world-load 事件 |
+
+每段等待都是在確認指令所需地點後，重新計算 **60 client ticks，約三秒**。載入中、地點未知、玩家／世界資料缺失或到達錯誤地點時，不會消耗待執行步驟，並重置該段等待。
+
+返回開始時會停止操作並清除錯誤工具等待，但不關閉已儲存的工具偵測設定。確認抵達 Garden 後，立即取消剩餘指令並釋放移動、視角鎖定；不會自動 `/home` 或重啟 Farming。
+
+地點判斷優先使用可選的 SkyBlock API `LocationAPI`；沒有硬性依賴，無法使用時會採原生 sidebar／Lobby／Limbo 判斷。Sidebar 會處理 team 前後綴、顯示名稱與文字格式；`Private Island`、`Hub` 等訊號有各自判斷，不能只靠 `Your Island` 一詞認定地點。
+
+> 這裡的返回指令等待，與下方可自行設定的「螢幕通知秒數」是兩件事。
+
+## Other 與通知
+
+### 各功能獨立設定
+
+沒有共用的「通知設定」按鈕。請直接點選各功能：
+
+| 按鈕 | 設定內容 |
+| --- | --- |
+| Farming 區的「Visitor 通知」 | 通知總開關、1～5 數量門檻、三種通知管道 |
+| Farming 區的「害蟲通知」 | 通知總開關、1～8 數量門檻、三種通知管道 |
+| Other 區的「Jerry 偵測」 | 三種通知管道、是否停下動作；**沒有 Jerry 總開關** |
+
+每個功能都有下列三個開關，可以全開、全關或任意搭配，互不影響：
+
+| 通知管道 | 行為 |
+| --- | --- |
+| Discord 訊息通知 | 透過共用 Webhook 傳送訊息 |
+| 遊戲聊天室通知 | 顯示本機 `[Kuan HSBA]` 提示，不會送到伺服器聊天頻道 |
+| 遊戲螢幕通知 | 在畫面中央顯示放大的黃色文字 |
+
+Visitor／害蟲可先設定管道，再啟用功能。開啟其總開關時輸入數量門檻；也可使用「數量門檻」直接修改。設定變更只重置該功能需要重置的通知紀錄，不會影響另一種通知。
+
+關閉「遊戲聊天室通知」只會停止模組額外的提示，不會隱藏原本的伺服器訊息。
+
+### 共用 Discord Webhook
+
+- **三個功能共用同一個 Webhook URL，但 Discord 開關各自獨立。**
+- 開啟任一功能的 Discord 通知時，會跳出輸入視窗，預填最新的共用 URL。
+- 確認後更新共用 URL，並只開啟當前功能的 Discord 開關；其他功能的開關不變，但後續會使用新 URL。
+- 取消／Esc 不變更 URL，也不開啟當前功能的 Discord 通知。
+- 關閉 Discord 通知不會刪除 URL；要修改時，可關閉再開啟任一功能的 Discord 通知。
+- 主設定頁面不再提供左下角的 Webhook 輸入欄。
+- URL 需為有效的絕對 HTTP(S) 網址。請將 Webhook 視為憑證，避免貼進公開截圖、Git 或其他公開內容。
+
+Webhook 請求非同步送出，逾時為十秒；失敗或 HTTP 狀態碼只記錄不含 token 的資訊，不會對已通知的事件自動重試。
+
+### 自訂螢幕通知時間
+
+1. 在某個功能內，開啟「遊戲螢幕通知」。
+2. 在彈出視窗輸入大於 0 的秒數，可含**最多一個小數點**，例如 `0.5`、`1.25`、`3`。
+3. 確認後啟用，開關上會顯示設定秒數；取消／Esc 則保持關閉且不修改原時間。
+4. 想改時間時，先關閉再開啟，視窗會預填上次儲存的值。
+
+三個功能的秒數獨立保存；舊設定缺少秒數或內容無效時，預設為三秒。
+
+- 不接受空白、零、負數、多個小數點、科學記號或超出計時範圍的值。
+- 小數會精確換算成奈秒，不透過浮點數近似；支援的時間範圍為 `0.000000001`～`2147483647` 秒，需可精確表示為整數奈秒。
+- 多則通知會排隊，各自使用送入佇列時的秒數，不會互相蓋掉或修改伺服器 Title。
+- 文字最多放大至一般字體的四倍，並依畫面寬度縮放；F1 隱藏 HUD 時不繪製。
+- 關閉某功能的螢幕通知／總開關，只移除該功能的螢幕提示；離開或切換世界則清除全部待顯示提示。
+
+### Visitor 與害蟲通知規則
+
+| 功能 | 資料來源 | 門檻範圍 |
+| --- | --- | --- |
+| Visitor | Tab 的 `Visitors: (number)` | 1～5 |
+| 害蟲 | Tab 的 `Pests` → `Alive` | 1～8 |
+
+直接讀取伺服器提供的快取 Tab 資料，約每 20 client ticks 檢查一次；不必按住 Tab，也不必開啟 Farming／Mining。害蟲通知不使用出生聊天訊息或 sidebar 害蟲數。
+
+通知方式是：**每個達到門檻的實際觀察數量，各通知一次**。
+
+- Visitor 設為 `3`：觀察到 `3`、`4`、`5` 位時，各通知一次。
+- 害蟲設為 `4`：觀察到 `4`、`5`、`6`、`7`、`8` 隻時，各通知一次；更高的有效數量同樣依門檻處理。
+- 維持相同數量，或 `3 → 4 → 3` 這種回到已通知數量的情況，不會重複通知。
+- 有效數量降到門檻以下、切換該通知總開關，或實際更改門檻時，會重置該功能的紀錄。
+- 從 `2` 直接跳到 `5`，只通知實際讀到的 `5`，不補發未觀察到的 `3`、`4`。
+- Tab／世界資料暫時缺失不視為零，不會清除紀錄；Visitor 超出 0～5 的數量也不會重置紀錄。
+- 某功能沒有可用管道時，不會消耗該功能的通知數量紀錄；另一個功能仍能獨立通知。
+- 更換通知管道不會重播已通知過的數量，也不會自動清除害蟲或接待 Visitor。
+
+### Jerry 偵測
+
+點選 Other 的「Jerry 偵測」即可設定，不需要先開啟任何 Jerry 總開關。
+
+模組會先去除聊天室訊息的顏色碼，再比對下列 **7 種訊息**。忽略大小寫、額外空白、前後附加文字；`[type]` 可為任意顏色名稱，不使用顏色白名單。
+
+```text
+You found a [type] Jerry!
+You discovered a [type] Jerry!
+Some [type] Jerry was hiding, but you found it!
+wild [type] Jerry spawned!
+[type] Jerry appeared!
+There is a [type] Jerry!
+You located a hidden [type] Jerry!
+```
+
+讀取的是聊天／系統訊息，不包含 action bar，也不掃描實體。單純提到 Jerry、其他物品、`Jerryfish` 或不完整的躲藏／生成訊息，不會當作有效提示。
+
+- 偵測後，依 Jerry 自己的三個通知開關送出通知；每則符合訊息各算一次，不額外設冷卻。
+- 「出現 Jerry 是否停下動作」獨立運作：啟用後立即關閉 Mining／Farming、釋放攻擊與移動／視角鎖定，並取消待執行的 Farming 返回指令，不會自動恢復。
+- 即使全部通知管道關閉或 Webhook 無效，停下動作仍可生效。
+- 若原本沒有執行自動化，通知不會釋放玩家手動操作的按鍵。
+
+## 設定與紀錄
+
+設定會儲存在所用 Minecraft instance 的：
+
+```text
+minecraft/config/kuan-hypixel-skyblock-assistant.properties
+```
+
+| 資料 | 行為 |
+| --- | --- |
+| Mining／Farming 執行狀態 | 不會在重新啟動後自動恢復 |
+| 方塊清單、農耕選項、門檻、各功能管道與秒數 | 個別保存 |
+| Discord Webhook | 全功能共用；請勿公開設定檔內容 |
+| 舊版共用通知設定 | 轉移為個別功能設定；舊 Jerry 總開關關閉時，不會意外啟用通知或停下動作 |
+| 首次安裝 | 通知管道與 Jerry 停下動作預設關閉 |
+
+另保留 `farmingAutoSetHome` 設定，可在啟動與部分換列流程送出 `/sethome`；目前主介面未提供這項開關。
+
+診斷資訊寫入 instance 的 `logs/latest.log`，包含地點來源變化、返回指令階段及 Webhook 的非機密失敗資訊。一般目標可用狀態、農耕換列與成功工具檢查等例行訊息盡量保持安靜。
+
+## 建置與測試
+
+本專案**不使用 Gradle**，透過腳本直接使用 PrismLauncher 已安裝的 Minecraft、Fabric Loader、Fabric API 與 Java runtime。
+
+### 環境需求
+
+- Python 3：執行部分回歸測試。
+- PrismLauncher 的 Java runtime，需包含 `java`、`javac`、`jar`。
+- 建置腳本目前指向 Minecraft `26.2`、Fabric Loader `0.19.5`、Fabric API `0.161.0+26.2`。
+- 腳本含開發環境的 PrismLauncher 路徑；若環境或套件版本不同，請先檢查 [scripts/build.sh](scripts/build.sh) 與 [scripts/test.sh](scripts/test.sh)。
+
+### 執行指令
+
+在專案根目錄執行：
 
 ```bash
+# 執行回歸測試
+./scripts/test.sh
+
+# 編譯並封裝 jar
 ./scripts/build.sh
 ```
 
-Output:
+建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.120.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.121.jar
 ```
 
-## Tests
+測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。
 
-Run the dependency-free tool detection, GUI smart-pause, abnormal-handling, Mining priority/attack-lock, Jerry chat/actions/settings-dialog, per-feature channel/Webhook/configurable-duration overlay, and Tab notification/parser/threshold-screen regression tests (requires Python 3 and the PrismLauncher Java runtime):
+測試使用遊戲與網路邊界的替身，不會真的呼叫 Webhook；通過回歸測試不代表已完成 Hypixel 遊戲內實測。
 
-```bash
-./scripts/test.sh
-```
+## 開發與維護
 
-## Maintenance rule
+修改程式前，先閱讀入口：
 
-For every update:
+[src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistantClient.java](src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistantClient.java)
 
-1. Bump the mod version in `src/main/resources/fabric.mod.json` and `scripts/build.sh`.
-2. Update this README and add a human-readable entry to `CHANGELOG.md`.
-3. Run tests and build the jar with `./scripts/build.sh`.
-4. Install into the Hypixel SkyBlock PrismLauncher instance, retaining only the latest assistant jar (leave other mods untouched).
-5. Commit, tag the version, and push the commit and tag to GitHub.
+| 檔案 | 用途 |
+| --- | --- |
+| `KuanSkyBlockAssistantClient.java` | 啟動、遊戲事件、Mining／Farming、設定與通知整合 |
+| `NotificationSettingsScreen.java` | 各功能通知設定介面 |
+| `NotificationChannels.java`／`NotificationType.java` | 個別管道與顯示時間資料 |
+| `ScreenDurationScreen.java`／`ScreenNotificationQueue.java` | 秒數輸入與螢幕通知佇列 |
+| `GardenTabReader.java`／`GardenTabNotifications.java` | Tab 資料讀取、數量解析與通知紀錄 |
+| `JerryMessageMatcher.java` | 七種 Jerry 訊息比對 |
+| `GuiPauseGuard.java`／`FarmingToolGuard.java` | GUI 與工具暫停狀態 |
+| `SkyBlockLocationBridge.java` | 可選的 SkyBlock API 地點橋接 |
+| `mixin/` | 手動視角與攻擊輸入攔截 |
+
+### 每次更新的維護流程
+
+1. 同步提升 `src/main/resources/fabric.mod.json` 與 `scripts/build.sh` 的版本號。
+2. 更新 README 與 [CHANGELOG.md](CHANGELOG.md)。
+3. 執行測試，建置新 jar。
+4. 安裝到 PrismLauncher 的 `Hypixel SkyBlock` instance，只保留最新版助手 jar，保留其他 mod。
+5. 完成 Git commit、版本 tag，並將 commit／tag 推送到 GitHub。
+
+功能歷史與修正細節請見 [CHANGELOG.md](CHANGELOG.md)。
