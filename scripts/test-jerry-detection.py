@@ -122,11 +122,19 @@ public class JerryDetectionIntegrationTest {
         Minecraft mc=Minecraft.getInstance();
         handleReceivedMessage(null);
         for (String color : List.of("Green", "Blue", "Purple", "Golden", "Coler", "Custom Color", "Super-Rare", ""))
-        for (String message : List.of(
-                "§b ☺ §e" + color + " §aJerry§e appeared!",
-                "§eYou located a hidden §a" + color + " Jerry§e!",
-                "§eYou discovered a §a" + color + " Jerry§e!",
-                "YOU  DISCOVERED  A  " + color.toUpperCase(Locale.ROOT) + "  JERRY!"))
+        for (String template : List.of(
+                "You found a %s Jerry!",
+                "You discovered a %s Jerry!",
+                "Some %s Jerry was hiding, but you found it!",
+                "wild %s Jerry spawned!",
+                "%s Jerry appeared!",
+                "There is a %s Jerry!",
+                "You located a hidden %s Jerry!"))
+        for (String raw : List.of(template.formatted(color), template.formatted(color).toUpperCase(Locale.ROOT).replace(" ", "  ")))
+        for (String message : List.of(raw,
+                "§b[Prefix]§e" + raw.replace("Jerry", "§aJerry§e") + "§r[Suffix]",
+                "prefix" + raw + "suffix",
+                "prefix\n" + raw + "\nsuffix"))
         for(int notify=0;notify<2;notify++) for(int stop=0;stop<2;stop++) {
             reset();jerryNotificationEnabled=notify==1;jerryStopActionsEnabled=stop==1;
             miningEnabled=true;
@@ -154,7 +162,7 @@ public class JerryDetectionIntegrationTest {
         check(!miningEnabled && sent.isEmpty(),"missing webhook cannot prevent stop");
         reset();handleReceivedMessage(Component.literal("JERRY   appeared!"));
         check(sent.size()==1 && releases==0,"case/spacing and idle notification without input changes");
-        for(String wrong:List.of("Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello", "You located a hidden Chest!", "You discovered a Sword!", "You discovered a Jerryfish!", "You located a hidden Jerryfish!", "You discovered a Sword! Jerry is nearby")) {
+        for(String wrong:List.of("Jerry", "Jerry disappeared!", "Jerry appearedness", "A Green Jerry", "Hello", "You located a hidden Chest!", "You discovered a Sword!", "You discovered a Jerryfish!", "You located a hidden Jerryfish!", "You discovered a Sword! Jerry is nearby", "You found a Blue Jerryfish!", "wild Blue Jerry disappeared!", "wild Blue Jerry spawnedness!", "Some Blue Jerry was hiding, but you missed it!", "Some Blue Jerry was hiding!", "There is a Blue Jerryfish!")) {
             reset();miningEnabled=true;handleReceivedMessage(Component.literal(wrong));
             check(miningEnabled && sent.isEmpty(),"ignore non-appearance: "+wrong);
         }
@@ -179,7 +187,7 @@ public class JerryDetectionIntegrationTest {
         check(!jerryDetectionEnabled && saves==2,"enabled master toggles straight off");
         toggleJerryDetection(parent);mc.shown.onClose();
         check(!jerryDetectionEnabled && mc.shown==parent && saves==2,"Esc does not enable");
-        System.out.println("JerryDetectionIntegrationTest: PASS (three message variants/any color, action combinations, cleanup, recovery, modal, cancellation)");
+        System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/any color/prefix/suffix, action combinations, cleanup, recovery, modal, cancellation)");
     }
     // METHODS
     // SCREEN
@@ -189,5 +197,5 @@ java_home=Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'JerryDetectionIntegrationTest.java'
     path.write_text(harness)
-    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(path)],check=True)
+    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryMessageMatcher.java'),str(path)],check=True)
     subprocess.run([str(java_home/'bin/java'),'-cp',tmp,'dev.kuan.skyblockassistant.JerryDetectionIntegrationTest'],check=True)

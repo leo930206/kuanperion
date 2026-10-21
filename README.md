@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.116`
+Current mod version: `1.0.117`
 
 ## Features
 
@@ -83,7 +83,14 @@ Current mod version: `1.0.116`
 
 - Other sits below the Mining target list, with `通知設定` on the left and `Jerry 偵測` on the right (both 130×20). Jerry detection is off by default.
 - Turning it on opens a dialog with independent `出現 Jerry 是否通知` and `出現 Jerry 是否停下動作` toggles (both initially on). Confirm saves the options and enables detection; Cancel/Esc leaves everything unchanged. Turn detection off and on to reconfigure. Detection and both options persist across restarts, but Mining/Farming still never auto-start on login.
-- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and recognize all three forms case-insensitively with flexible whitespace: `[any color] Jerry appeared!`, `You located a hidden [any color] Jerry!`, and `You discovered a [any color] Jerry!`. Color names are not whitelisted (multi-word/custom colors and no color name are accepted). Merely mentioning Jerry, `Jerry disappeared`, other discovered items, or `Jerryfish` does not trigger it. Detection is based on message text only, not entity scanning.
+- Read received chat/system messages, not action-bar overlays. Strip Minecraft color codes and detect any of the seven patterns below **anywhere inside the message**, ignoring arbitrary surrounding text. Matching is case-insensitive with flexible whitespace, and `[type]` is any color/name (not a whitelist; multi-word/custom/missing types work). Mere Jerry mentions, non-Jerry discoveries, `Jerryfish`, and incomplete hiding/spawn messages do not trigger it. Detection is text-based, not entity scanning.
+  - `You found a [type] Jerry!`
+  - `You discovered a [type] Jerry!`
+  - `Some [type] Jerry was hiding, but you found it!`
+  - `wild [type] Jerry spawned!`
+  - `[type] Jerry appeared!`
+  - `There is a [type] Jerry!`
+  - `You located a hidden [type] Jerry!`
 - Jerry sends `Jerry 通知：發現 Jerry！` through the selected shared channels, independently of Farming/Mining and the pest/visitor toggles. Its own notification option enables/disables all selected notification channels for Jerry only; stop actions remain independent. Each matching received message is a new notification; no cooldown suppresses later spawns.
 - Stop actions immediately turns Mining/Farming off, clears the mining target, releases attack/movement and manual-input locks, resets smart-pause state, and cancels any queued Farming recovery commands. It does not auto-resume. Missing/invalid Webhook configuration cannot prevent stopping. If both automations are already off, notifications still work without releasing the player's manual movement keys.
 
@@ -98,7 +105,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.116.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.117.jar
 ```
 
 ## Tests

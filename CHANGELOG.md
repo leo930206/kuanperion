@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.117] - 2026-10-21
+
+### Changed
+
+- Replace the prior Jerry matcher with the seven supplied message patterns: found, discovered, hiding/found-it, wild/spawned, appeared, there-is, and located-hidden Jerry messages.
+- Find signals anywhere within received color-stripped chat, allowing arbitrary prefixes/suffixes, any/custom/missing color names, case variations, and extra whitespace. Precompile the patterns in a dedicated matcher while rejecting incomplete signals and non-Jerry items.
+- Keep all shared notification channels, Jerry stop-action preferences, and cleanup behavior unchanged. Extend production event/action regression coverage across every pattern, surrounding text (including adjacent/multiline text), color formatting, custom types, and all notification/stop combinations.
+
 ## [1.0.116] - 2026-10-21
 
 ### Added
