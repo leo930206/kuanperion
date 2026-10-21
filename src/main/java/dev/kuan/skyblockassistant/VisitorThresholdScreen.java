@@ -8,7 +8,7 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Confirmation is required before enabling visitor notifications; cancellation changes nothing. */
+/** Explicit threshold editing from notification settings; cancellation changes nothing. */
 final class VisitorThresholdScreen extends Screen {
     private final Screen parent;
     private final IntConsumer confirmThreshold;

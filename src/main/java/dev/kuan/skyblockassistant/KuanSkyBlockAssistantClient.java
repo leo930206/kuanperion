@@ -2071,35 +2071,20 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     /** The main screen owns Visitor/Pest master switches; their dialogs only edit preferences. */
     private static void toggleTabNotification(SettingsScreen parent, NotificationType type) {
         if (type == NotificationType.JERRY) throw new IllegalArgumentException("Jerry has no master switch");
-        boolean enabled = type == NotificationType.PESTS ? pestNotificationEnabled : visitorNotificationEnabled;
-        if (enabled) {
-            if (type == NotificationType.PESTS) {
-                pestNotificationEnabled = false;
-                TAB_NOTIFICATIONS.resetPests();
-            } else {
-                visitorNotificationEnabled = false;
-                TAB_NOTIFICATIONS.resetVisitors();
-            }
-            SCREEN_NOTIFICATIONS.remove(type, System.nanoTime());
-            saveConfig();
-            parent.rebuild();
-            return;
+        boolean enabled;
+        if (type == NotificationType.PESTS) {
+            pestNotificationEnabled = !pestNotificationEnabled;
+            enabled = pestNotificationEnabled;
+            TAB_NOTIFICATIONS.resetPests();
+        } else {
+            visitorNotificationEnabled = !visitorNotificationEnabled;
+            enabled = visitorNotificationEnabled;
+            TAB_NOTIFICATIONS.resetVisitors();
         }
-        java.util.function.IntConsumer confirm = threshold -> {
-            if (type == NotificationType.PESTS) {
-                pestNotificationThreshold = threshold;
-                pestNotificationEnabled = true;
-                TAB_NOTIFICATIONS.resetPests();
-            } else {
-                visitorNotificationThreshold = threshold;
-                visitorNotificationEnabled = true;
-                TAB_NOTIFICATIONS.resetVisitors();
-            }
-            saveConfig();
-            openNotificationSettings(parent, type);
-        };
-        Minecraft.getInstance().setScreenAndShow(type == NotificationType.PESTS
-                ? new PestThresholdScreen(parent, confirm) : new VisitorThresholdScreen(parent, confirm));
+        if (!enabled) SCREEN_NOTIFICATIONS.remove(type, System.nanoTime());
+        saveConfig();
+        if (enabled) openNotificationSettings(parent, type);
+        else parent.rebuild();
     }
 
     private static void openNotificationSettings(SettingsScreen parent, NotificationType type) {
