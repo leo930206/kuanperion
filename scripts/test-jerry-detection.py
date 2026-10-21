@@ -42,6 +42,7 @@ public class JerryDetectionIntegrationTest {
     static int limboChatSeenTick, saves, releases;
     static final List<String> FARMING_COMMAND_QUEUE = new ArrayList<>();
     static final List<String> sent = new ArrayList<>();
+    static final List<String> titles = new ArrayList<>();
     static final Guard FARMING_GUI_PAUSE_GUARD = new Guard(), MINING_GUI_PAUSE_GUARD = new Guard(), FARMING_TOOL_GUARD = new Guard();
     static class Guard { int resets; void reset() { resets++; } void reset(Object ignored) { resets++; } }
     static class Key { boolean down; void setDown(boolean value) { down=value; } }
@@ -59,7 +60,7 @@ public class JerryDetectionIntegrationTest {
     static void applyLockedMovement(Minecraft mc,boolean f,boolean b,boolean l,boolean r,boolean j) {
         check(!f && !b && !l && !r && !j,"all movement released"); releases++;
     }
-    static void sendNotification(NotificationType type, String message, String title) { if (NOTIFICATION_CHANNELS.getOrDefault(type,NotificationChannels.NONE).available(pestWebhookUrl)) sent.add(message); }
+    static void sendNotification(NotificationType type, String message, String title) { if (NOTIFICATION_CHANNELS.getOrDefault(type,NotificationChannels.NONE).available(pestWebhookUrl)) { sent.add(message); titles.add(title); } }
     static void saveConfig() { saves++; }
     static void sayAutoState(Minecraft mc,String feature,boolean enabled) {}
     static class StringUtil { static String stripColor(String text) { return text.replaceAll("(?i)§[0-9a-fk-or]", ""); } }
@@ -79,7 +80,7 @@ public class JerryDetectionIntegrationTest {
         NOTIFICATION_CHANNELS.clear();NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,false,false));jerryStopActionsEnabled=true;
         miningEnabled=farmingEnabled=farmingAutoRecovering=farmingEnabledThisSession=farmingWorldChanged=false;
         farmingDesiredForward=farmingDesiredJump=true;
-        pestWebhookUrl="test-only";sent.clear();saves=0;releases=0;
+        pestWebhookUrl="test-only";sent.clear();titles.clear();saves=0;releases=0;
         activeTarget=new Object();activeTargetStarted=true;activeTargetBlockId="stone";
         FARMING_COMMAND_QUEUE.clear();
         Minecraft.getInstance().options.keyAttack.down=true;
@@ -99,6 +100,10 @@ public class JerryDetectionIntegrationTest {
             miningEnabled=true;
             handleReceivedMessage(Component.literal(message));
             check(sent.size()==notify,"independent notification option: " + message);
+            if(notify==1) {
+                check(sent.get(0).equals("Jerry 通知：發現 "+color+" Jerry！"),"Discord/chat text includes actual color: "+message);
+                check(titles.get(0).equals("發現 "+color+" Jerry！"),"screen text includes actual color: "+message);
+            }
             check(miningEnabled==(stop==0),"independent stop option: " + message);
             if(stop==1) {
                 check(activeTarget==null && !activeTargetStarted,"mining target cleared");
@@ -114,6 +119,10 @@ public class JerryDetectionIntegrationTest {
                 handleReceivedMessage(Component.literal("§a[Green Jerry] " + template.formatted("§6"+color.label+"§r") + " [Golden Jerry]"));
                 boolean selected=enabled.contains(color);
                 check(sent.size()==(selected?1:0),"only selected color not prefix/suffix colors: "+mask+color+template);
+                if(selected) {
+                    check(sent.get(0).equals("Jerry 通知：發現 "+color.label+" Jerry！"),"display actual matched color, not unrelated prefix/suffix");
+                    check(titles.get(0).equals("發現 "+color.label+" Jerry！"),"display same matched color on screen");
+                }
                 check(miningEnabled==!selected,"disabled color cannot stop automation: "+mask+color);
                 if(!selected) check(activeTarget!=null && mc.options.keyAttack.down && releases==0 && saves==0,"disabled color has no side effects");
             }
@@ -121,6 +130,7 @@ public class JerryDetectionIntegrationTest {
         reset();jerryColors=Set.of(JerryColor.GREEN,JerryColor.GOLDEN);
         handleReceivedMessage(Component.literal("You found a Blue Jerry! You found a Golden Jerry!"));
         check(sent.size()==1,"find enabled second event in same message after disabled event");
+        check(sent.get(0).equals("Jerry 通知：發現 Golden Jerry！") && titles.get(0).equals("發現 Golden Jerry！"),"display enabled Golden match, not earlier disabled Blue");
         reset();NOTIFICATION_CHANNELS.clear();jerryStopActionsEnabled=false;miningEnabled=true;
         handleReceivedMessage(Component.literal(APPEARED));
         check(miningEnabled && sent.isEmpty(),"no channels and stop off does nothing without needing a master");

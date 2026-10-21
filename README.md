@@ -2,7 +2,7 @@
 
 為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、Pest、Jerry 通知功能。
 
-**目前版本：`1.0.124`**
+**目前版本：`1.0.125`**
 
 | 項目 | 說明 |
 | --- | --- |
@@ -30,7 +30,7 @@
 
 1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
 2. 依[建置與測試](#建置與測試)產生 jar。
-3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.124.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.125.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
 4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
 5. 重新啟動 Minecraft。
 
@@ -326,6 +326,7 @@ You located a hidden [type] Jerry!
 讀取的是聊天／系統訊息，不包含 action bar，也不掃描實體。單純提到 Jerry、其他物品、`Jerryfish` 或不完整的躲藏／生成訊息，不會當作有效提示。
 
 - 偵測後，依 Jerry 自己的三個通知開關送出通知；每則符合訊息各算一次，不額外設冷卻。
+- Discord、遊戲內聊天室與螢幕通知均帶上實際種類，例如「發現 Golden Jerry！」；名稱使用 `Green`／`Blue`／`Purple`／`Golden`，不受原訊息大小寫或顏色碼影響。
 - 「出現 Jerry 是否停下動作」獨立運作：啟用後立即關閉 Mining／Farming、釋放攻擊與移動／視角鎖定，並取消待執行的 Farming 返回指令，不會自動恢復。
 - 即使全部通知管道關閉或 Webhook 無效，停下動作仍可生效。
 - 若原本沒有執行自動化，通知不會釋放玩家手動操作的按鍵。
@@ -376,7 +377,7 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.124.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.125.jar
 ```
 
 測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、四色全部 16 種組合與開關位置／顏色／保存、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。

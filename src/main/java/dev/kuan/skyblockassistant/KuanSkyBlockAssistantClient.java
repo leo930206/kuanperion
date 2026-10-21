@@ -1997,7 +1997,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static boolean handleJerryMessage(Minecraft mc, String text) {
-        if (!JerryMessageMatcher.matches(text, jerryColors)) return false;
+        JerryColor color = JerryMessageMatcher.matchingColor(text, jerryColors);
+        if (color == null) return false;
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             miningEnabled = false;
@@ -2006,7 +2007,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             stopFarming(mc, false);
             saveConfig();
         }
-        sendNotification(NotificationType.JERRY, "Jerry 通知：發現 Jerry！", "發現 Jerry！");
+        String announcement = "發現 " + color.label + " Jerry！";
+        sendNotification(NotificationType.JERRY, "Jerry 通知：" + announcement, announcement);
         return true;
     }
 

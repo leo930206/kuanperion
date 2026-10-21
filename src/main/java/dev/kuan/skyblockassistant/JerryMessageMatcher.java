@@ -20,14 +20,15 @@ final class JerryMessageMatcher {
         return Pattern.compile(expression, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
     }
 
-    static boolean matches(String text, Set<JerryColor> enabledColors) {
-        if (text == null || enabledColors.isEmpty()) return false;
+    static JerryColor matchingColor(String text, Set<JerryColor> enabledColors) {
+        if (text == null || enabledColors.isEmpty()) return null;
         for (Pattern signal : SIGNALS) {
             var matches = signal.matcher(text);
             while (matches.find()) {
-                if (enabledColors.contains(JerryColor.fromName(matches.group("color")))) return true;
+                JerryColor color = JerryColor.fromName(matches.group("color"));
+                if (enabledColors.contains(color)) return color;
             }
         }
-        return false;
+        return null;
     }
 }
