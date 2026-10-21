@@ -45,8 +45,13 @@ final class NotificationSettingsScreen extends Screen {
         int y = this.height / 2 - 86;
         addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
         y += 24;
-        if (type != NotificationType.JERRY) {
-            addRenderableWidget(Button.builder(Component.literal("數量門檻：" + threshold), b -> openThreshold())
+        if (type == NotificationType.JERRY) {
+            addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
+                stopActions = !stopActions; saveAndRefresh();
+            }).bounds(x, y, 280, 20).build());
+            y += 28;
+        } else {
+            addRenderableWidget(Button.builder(Component.literal("出現多少 " + (type == NotificationType.PESTS ? "Pest" : "Visitor") + " 要通知：" + threshold), b -> openThreshold())
                     .bounds(x, y, 280, 20).build());
             y += 28;
         }
@@ -72,12 +77,6 @@ final class NotificationSettingsScreen extends Screen {
             }));
         }).bounds(x, y, 280, 20).build());
         y += 28;
-        if (type == NotificationType.JERRY) {
-            addRenderableWidget(Button.builder(toggleMsg("出現 Jerry 是否停下動作", stopActions), b -> {
-                stopActions = !stopActions; saveAndRefresh();
-            }).bounds(x, y, 280, 20).build());
-            y += 28;
-        }
         addRenderableWidget(Button.builder(Component.literal("完成"), b -> onClose())
                 .bounds(this.width / 2 - 65, y + 8, 130, 20).build());
     }

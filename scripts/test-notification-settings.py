@@ -119,10 +119,11 @@ public class NotificationSettingsTest {
     static void checkRows(Screen screen,NotificationType type) {
         List<Button> rows=screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
         List<String> expected=type==NotificationType.JERRY
-                ? List.of("Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","出現 Jerry 是否停下動作","完成")
-                : List.of("數量門檻","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
+                ? List.of("出現 Jerry 是否停下動作","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
+                : List.of(type==NotificationType.PESTS ? "出現多少 Pest 要通知：" : "出現多少 Visitor 要通知：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
         check(rows.size()==5,"four content rows plus Done: "+type);
         for(int i=0;i<expected.size();i++) check(rows.get(i).label.getString().startsWith(expected.get(i)),"row order/wording: "+type+i);
+        if(type!=NotificationType.JERRY) check(rows.get(0).label.getString().equals(expected.get(0)+(type==NotificationType.PESTS ? pestNotificationThreshold : visitorNotificationThreshold)),"threshold label retains current saved value");
     }
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
@@ -194,7 +195,7 @@ public class NotificationSettingsTest {
         Screen visitor=mc.shown;
         check(visitorNotificationEnabled && visitorNotificationThreshold==3 && visitor instanceof NotificationSettingsScreen,"confirm enables Visitor then opens preferences");
         checkRows(visitor,NotificationType.VISITORS);
-        click(visitor,"數量門檻");threshold=mc.shown;input(threshold).setValue("4");click(threshold,"確認");
+        click(visitor,"出現多少 Visitor 要通知：");threshold=mc.shown;input(threshold).setValue("4");click(threshold,"確認");
         check(visitorNotificationEnabled && visitorNotificationThreshold==4 && mc.shown==visitor,"threshold row edits preferences without changing master");
         click(visitor,"Discord 訊息通知");Screen url=mc.shown;
         for(String invalid:List.of("", "abc", "ftp://example.test/hook", "https://")) {
@@ -280,7 +281,7 @@ public class NotificationSettingsTest {
             check(TAB_NOTIFICATIONS.pestReached(true,8,1)==(type==NotificationType.PESTS),"reset only selected Pest history");
             check(TAB_NOTIFICATIONS.visitorsReached(true,5,1)==(type==NotificationType.VISITORS),"reset only selected Visitor history");
             openNotificationSettings(parent,type);Screen settings=mc.shown;checkRows(settings,type);
-            click(settings,"數量門檻");input(mc.shown).setValue("2");click(mc.shown,"確認");
+            click(settings,"出現多少");input(mc.shown).setValue("2");click(mc.shown,"確認");
             click(settings,"遊戲內聊天室通知");
             check(type==NotificationType.PESTS ? !pestNotificationEnabled : !visitorNotificationEnabled,"preferences cannot silently re-enable outer master");
             toggleTabNotification(parent,type);input(mc.shown).setValue("2");click(mc.shown,"確認");

@@ -2,7 +2,7 @@
 
 為 **Minecraft 26.2／Hypixel SkyBlock** 開發的 Client-side Fabric mod，提供 Mining、Farming，以及 Visitor、Pest、Jerry 通知功能。
 
-**目前版本：`1.0.122`**
+**目前版本：`1.0.123`**
 
 | 項目 | 說明 |
 | --- | --- |
@@ -30,7 +30,7 @@
 
 1. 準備 Minecraft `26.2` 的 Fabric instance，並安裝相容的 Fabric API。
 2. 依[建置與測試](#建置與測試)產生 jar。
-3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.122.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
+3. 將 `build/libs/kuan-hypixel-skyblock-assistant-1.0.123.jar` 放入該 instance 的 `minecraft/mods` 資料夾。
 4. 移除舊版的 **本模組 jar**，只留最新版；不要刪除其他 mod。
 5. 重新啟動 Minecraft。
 
@@ -232,9 +232,9 @@ Pumpkin 與 `carved_pumpkin` 都能辨識為南瓜；Pumpkin／Melon 雖共用�
 
 | 按鈕 | 設定內容 |
 | --- | --- |
-| Farming 區的「Visitor 通知」 | 外層總開關；內層四行：1～5 數量門檻、三種通知管道 |
-| Farming 區的「Pest 通知」 | 外層總開關；內層四行：1～8 數量門檻、三種通知管道 |
-| Other 區的「Jerry 偵測」 | 三種通知管道、是否停下動作；**沒有 Jerry 總開關** |
+| Farming 區的「Visitor 通知」 | 外層總開關；內層四行：「出現多少 Visitor 要通知：」數量（1～5）、三種通知管道 |
+| Farming 區的「Pest 通知」 | 外層總開關；內層四行：「出現多少 Pest 要通知：」數量（1～8）、三種通知管道 |
+| Other 區的「Jerry 偵測」 | 第一行為「出現 Jerry 是否停下動作」，接著三種通知管道；**沒有 Jerry 總開關** |
 
 每個功能都有下列三個開關，可以全開、全關或任意搭配，互不影響：
 
@@ -248,7 +248,7 @@ Visitor／Pest 的總開關只放在 Farming 主設定頁面，不在彈出視�
 
 - 關閉時點選外層按鈕：輸入數量門檻，確認後啟用並開啟四行設定視窗；取消／Esc 不啟用。
 - 開啟時點選外層按鈕：直接關閉該功能，保留原門檻、通知管道與秒數。
-- 設定視窗只含「數量門檻、Discord 訊息通知、遊戲內聊天室通知、遊戲內螢幕通知」，另有「完成」按鈕。可從「數量門檻」修改數量，不會改變總開關。
+- 設定視窗第一行為「出現多少 Visitor 要通知：數量」或「出現多少 Pest 要通知：數量」，接著是 Discord 訊息通知、遊戲內聊天室通知、遊戲內螢幕通知，另有「完成」按鈕。點選第一行可修改數量，不會改變總開關。
 - 要重新開啟設定，可關閉再開啟外層按鈕。設定變更只重置該功能需要重置的通知紀錄，不會影響另一種通知。
 
 關閉「遊戲內聊天室通知」只會停止模組額外的提示，不會隱藏原本的伺服器訊息。
@@ -369,7 +369,7 @@ minecraft/config/kuan-hypixel-skyblock-assistant.properties
 建置產物：
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.122.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.123.jar
 ```
 
 測試涵蓋工具偵測、智慧暫停、地點與異常返回、Mining 順位／左鍵鎖定、Tab 解析與去重、七種 Jerry 訊息、個別通知管道、共用 Webhook、秒數視窗及小數時間邊界。
