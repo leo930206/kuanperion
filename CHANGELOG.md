@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.120] - 2026-10-21
+
+### Changed
+
+- Accept positive decimal seconds with at most one decimal point for each feature's screen duration, including `0.5` and `1.25`; reject multiple dots, zero/negative values, malformed input, and unrepresentable/out-of-range timing values.
+- Preserve decimal durations exactly with BigDecimal-to-nanosecond conversion, per-event queue timing, independent feature settings, and plain-decimal persistence/display. Existing integer settings and the three-second default remain compatible.
+- Extend parser, queue, and production-dialog/config tests for fractional values, sub-second boundaries, invalid decimal syntax, independent saved durations, and exact timing without floating-point drift.
+
 ## [1.0.119] - 2026-10-21
 
 ### Added

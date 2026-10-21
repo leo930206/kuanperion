@@ -1,5 +1,6 @@
 package dev.kuan.skyblockassistant;
 
+import java.math.BigDecimal;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
@@ -19,7 +20,8 @@ final class NotificationSettingsScreen extends Screen {
     private final Consumer<String> setWebhook;
     private final Consumer<Options> saveOptions;
     private boolean enabled, discord, chat, screen, stopActions;
-    private int threshold, screenSeconds;
+    private int threshold;
+    private BigDecimal screenSeconds;
 
     NotificationSettingsScreen(Screen parent, NotificationType type, Options initial,
                                Supplier<String> getWebhook, Consumer<String> setWebhook, Consumer<Options> saveOptions) {
@@ -67,7 +69,7 @@ final class NotificationSettingsScreen extends Screen {
             chat = !chat; saveAndRefresh();
         }).bounds(x, y, 280, 20).build());
         y += 28;
-        addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知" + (screen ? "（" + screenSeconds + " 秒）" : ""), screen), b -> {
+        addRenderableWidget(Button.builder(toggleMsg("遊戲螢幕通知" + (screen ? "（" + screenSeconds.toPlainString() + " 秒）" : ""), screen), b -> {
             if (screen) { screen = false; saveAndRefresh(); }
             else Minecraft.getInstance().setScreenAndShow(new ScreenDurationScreen(this, screenSeconds, seconds -> {
                 screenSeconds = seconds;

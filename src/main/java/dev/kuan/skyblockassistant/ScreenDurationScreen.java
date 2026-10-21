@@ -1,6 +1,7 @@
 package dev.kuan.skyblockassistant;
 
-import java.util.function.IntConsumer;
+import java.math.BigDecimal;
+import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -8,16 +9,16 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Enabling screen alerts requires confirming a positive integer duration. */
+/** Enabling screen alerts requires confirming a positive decimal duration. */
 final class ScreenDurationScreen extends Screen {
     private final Screen parent;
-    private final IntConsumer confirmSeconds;
+    private final Consumer<BigDecimal> confirmSeconds;
     private String draft;
 
-    ScreenDurationScreen(Screen parent, int initialSeconds, IntConsumer confirmSeconds) {
+    ScreenDurationScreen(Screen parent, BigDecimal initialSeconds, Consumer<BigDecimal> confirmSeconds) {
         super(Component.literal("螢幕通知顯示時間"));
         this.parent = parent;
-        this.draft = Integer.toString(initialSeconds);
+        this.draft = initialSeconds.toPlainString();
         this.confirmSeconds = confirmSeconds;
     }
 
@@ -26,23 +27,23 @@ final class ScreenDurationScreen extends Screen {
         int centerX = this.width / 2;
         int y = this.height / 2 - 45;
         addRenderableWidget(new StringWidget(centerX - 140, y, 280, 12,
-                Component.literal("請輸入顯示秒數（至少 1 秒，正整數）"), this.font));
+                Component.literal("請輸入秒數（大於 0，可含一個小數點）"), this.font));
         EditBox secondsBox = new EditBox(this.font, centerX - 60, y + 24, 120, 20,
                 Component.literal("顯示秒數"));
         secondsBox.setMaxLength(32);
         secondsBox.setValue(draft);
         addRenderableWidget(secondsBox);
         Button confirm = Button.builder(Component.literal("確認"), b -> {
-            int seconds = NotificationChannels.parseScreenSeconds(secondsBox.getValue());
-            if (seconds != 0) confirmSeconds.accept(seconds);
+            BigDecimal seconds = NotificationChannels.parseScreenSeconds(secondsBox.getValue());
+            if (seconds != null) confirmSeconds.accept(seconds);
         }).bounds(centerX - 105, y + 60, 100, 20).build();
-        confirm.active = NotificationChannels.parseScreenSeconds(secondsBox.getValue()) != 0;
+        confirm.active = NotificationChannels.parseScreenSeconds(secondsBox.getValue()) != null;
         addRenderableWidget(confirm);
         addRenderableWidget(Button.builder(Component.literal("取消"), b -> onClose())
                 .bounds(centerX + 5, y + 60, 100, 20).build());
         secondsBox.setResponder(value -> {
             draft = value;
-            boolean valid = NotificationChannels.parseScreenSeconds(value) != 0;
+            boolean valid = NotificationChannels.parseScreenSeconds(value) != null;
             confirm.active = valid;
             secondsBox.setTextColor(valid ? 0xFFE0E0E0 : 0xFFFF5555);
         });

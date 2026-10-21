@@ -2102,8 +2102,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             NotificationChannels defaults = newSettings || (type == NotificationType.JERRY && !(legacyJerry && legacyJerryNotify))
                     ? NotificationChannels.NONE : legacy;
             String key = type.configKey;
-            int seconds = NotificationChannels.parseScreenSeconds(p.getProperty(key + "ScreenSeconds"));
-            if (seconds == 0) seconds = NotificationChannels.DEFAULT_SCREEN_SECONDS;
+            var seconds = NotificationChannels.parseScreenSeconds(p.getProperty(key + "ScreenSeconds"));
+            if (seconds == null) seconds = NotificationChannels.DEFAULT_SCREEN_SECONDS;
             NOTIFICATION_CHANNELS.put(type, new NotificationChannels(
                     Boolean.parseBoolean(p.getProperty(key + "DiscordEnabled", Boolean.toString(defaults.discord()))),
                     Boolean.parseBoolean(p.getProperty(key + "ChatEnabled", Boolean.toString(defaults.chat()))),
@@ -2123,7 +2123,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             p.setProperty(key + "DiscordEnabled", Boolean.toString(channels.discord()));
             p.setProperty(key + "ChatEnabled", Boolean.toString(channels.chat()));
             p.setProperty(key + "ScreenEnabled", Boolean.toString(channels.screen()));
-            p.setProperty(key + "ScreenSeconds", Integer.toString(channels.screenSeconds()));
+            p.setProperty(key + "ScreenSeconds", channels.screenSeconds().toPlainString());
         }
     }
 

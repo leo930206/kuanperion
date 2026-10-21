@@ -2,7 +2,7 @@
 
 Client-side Fabric mod for Minecraft `26.2`: Hypixel SkyBlock assistant for mining and farming.
 
-Current mod version: `1.0.119`
+Current mod version: `1.0.120`
 
 ## Features
 
@@ -76,7 +76,7 @@ Current mod version: `1.0.119`
 - There is no global `通知設定` button. Clicking `Visitor 通知`, `害蟲通知`, or `Jerry 偵測` opens that feature's own settings, with independent `Discord 訊息通知`, `遊戲聊天室通知`, and `遊戲螢幕通知` switches. Each feature can enable any combination, including all off; changing one feature never changes another feature's switches.
 - Visitor/pest dialogs retain their own enable switch and `數量門檻` button. Enabling opens the strict 1–5 / 1–8 number dialog; Cancel/Esc leaves it unchanged. Channel settings can be adjusted without enabling detection. Threshold/enable changes reset only that feature's notification history.
 - **One Webhook URL is shared by every feature.** Turning a feature's Discord switch on opens URL entry, prefilled from the latest shared value. Confirming updates the common URL and enables only that feature's Discord switch. Other features' Discord switches are untouched, but all enabled Discord channels use the newly saved URL. Cancel/Esc leaves the URL and switches unchanged; turning a Discord switch off retains the URL. The main footer has no Webhook field.
-- Chat alerts remain local `[Kuan HSBA]` messages. Screen alerts remain centered, fitted large yellow text for the **duration configured for that feature**. Turning its screen switch on opens a seconds dialog: confirm a positive whole number to enable it; Cancel/Esc leaves the switch off and the saved duration unchanged. The last saved value is prefilled and shown on the enabled switch; turn it off/on to edit again. Visitor, pest, and Jerry durations persist independently; missing/invalid saved durations default to 3 seconds. Simultaneous events queue with each event retaining its own duration, without altering server titles. Turning off one feature's screen/master switch removes only its screen alerts, not other features' alerts. Leaving/changing worlds clears all pending screen alerts; F1 respects hidden HUD.
+- Chat alerts remain local `[Kuan HSBA]` messages. Screen alerts remain centered, fitted large yellow text for the **duration configured for that feature**. Turning its screen switch on opens a seconds dialog: confirm a positive decimal number with at most one decimal point (for example `0.5` or `1.25`) to enable it; Cancel/Esc leaves the switch off and the saved duration unchanged. The last saved value is prefilled and shown on the enabled switch; turn it off/on to edit again. Values must be greater than zero; blank/negative/zero, multiple decimal points, exponent notation, and values outside the nanosecond timing range are rejected. Decimal durations are converted exactly rather than rounded through floating point. Visitor, pest, and Jerry durations persist independently; missing/invalid saved durations default to 3 seconds. Simultaneous events queue with each event retaining its own duration, without altering server titles. Turning off one feature's screen/master switch removes only its screen alerts, not other features' alerts. Leaving/changing worlds clears all pending screen alerts; F1 respects hidden HUD.
 - All channel flags persist separately. Existing global flags migrate into independent Visitor/pest preferences. Jerry notifications and stop actions migrate only if its old master was enabled, preventing an old disabled Jerry setup from unexpectedly stopping automation. Fresh installations default to all channels and Jerry stop actions off.
 - A feature without an available channel does not consume its Tab count notifications, even while another feature is polling. Channel changes do not replay already-notified counts. Discord remains asynchronous with a ten-second timeout and token-safe logging; tests never contact a real Webhook.
 
@@ -106,7 +106,7 @@ This repository uses the Minecraft/Fabric jars already installed by PrismLaunche
 Output:
 
 ```text
-build/libs/kuan-hypixel-skyblock-assistant-1.0.119.jar
+build/libs/kuan-hypixel-skyblock-assistant-1.0.120.jar
 ```
 
 ## Tests

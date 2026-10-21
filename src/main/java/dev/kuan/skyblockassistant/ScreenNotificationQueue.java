@@ -1,6 +1,7 @@
 package dev.kuan.skyblockassistant;
 
 import java.util.ArrayDeque;
+import java.math.BigDecimal;
 import java.util.Deque;
 
 /** Independent event labels share a sequential display with each event's chosen duration. */
@@ -11,8 +12,11 @@ final class ScreenNotificationQueue {
     private long shownAt;
 
     void add(NotificationType type, String text, int seconds, long now) {
-        if (seconds < 1) throw new IllegalArgumentException("Screen seconds must be positive");
-        Entry entry = new Entry(type, text, seconds * 1_000_000_000L);
+        add(type, text, BigDecimal.valueOf(seconds), now);
+    }
+
+    void add(NotificationType type, String text, BigDecimal seconds, long now) {
+        Entry entry = new Entry(type, text, NotificationChannels.durationNanos(seconds));
         if (current == null) { current = entry; shownAt = now; }
         else pending.addLast(entry);
     }

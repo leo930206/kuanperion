@@ -27,6 +27,7 @@ harness=r'''package dev.kuan.skyblockassistant;
 import java.util.*;
 import java.util.function.*;
 import java.net.URI;
+import java.math.BigDecimal;
 public class NotificationSettingsTest {
     static final Map<NotificationType,NotificationChannels> NOTIFICATION_CHANNELS=new EnumMap<>(NotificationType.class);
     static final ScreenNotificationQueue SCREEN_NOTIFICATIONS=new ScreenNotificationQueue();
@@ -205,7 +206,7 @@ public class NotificationSettingsTest {
             int before=saves;
             click(feature,"遊戲螢幕通知");Screen dialog=mc.shown;
             check(dialog instanceof ScreenDurationScreen && input(dialog).getValue().equals("3"),"legacy default prefilled");
-            for(String invalid:List.of("", "0", "-1", "1.5", "a", " 3", "3 ", "03", "2147483648", "999999999999999999999")) {
+            for(String invalid:List.of("", "0", "-1", "1..5", "1.2.3", "0.0", "a", " 3", "3 ", "03", "2147483648", "999999999999999999999")) {
                 input(dialog).setValue(invalid);check(!button(dialog,"確認").active,"invalid duration rejected");
                 click(dialog,"確認");check(saves==before && !notificationChannels(type).screen(),"invalid callback does not enable");
             }
@@ -213,25 +214,25 @@ public class NotificationSettingsTest {
             click(feature,"遊戲螢幕通知");dialog=mc.shown;dialog.onClose();
             check(saves==before && !notificationChannels(type).screen(),"Esc leaves screen off");
             click(feature,"遊戲螢幕通知");dialog=mc.shown;
-            int seconds=5+type.ordinal();input(dialog).setValue(Integer.toString(seconds));
-            dialog.widgets.clear();dialog.init();check(input(dialog).getValue().equals(Integer.toString(seconds)),"draft survives resize");
-            click(dialog,"確認");check(notificationChannels(type).screen() && notificationChannels(type).screenSeconds()==seconds,"feature duration saved");
-            check(button(feature,"遊戲螢幕通知").label.getString().contains(seconds+" 秒"),"button shows duration");
-            click(feature,"遊戲聊天室通知");check(notificationChannels(type).screenSeconds()==seconds,"other switch preserves duration");
+            BigDecimal seconds=new BigDecimal(List.of("0.5","1.25","2.75").get(type.ordinal()));input(dialog).setValue(seconds.toPlainString());
+            dialog.widgets.clear();dialog.init();check(input(dialog).getValue().equals(seconds.toPlainString()),"draft survives resize");
+            click(dialog,"確認");check(notificationChannels(type).screen() && notificationChannels(type).screenSeconds().compareTo(seconds)==0,"feature duration saved");
+            check(button(feature,"遊戲螢幕通知").label.getString().contains(seconds.toPlainString()+" 秒"),"button shows duration");
+            click(feature,"遊戲聊天室通知");check(notificationChannels(type).screenSeconds().compareTo(seconds)==0,"other switch preserves duration");
             click(feature,"遊戲螢幕通知");click(feature,"遊戲螢幕通知");dialog=mc.shown;
-            check(input(dialog).getValue().equals(Integer.toString(seconds)),"re-enabling prefills previous duration");dialog.onClose();
+            check(input(dialog).getValue().equals(seconds.toPlainString()),"re-enabling prefills previous duration");dialog.onClose();
         }
-        check(notificationChannels(NotificationType.PESTS).screenSeconds()==5 && notificationChannels(NotificationType.VISITORS).screenSeconds()==6 && notificationChannels(NotificationType.JERRY).screenSeconds()==7,"durations stay independent");
+        check(notificationChannels(NotificationType.PESTS).screenSeconds().compareTo(new BigDecimal("0.5"))==0 && notificationChannels(NotificationType.VISITORS).screenSeconds().compareTo(new BigDecimal("1.25"))==0 && notificationChannels(NotificationType.JERRY).screenSeconds().compareTo(new BigDecimal("2.75"))==0,"durations stay independent");
         Properties durations=new Properties();saveNotificationConfig(durations);loadNotificationConfig(durations);
-        check(notificationChannels(NotificationType.JERRY).screenSeconds()==7 && notificationChannels(NotificationType.PESTS).screenSeconds()==5,"durations persist across reload");
+        check(notificationChannels(NotificationType.JERRY).screenSeconds().compareTo(new BigDecimal("2.75"))==0 && notificationChannels(NotificationType.PESTS).screenSeconds().compareTo(new BigDecimal("0.5"))==0,"durations persist across reload");
         durations.setProperty("jerryNotificationScreenSeconds","invalid");loadNotificationConfig(durations);
-        check(notificationChannels(NotificationType.JERRY).screenSeconds()==3 && notificationChannels(NotificationType.PESTS).screenSeconds()==5,"invalid saved duration safely defaults only that feature");
+        check(notificationChannels(NotificationType.JERRY).screenSeconds().compareTo(new BigDecimal("3"))==0 && notificationChannels(NotificationType.PESTS).screenSeconds().compareTo(new BigDecimal("0.5"))==0,"invalid saved duration safely defaults only that feature");
         NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,false,true,9));SCREEN_NOTIFICATIONS.clear();
         sendNotification(NotificationType.JERRY,"duration","custom");long now=System.nanoTime();
         check(SCREEN_NOTIFICATIONS.current(now+4_000_000_000L).equals("custom"),"dispatcher passes selected duration, not fixed three seconds");
         check(SCREEN_NOTIFICATIONS.current(now+10_000_000_000L)==null,"dispatcher duration eventually expires");
 
-        System.out.println("NotificationSettingsTest: PASS (per-feature channels, shared live Webhook, thresholds, safe migration, Jerry without master, overlay isolation, per-feature duration dialogs)");
+        System.out.println("NotificationSettingsTest: PASS (per-feature channels, shared live Webhook, thresholds, safe migration, Jerry without master, overlay isolation, per-feature decimal duration dialogs)");
     }
     // METHODS
     // SCREENS
