@@ -38,6 +38,7 @@ public class NotificationSettingsTest {
     static final ScreenNotificationQueue SCREEN_NOTIFICATIONS=new ScreenNotificationQueue();
     static final GardenTabNotifications TAB_NOTIFICATIONS=new GardenTabNotifications();
     static boolean pestNotificationEnabled,visitorNotificationEnabled,jerryStopActionsEnabled;
+    static BigDecimal jerryMarkerMaxSeconds=JerryFarmingPauseMarkers.DEFAULT_MAX_SECONDS;
     static Set<JerryColor> jerryColors=Set.of(JerryColor.values());
     static int pestNotificationThreshold=1,visitorNotificationThreshold=5,saves;
     static String pestWebhookUrl="";
@@ -121,9 +122,9 @@ public class NotificationSettingsTest {
     static void checkRows(Screen screen,NotificationType type) {
         List<Button> rows=screen.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
         List<String> expected=type==NotificationType.JERRY
-                ? List.of("Green：","Blue：","Purple：","Golden：","出現 Jerry 是否停下動作","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成")
+                ? List.of("Green：","Blue：","Purple：","Golden：","出現 Jerry 是否停下動作","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","光柱最久存在時間：","完成")
                 : List.of(type==NotificationType.PESTS ? "出現多少 Pest 要通知：" : "出現多少 Visitor 要通知：","Discord 訊息通知","遊戲內聊天室通知","遊戲內螢幕通知","完成");
-        check(rows.size()==(type==NotificationType.JERRY ? 9 : 5),"correct feature button count: "+type);
+        check(rows.size()==(type==NotificationType.JERRY ? 10 : 5),"correct feature button count: "+type);
         for(int i=0;i<expected.size();i++) check(rows.get(i).label.getString().startsWith(expected.get(i)),"row order/wording: "+type+i);
         if(type!=NotificationType.JERRY) check(rows.get(0).label.getString().equals(expected.get(0)+(type==NotificationType.PESTS ? pestNotificationThreshold : visitorNotificationThreshold)),"threshold label retains current saved value");
         if(type==NotificationType.JERRY) {
@@ -245,10 +246,35 @@ public class NotificationSettingsTest {
         click(visitor,"Discord 訊息通知");check(!notificationChannels(NotificationType.VISITORS).discord() && notificationChannels(NotificationType.PESTS).discord(),"disable only visitor Discord");
         click(visitor,"Discord 訊息通知");url=mc.shown;check(input(url).getValue().endsWith("/three"),"existing modal reads latest shared URL, not stale snapshot");url.onClose();
         openNotificationSettings(parent,NotificationType.JERRY);Screen jerry=mc.shown;
-        check(jerry.widgets.stream().filter(Button.class::isInstance).count()==9,"Jerry needs four quarter-width color toggles above Discord");
+        check(jerry.widgets.stream().filter(Button.class::isInstance).count()==10,"Jerry needs four quarter-width color toggles above Discord");
         for(String color:List.of("Green","Blue","Purple","Golden")) check(button(jerry,color+"：").label.getString().equals(color+"：開啟"),"default color switch: "+color);
         checkRows(jerry,NotificationType.JERRY);
         check(jerry.widgets.stream().filter(Button.class::isInstance).map(Button.class::cast).noneMatch(b->b.label.getString().startsWith("Jerry 偵測：")),"Jerry has no master toggle");
+        Button lifetime=button(jerry,"光柱最久存在時間：");
+        check(lifetime.y==button(jerry,"遊戲內螢幕通知").y+28 && lifetime.width==280, "lifetime is the last full-width settings row");
+        NOTIFICATION_CHANNELS.putIfAbsent(NotificationType.JERRY,NotificationChannels.NONE);
+        Map<NotificationType,NotificationChannels> channelsBeforeLifetime=new EnumMap<>(NOTIFICATION_CHANNELS);
+        click(jerry,"光柱最久存在時間：");Screen lifetimeDialog=mc.shown;
+        check(lifetimeDialog instanceof ScreenDurationScreen && input(lifetimeDialog).getValue().equals("300"),"lifetime dialog prefilled with 300-second default");
+        check(input(lifetimeDialog).maxLength==Integer.MAX_VALUE,"no input digit ceiling for beam lifetime");
+        for(String invalid:List.of("", "0", "-1", "1..5", "NaN", "Infinity")) {
+            input(lifetimeDialog).setValue(invalid);check(!button(lifetimeDialog,"確認").active,"reject invalid beam seconds");
+        }
+        String hugeSeconds="999999999999999999999999999999999999999999999999999999999999999";
+        input(lifetimeDialog).setValue(hugeSeconds);check(button(lifetimeDialog,"確認").active,"large lifetime accepted without upper cap");
+        click(lifetimeDialog,"確認");check(mc.shown==jerry && jerryMarkerMaxSeconds.toPlainString().equals(hugeSeconds),"confirm saves full unbounded lifetime and returns to Jerry settings");
+        check(NOTIFICATION_CHANNELS.equals(channelsBeforeLifetime),"beam lifetime does not change notification switches");
+        Properties lifetimeConfig=new Properties();saveNotificationConfig(lifetimeConfig);jerryMarkerMaxSeconds=BigDecimal.ONE;loadNotificationConfig(lifetimeConfig);
+        check(jerryMarkerMaxSeconds.toPlainString().equals(hugeSeconds),"large lifetime persists exactly through restart");
+        click(jerry,"光柱最久存在時間：");input(mc.shown).setValue("0.5");click(mc.shown,"確認");
+        check(jerryMarkerMaxSeconds.compareTo(new BigDecimal("0.5"))==0,"fractional beam seconds saved");
+        click(jerry,"光柱最久存在時間：");input(mc.shown).setValue("10");click(mc.shown,"取消");
+        check(mc.shown==jerry && jerryMarkerMaxSeconds.compareTo(new BigDecimal("0.5"))==0,"cancel retains previous beam duration");
+        click(jerry,"光柱最久存在時間：");input(mc.shown).setValue("11");mc.shown.onClose();
+        check(mc.shown==jerry && jerryMarkerMaxSeconds.compareTo(new BigDecimal("0.5"))==0,"Esc retains previous beam duration");
+        click(visitor,"遊戲內聊天室通知");
+        check(jerryMarkerMaxSeconds.compareTo(new BigDecimal("0.5"))==0,"stale Visitor settings cannot overwrite Jerry lifetime");
+        click(visitor,"遊戲內聊天室通知");
         NOTIFICATION_CHANNELS.putIfAbsent(NotificationType.JERRY,NotificationChannels.NONE);
         Map<NotificationType,NotificationChannels> beforeColors=new EnumMap<>(NOTIFICATION_CHANNELS);
         String sharedBeforeColors=pestWebhookUrl;boolean stopBeforeColors=jerryStopActionsEnabled;
@@ -340,6 +366,8 @@ public class NotificationSettingsTest {
             checkRows(mc.shown,type);
         }
 
+        Properties invalidLifetime=new Properties();invalidLifetime.setProperty("jerryMarkerMaxSeconds", "-9");loadNotificationConfig(invalidLifetime);
+        check(jerryMarkerMaxSeconds.equals(JerryFarmingPauseMarkers.DEFAULT_MAX_SECONDS), "invalid saved duration falls back safely");
         System.out.println("NotificationSettingsTest: PASS (color row geometry/name colors/persistence, four-row Visitor/Pest dialogs, outer master switches, renamed labels, independent channels, shared Webhook, thresholds, safe migration, overlay isolation, decimal durations)");
     }
     // METHODS
@@ -349,6 +377,6 @@ public class NotificationSettingsTest {
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'NotificationSettingsTest.java';path.write_text(harness)
     java=Path(sys.argv[1])/'bin'
-    deps=[base/(n+'.java') for n in ['ScreenNotificationQueue','NotificationType','NotificationChannels','GardenTabNotifications','JerryColor']]
+    deps=[base/(n+'.java') for n in ['ScreenNotificationQueue','NotificationType','NotificationChannels','GardenTabNotifications','JerryColor','JerryFarmingPauseMarkers']]
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,deps),str(path)],check=True)
     subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.NotificationSettingsTest'],check=True)

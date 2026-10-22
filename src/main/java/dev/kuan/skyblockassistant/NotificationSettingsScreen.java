@@ -15,7 +15,7 @@ import net.minecraft.network.chat.Component;
 
 /** One feature owns its switches; only the live Webhook supplier is shared. */
 final class NotificationSettingsScreen extends Screen {
-    record Options(NotificationChannels channels, int threshold, boolean stopActions, Set<JerryColor> colors) {
+    record Options(NotificationChannels channels, int threshold, boolean stopActions, Set<JerryColor> colors, BigDecimal markerMaxSeconds) {
         Options { colors = Set.copyOf(colors); }
     }
     private final Screen parent;
@@ -25,7 +25,7 @@ final class NotificationSettingsScreen extends Screen {
     private final Consumer<Options> saveOptions;
     private boolean discord, chat, screen, stopActions;
     private int threshold;
-    private BigDecimal screenSeconds;
+    private BigDecimal screenSeconds, markerMaxSeconds;
     private final EnumSet<JerryColor> colors = EnumSet.noneOf(JerryColor.class);
 
     NotificationSettingsScreen(Screen parent, NotificationType type, Options initial,
@@ -43,12 +43,13 @@ final class NotificationSettingsScreen extends Screen {
         threshold = initial.threshold();
         stopActions = initial.stopActions();
         colors.addAll(initial.colors());
+        markerMaxSeconds = initial.markerMaxSeconds();
     }
 
     @Override
     protected void init() {
         int x = this.width / 2 - 140;
-        int y = this.height / 2 - (type == NotificationType.JERRY ? 100 : 86);
+        int y = this.height / 2 - (type == NotificationType.JERRY ? 114 : 86);
         addRenderableWidget(new StringWidget(x, y, 280, 12, Component.literal(type.label), this.font));
         y += 24;
         if (type == NotificationType.JERRY) {
@@ -90,6 +91,15 @@ final class NotificationSettingsScreen extends Screen {
             }));
         }).bounds(x, y, 280, 20).build());
         y += 28;
+        if (type == NotificationType.JERRY) {
+            addRenderableWidget(Button.builder(Component.literal("光柱最久存在時間：" + markerMaxSeconds.toPlainString() + " 秒"), b ->
+                    Minecraft.getInstance().setScreenAndShow(new ScreenDurationScreen(this, "光柱最久存在時間", markerMaxSeconds,
+                            JerryFarmingPauseMarkers::parseMaxSeconds, Integer.MAX_VALUE, seconds -> {
+                        markerMaxSeconds = seconds;
+                        saveAndRefresh();
+                    }))).bounds(x, y, 280, 20).build());
+            y += 28;
+        }
         addRenderableWidget(Button.builder(Component.literal("完成"), b -> onClose())
                 .bounds(this.width / 2 - 65, y + 8, 130, 20).build());
     }
@@ -104,7 +114,7 @@ final class NotificationSettingsScreen extends Screen {
     }
 
     private void saveAndRefresh() {
-        saveOptions.accept(new Options(new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions, colors));
+        saveOptions.accept(new Options(new NotificationChannels(discord, chat, screen, screenSeconds), threshold, stopActions, colors, markerMaxSeconds));
         Minecraft.getInstance().setScreenAndShow(this);
     }
 

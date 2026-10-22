@@ -42,6 +42,7 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -79,6 +80,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final ScreenNotificationQueue SCREEN_NOTIFICATIONS = new ScreenNotificationQueue();
     private static final JerryFarmingPauseMarkers JERRY_FARMING_MARKERS = new JerryFarmingPauseMarkers();
     private static final Map<NotificationType, NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
+    private static BigDecimal jerryMarkerMaxSeconds = JerryFarmingPauseMarkers.DEFAULT_MAX_SECONDS;
     private static Set<JerryColor> jerryColors = Set.of(JerryColor.values());
     private static int pestNotificationThreshold = 1;
     private static int visitorNotificationThreshold = 5;
@@ -238,6 +240,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft mc) {
+        expireJerryFarmingMarkers();
         if (mc.player == null || mc.level == null) SCREEN_NOTIFICATIONS.clear();
         while (settingsKey.consumeClick()) mc.setScreenAndShow(new SettingsScreen(null));
         tickTabNotifications(mc);
@@ -2066,6 +2069,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         return server + "|" + mc.level.dimension().identifier() + "|" + place;
     }
 
+    private static void expireJerryFarmingMarkers() {
+        if (!JERRY_FARMING_MARKERS.isEmpty() && JERRY_FARMING_MARKERS.expire(jerryMarkerMaxSeconds)) saveConfig();
+    }
+
     private static void markJerryFarmingPause(Minecraft mc) {
         String scope = jerryFarmingMarkerScope(mc);
         if (scope != null) JERRY_FARMING_MARKERS.add(scope, mc.player.getX(), mc.player.getY(), mc.player.getZ());
@@ -2172,7 +2179,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static void openNotificationSettings(SettingsScreen parent, NotificationType type) {
         int threshold = switch (type) { case PESTS -> pestNotificationThreshold; case VISITORS -> visitorNotificationThreshold; case JERRY -> 0; };
         NotificationSettingsScreen.Options initial = new NotificationSettingsScreen.Options(
-                notificationChannels(type), threshold, jerryStopActionsEnabled, jerryColors);
+                notificationChannels(type), threshold, jerryStopActionsEnabled, jerryColors, jerryMarkerMaxSeconds);
         Minecraft.getInstance().setScreenAndShow(new NotificationSettingsScreen(parent, type, initial,
                 () -> pestWebhookUrl, value -> pestWebhookUrl = value, options -> {
             NOTIFICATION_CHANNELS.put(type, options.channels());
@@ -2187,12 +2194,15 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             } else {
                 jerryStopActionsEnabled = options.stopActions();
                 jerryColors = options.colors();
+                jerryMarkerMaxSeconds = options.markerMaxSeconds();
             }
             saveConfig();
         }));
     }
 
     private static void loadNotificationConfig(Properties p) {
+        jerryMarkerMaxSeconds = JerryFarmingPauseMarkers.parseMaxSeconds(p.getProperty("jerryMarkerMaxSeconds"));
+        if (jerryMarkerMaxSeconds == null) jerryMarkerMaxSeconds = JerryFarmingPauseMarkers.DEFAULT_MAX_SECONDS;
         EnumSet<JerryColor> colors = EnumSet.noneOf(JerryColor.class);
         for (JerryColor color : JerryColor.values()) {
             if (Boolean.parseBoolean(p.getProperty(color.configKey, "true"))) colors.add(color);
@@ -2223,6 +2233,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void saveNotificationConfig(Properties p) {
+        p.setProperty("jerryMarkerMaxSeconds", jerryMarkerMaxSeconds.toPlainString());
         for (JerryColor color : JerryColor.values()) {
             p.setProperty(color.configKey, Boolean.toString(jerryColors.contains(color)));
         }
@@ -2320,6 +2331,11 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id) && TARGET_BLOCKS.size() < 5) {
                 TARGET_BLOCKS.add(id);
             }
+        }
+        // Persist legacy marker timestamps once; never restart their timeout on the next launch.
+        if (!JERRY_FARMING_MARKERS.isEmpty()) {
+            JERRY_FARMING_MARKERS.expire(jerryMarkerMaxSeconds);
+            saveConfig();
         }
     }
 

@@ -1,23 +1,51 @@
 package dev.kuan.skyblockassistant;
 
+import java.math.BigDecimal;
+import java.util.function.LongSupplier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/** Persistent client-only positions; only an accepted manual Farming start can acknowledge them. */
+/** Persistent client-only positions; manual Farming resume or a wall-clock timeout clears them. */
 final class JerryFarmingPauseMarkers {
-    record Marker(String scope, double x, double y, double z) {}
+    record Marker(String scope, double x, double y, double z, long createdAtMillis) {}
+    static final BigDecimal DEFAULT_MAX_SECONDS = BigDecimal.valueOf(300);
     private static final String KEY = "jerryFarmingPauseMarker";
     private static final int MAX_MARKERS = 4096;
     private final List<Marker> markers = new ArrayList<>();
 
+    private final LongSupplier clock;
+
+    JerryFarmingPauseMarkers() { this(System::currentTimeMillis); }
+    JerryFarmingPauseMarkers(LongSupplier clock) { this.clock = clock; }
+
+    static BigDecimal parseMaxSeconds(String value) {
+        if (value == null || !value.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?")) return null;
+        try {
+            BigDecimal seconds = new BigDecimal(value);
+            return seconds.signum() > 0 ? seconds.stripTrailingZeros() : null;
+        } catch (NumberFormatException ignored) { return null; }
+    }
+
+    boolean expire(BigDecimal maxSeconds) {
+        if (maxSeconds == null || maxSeconds.signum() <= 0) return false;
+        BigDecimal now = BigDecimal.valueOf(clock.getAsLong());
+        BigDecimal lifetimeMillis = maxSeconds.movePointRight(3);
+        return markers.removeIf(marker -> now.subtract(BigDecimal.valueOf(marker.createdAtMillis()))
+                .compareTo(lifetimeMillis) >= 0);
+    }
+
     boolean isEmpty() { return markers.isEmpty(); }
 
     boolean add(String scope, double x, double y, double z) {
+        return add(scope, x, y, z, clock.getAsLong());
+    }
+
+    private boolean add(String scope, double x, double y, double z, long createdAtMillis) {
         if (!valid(scope, x, y, z) || markers.size() >= MAX_MARKERS) return false;
-        Marker marker = new Marker(scope, x, y, z);
-        if (markers.contains(marker)) return false;
-        return markers.add(marker);
+        if (markers.stream().anyMatch(marker -> marker.scope().equals(scope)
+                && marker.x() == x && marker.y() == y && marker.z() == z)) return false;
+        return markers.add(new Marker(scope, x, y, z, createdAtMillis));
     }
 
     List<Marker> inScope(String scope) {
@@ -45,7 +73,8 @@ final class JerryFarmingPauseMarkers {
                 add(properties.getProperty(prefix + "scope"),
                         Double.parseDouble(properties.getProperty(prefix + "x", "NaN")),
                         Double.parseDouble(properties.getProperty(prefix + "y", "NaN")),
-                        Double.parseDouble(properties.getProperty(prefix + "z", "NaN")));
+                        Double.parseDouble(properties.getProperty(prefix + "z", "NaN")),
+                        Long.parseLong(properties.getProperty(prefix + "createdAtMillis", Long.toString(clock.getAsLong()))));
             } catch (NumberFormatException ignored) { /* Ignore a malformed entry, not the remaining markers. */ }
         }
     }
@@ -59,6 +88,7 @@ final class JerryFarmingPauseMarkers {
             properties.setProperty(prefix + "x", Double.toString(marker.x()));
             properties.setProperty(prefix + "y", Double.toString(marker.y()));
             properties.setProperty(prefix + "z", Double.toString(marker.z()));
+            properties.setProperty(prefix + "createdAtMillis", Long.toString(marker.createdAtMillis()));
         }
     }
 
