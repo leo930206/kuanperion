@@ -31,6 +31,9 @@ import java.util.*;
 import java.util.function.*;
 public class JerryDetectionIntegrationTest {
     static boolean jerryStopActionsEnabled;
+    static boolean farmingManualStartPending;
+    static int farmingMarkersCreated;
+    static void markJerryFarmingPause(Minecraft mc) { check(!farmingEnabled && !miningEnabled,"stop automation before preparing the beam");farmingMarkersCreated++; }
     static final FarmingStallGuard FARMING_STALL_GUARD=new FarmingStallGuard();
     static Set<JerryColor> jerryColors=Set.of(JerryColor.values());
     static final Map<NotificationType,NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
@@ -77,6 +80,7 @@ public class JerryDetectionIntegrationTest {
                 "You located a hidden %s Jerry!");
     static final String APPEARED="§b ☺ §eA §aGreen Jerry§e appeared!";
     static void reset() {
+        farmingMarkersCreated=0;
         FARMING_STALL_GUARD.reset();
         jerryColors=Set.of(JerryColor.values());
         NOTIFICATION_CHANNELS.clear();NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,false,false));jerryStopActionsEnabled=true;
@@ -107,6 +111,7 @@ public class JerryDetectionIntegrationTest {
                 check(titles.get(0).equals("發現 "+color+" Jerry！"),"screen text includes actual color: "+message);
             }
             check(miningEnabled==(stop==0),"independent stop option: " + message);
+            check(farmingMarkersCreated==0,"Mining-only Jerry stop never creates a Farming beam");
             if(stop==1) {
                 check(activeTarget==null && !activeTargetStarted,"mining target cleared");
                 check(!mc.options.keyAttack.down && releases==1,"attack and movement released");
@@ -139,7 +144,12 @@ public class JerryDetectionIntegrationTest {
         reset();farmingEnabled=farmingEnabledThisSession=true;farmingWorldChanged=true;
         handleReceivedMessage(Component.literal("A Golden Jerry appeared!"));
         check(!farmingEnabled && !farmingEnabledThisSession && !farmingWorldChanged,"farming session stopped");
+        check(farmingMarkersCreated==1,"Jerry stopping Farming creates its return beam");
         check(!mc.options.keyAttack.down && !farmingDesiredForward && !farmingDesiredJump,"farming inputs cleared");
+        reset();farmingEnabled=true;jerryStopActionsEnabled=false;
+        handleReceivedMessage(Component.literal(APPEARED));check(farmingMarkersCreated==0 && farmingEnabled,"notify-only cannot create beam");
+        reset();farmingEnabled=true;jerryColors=Set.of(JerryColor.GOLDEN);
+        handleReceivedMessage(Component.literal(APPEARED));check(farmingMarkersCreated==0 && farmingEnabled,"disabled color cannot create beam");
         reset();farmingAutoRecovering=true;FARMING_COMMAND_QUEUE.add("warp garden");
         handleReceivedMessage(Component.literal("A Purple Jerry appeared!"));
         check(!farmingAutoRecovering && FARMING_COMMAND_QUEUE.isEmpty(),"pending recovery cancelled");

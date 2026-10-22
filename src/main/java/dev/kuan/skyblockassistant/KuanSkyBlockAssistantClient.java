@@ -26,6 +26,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -76,6 +77,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static final GuiPauseGuard MINING_GUI_PAUSE_GUARD = new GuiPauseGuard();
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     private static final ScreenNotificationQueue SCREEN_NOTIFICATIONS = new ScreenNotificationQueue();
+    private static final JerryFarmingPauseMarkers JERRY_FARMING_MARKERS = new JerryFarmingPauseMarkers();
     private static final Map<NotificationType, NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
     private static Set<JerryColor> jerryColors = Set.of(JerryColor.values());
     private static int pestNotificationThreshold = 1;
@@ -98,6 +100,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     private static boolean selectMode = false;
     private static boolean farmingEnabled = false;
     private static boolean farmingEnabledThisSession = false;
+    private static boolean farmingManualStartPending = false;
     private static FarmingCrop farmingCrop = FarmingCrop.WHEAT;
     private static boolean farmingAutoSetHome = false;
     private static boolean pestNotificationEnabled = false;
@@ -205,6 +208,8 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         loadConfig();
+        JerryFarmingMarkerRenderer.register(() -> JERRY_FARMING_MARKERS.isEmpty() ? List.of()
+                : JERRY_FARMING_MARKERS.inScope(jerryFarmingMarkerScope(Minecraft.getInstance())));
         KeyMapping.Category category = KeyMapping.Category.register(id("keys"));
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuan_sba.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
@@ -305,6 +310,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
             farmingEnabled = true;
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
+            farmingManualStartPending = true;
             if (farmingAutoSetHome && mc.player != null) mc.player.connection.sendCommand("sethome");
             say(mc, feature("Farming"), plain(" "), success("開啟"), plain("，正在辨識準星指向的作物"));
         }
@@ -312,6 +318,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        farmingManualStartPending = false;
         FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
@@ -326,6 +333,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
     }
 
     private static void resetFarmingRuntime(Minecraft mc) {
+        farmingManualStartPending = false;
         FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
         lastFarmingLocationDiagnostic = "";
@@ -1536,6 +1544,10 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
                 }
                 farmingCrop = detected;
                 farmingCropDetected = true;
+                if (farmingManualStartPending) {
+                    clearJerryFarmingMarkersOnStart(mc);
+                    farmingManualStartPending = false;
+                }
                 farmingReverseLane = false;
                 pumpkinMelonMarkerCleared = false;
                 if (detected == FarmingCrop.PUMPKIN_MELON) beginPumpkinMelonFromLane(player, cropBlockId);
@@ -2038,15 +2050,43 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         }
     }
 
+    private static String jerryFarmingMarkerScope(Minecraft mc) {
+        if (mc == null || mc.level == null || mc.player == null) return null;
+        String server;
+        String place;
+        if (mc.getCurrentServer() != null) {
+            server = "server:" + mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
+            FarmingLocation location = detectFarmingLocation(mc);
+            if (location == FarmingLocation.UNKNOWN) return null;
+            place = location.name();
+        } else if (mc.getSingleplayerServer() != null) {
+            server = "local:" + mc.getSingleplayerServer().getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+            place = "LOCAL";
+        } else return null;
+        return server + "|" + mc.level.dimension().identifier() + "|" + place;
+    }
+
+    private static void markJerryFarmingPause(Minecraft mc) {
+        String scope = jerryFarmingMarkerScope(mc);
+        if (scope != null) JERRY_FARMING_MARKERS.add(scope, mc.player.getX(), mc.player.getY(), mc.player.getZ());
+    }
+
+    private static void clearJerryFarmingMarkersOnStart(Minecraft mc) {
+        String scope = jerryFarmingMarkerScope(mc);
+        if (scope != null) JERRY_FARMING_MARKERS.resumeNear(scope, mc.player.getX(), mc.player.getY(), mc.player.getZ());
+    }
+
     private static boolean handleJerryMessage(Minecraft mc, String text) {
         JerryColor color = JerryMessageMatcher.matchingColor(text, jerryColors);
         if (color == null) return false;
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
+            boolean stoppedFarming = farmingEnabled;
             miningEnabled = false;
             MINING_GUI_PAUSE_GUARD.reset();
             clearActiveTarget(mc);
             stopFarming(mc, false);
+            if (stoppedFarming) markJerryFarmingPause(mc);
             saveConfig();
         }
         String announcement = "發現 " + color.label + " Jerry！";
@@ -2268,6 +2308,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
                 Boolean.toString(legacyAbnormalHandling)));
         loadNotificationConfig(p);
+        JERRY_FARMING_MARKERS.load(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
         rotationStepDegrees = parseInt(p.getProperty("rotationStepDegrees"), 13, 1, 40);
@@ -2297,6 +2338,7 @@ public final class KuanSkyBlockAssistantClient implements ClientModInitializer {
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         saveNotificationConfig(p);
+        JERRY_FARMING_MARKERS.save(p);
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));

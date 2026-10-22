@@ -2,7 +2,7 @@
 
 Minecraft **26.2** 的 Fabric 客戶端輔助模組，提供 Mining、Farming 與通知功能。
 
-**版本：`1.0.130`**
+**版本：`1.0.131`**
 
 ## 安裝與更新
 
@@ -59,6 +59,7 @@ Mining 與 Farming 無法同時開啟。重新啟動遊戲後，需手動啟用�
 
 - 選擇 Green／Blue／Purple／Golden，只通知已開啟的顏色。
 - 開啟「出現 Jerry 是否停下動作」後，選定顏色的 Jerry 出現時會停止 Mining／Farming。
+- Farming 因 Jerry 停止時會留下淺綠色光柱；回到光柱半徑 10 格內手動啟動 Farming 後才會消失，走近不會清除。Mining 不使用光柱。
 - 通知會顯示實際種類，例如「發現 Golden Jerry！」。
 
 ## 通知方式

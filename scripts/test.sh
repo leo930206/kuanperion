@@ -33,3 +33,9 @@ python3 "$ROOT/scripts/test-notification-settings.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-farming-stall.py" "$JAVA_HOME"
 
 python3 "$ROOT/scripts/test-pumpkin-melon-start.py" "$JAVA_HOME"
+
+"$JAVA_HOME/bin/javac" --release 21 -encoding UTF-8 -d "$TMP" \
+    "$ROOT/src/main/java/dev/kuan/skyblockassistant/JerryFarmingPauseMarkers.java" \
+    "$ROOT/src/test/java/dev/kuan/skyblockassistant/JerryFarmingPauseMarkersTest.java"
+"$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.skyblockassistant.JerryFarmingPauseMarkersTest
+python3 "$ROOT/scripts/test-jerry-marker-rendering.py" "$JAVA_HOME"
