@@ -53,7 +53,7 @@ final class MainGUISettingRowRenderer {
         float labelBlockH = Math.max(0,labelLines.size()-1)*labelLineStep+labelFontSize;
         switch (setting.getType()) {
             case TOGGLE: {
-                this.renderToggle(nvg, (ToggleSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                this.renderToggle(nvg, (ToggleSetting)setting, innerX, innerW, y, cardH, UiLayoutMetrics.checkboxTop(y,h), labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
             case SLIDER: {
@@ -68,7 +68,7 @@ final class MainGUISettingRowRenderer {
             case TEXT: {
                 if(setting instanceof InlineToggleSetting combined){
                     this.renderText(nvg,combined,innerX,InlineRowLayout.durationContentWidth(innerW),y,cardH,labelLines,labelFontSize,labelLineStep,labelBlockH);
-                    this.owner.renderPillControl(nvg,innerX+innerW-38,y+(cardH-21)/2,combined.isOn(),combined);
+                    this.owner.renderPillControl(nvg,innerX+innerW-38,UiLayoutMetrics.checkboxTop(y,h),combined.isOn(),combined);
                 }else this.renderText(nvg, (TextSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
@@ -160,12 +160,12 @@ final class MainGUISettingRowRenderer {
         }
     }
 
-    private void renderToggle(NVGRenderer nvg, ToggleSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
+    private void renderToggle(NVGRenderer nvg, ToggleSetting setting, float x, float w, float y, float cardH, float checkboxY, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
         float textY = y + (cardH - labelBlockH) / 2.0f;
         for (int i = 0; i < labelLines.size(); ++i) {
             nvg.text("Inter-Regular", labelLines.get(i), x, textY + (float)i * labelLineStep, labelFontSize, Theme.TEXT_LABEL);
         }
-        this.owner.renderPillControl(nvg, x + w - 38.0f, y + (cardH - 21.0f) / 2.0f, setting.getValue(), setting);
+        this.owner.renderPillControl(nvg, x + w - 38.0f, checkboxY, setting.getValue(), setting);
     }
 
     private void renderSlider(NVGRenderer nvg, SliderSetting setting, float x, float w, float y, float cardH, float midY, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {

@@ -2,12 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.2`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.3`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+
+勾選框依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.2.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.3.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -92,6 +94,6 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.2.md](docs/verification-2.0.2.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.3.md](docs/verification-2.0.3.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。

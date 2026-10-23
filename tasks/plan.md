@@ -15,3 +15,6 @@ White / sky-blue / blue-pink corner gradient; exact old-default-only migration w
 
 ## 2.0.2 approved follow-up
 Light sky main text/icons (no deep blue), neutral descriptions; more white by reducing editable wash coverage/strength; unchanged default Shift+M/F with Latin labels independent of IME; compact fields; shared configurable description gap and field height. Preserve custom palette/bindings, exact old-default-only migration with backup. No gameplay algorithm changes. Regression, isolated visual/input test, backup/sync/rebuild/payload compare/install/commit/tag/push.
+
+## 2.0.3 checkbox alignment
+Center against full cards; verify explained/plain/inline checkbox clicks without moving text or fields, then standard release gate.

@@ -3,6 +3,10 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        for(float rowHeight:new float[]{50,55,68,94}) {
+            float top=UiLayoutMetrics.checkboxTop(100,rowHeight);
+            require(Math.abs(top+10.5f-(100+(rowHeight-5)/2))<.001f,"checkbox centered in complete card, with or without wrapped description");
+        }
         require(UiLayoutMetrics.inputHeight()==16,"compact input default");
         require(UiLayoutMetrics.descriptionTop(13.5f)-UiLayoutMetrics.TITLE_TOP-13.5f==6,"uniform six-pixel description gap");
         require(UiLayoutMetrics.descriptionGap()==6,"group and setting share description gap");

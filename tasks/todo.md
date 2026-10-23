@@ -21,3 +21,7 @@
 - [x] Shared configurable gap, compact input drawing/hit testing/caret, Latin key labels.
 - [x] Previous-default-only migration/backup, custom preservation, policy/model/regression tests.
 - [x] Actual client screenshots/input validation, regressions/build and release preparation; publication is recorded by commit/tag.
+
+## 2.0.3 checkbox alignment
+- [x] Reproduce geometry gap with test; implement full-card checkbox centers and hit regions.
+- [x] Runtime geometry/lower-edge clicks and screenshots verified; regressions/build and release preparation complete; publication recorded by commit/tag.

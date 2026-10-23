@@ -181,10 +181,15 @@ final class MainGUISettingInteractionController {
         float ix = x + ip;
         float iw = w - ip * 2.0f;
         float cardH = h - 5.0f - this.owner.settingDescriptionHeight(setting,w);
+        // Checkboxes belong to the entire card, not just the title/control region.
+        if(my<y || my>y+h-UiLayoutMetrics.ROW_GAP)return;
+        if(setting instanceof ToggleSetting toggle){toggle.toggle();return;}
+        if(setting instanceof InlineToggleSetting combined && mx>=ix+iw-38){
+            this.owner.commitText();combined.toggle();return;
+        }
         if(my>y+cardH)return;
         if(setting instanceof InlineToggleSetting combined){
-            if(mx>=ix+iw-38){this.owner.commitText();combined.toggle();}
-            else this.handleTextClick(combined,mx,my,y,ix,InlineRowLayout.durationContentWidth(iw),cardH);
+            this.handleTextClick(combined,mx,my,y,ix,InlineRowLayout.durationContentWidth(iw),cardH);
             return;
         }
         if(setting instanceof SelectionActionSetting selection){

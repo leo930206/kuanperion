@@ -91,7 +91,7 @@ public final class UiSmoke implements ClientModInitializer {
         if(!setting.getValue().equals("2.5"))throw new AssertionError("duration did not save");
         setting.setValue("");
         if(!setting.getValue().isEmpty())throw new AssertionError("blank should preserve placeholder state");
-        click(row[0]+row[2]-40,row[1]+22);
+        click(row[0]+row[2]-40,UiLayoutMetrics.checkboxTop(row[1],row[3])+19);
         if(setting.isOn()==before||!setting.getValue().isEmpty())throw new AssertionError("checkbox click edited time / failed toggle");
         var values=dev.kuan.kuanperion.KuanperionClient.exportUiConfig();
         if(!values.get("pestNotificationScreenSeconds").getAsString().equals("3"))throw new AssertionError("blank duration needs safe default");
@@ -185,9 +185,18 @@ public final class UiSmoke implements ClientModInitializer {
         var group=ui.getActiveModuleSubTab().groups().get(0);
         var setting=(dev.kuan.kuanperion.ui.settings.ToggleSetting)group.getSettings().get(0);
         boolean old=setting.getValue();
-        var row=rowFor(setting);click(row[0]+row[2]-40,row[1]+22);
+        var row=rowFor(setting);click(row[0]+row[2]-40,UiLayoutMetrics.checkboxTop(row[1],row[3])+19);
         if(setting.getValue()==old)throw new AssertionError("rendered row click did not change live preference");
         setting.toggle();
+        var controller=new MainGUISettingInteractionController(ui);
+        for(String label:new String[]{"Blue","異常狀況處理"}){
+            boolean[] value={false};
+            var sample=new dev.kuan.kuanperion.ui.settings.ToggleSetting(label,()->value[0],v->value[0]=v);
+            float height=ui.settingHeightFor(sample,350);
+            controller.handleSettingClick(sample,320,UiLayoutMetrics.checkboxTop(10,height)+19,0,10,350,height);
+            if(!value[0])throw new AssertionError("full-card checkbox hit missed: "+label);
+        }
+        System.out.println("UI_SMOKE_CENTERED_CHECKBOX_PASS no-help / wrapped-help / lower checkbox edge / inline duration independence");
         System.out.println("UI_SMOKE_INPUT_PASS toggle live binding while feature stopped");
     }
     private void testSafety(Minecraft mc) throws Exception {
