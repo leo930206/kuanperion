@@ -46,7 +46,7 @@ final class MainGUISettingRowRenderer {
         float innerW = w - innerPad * 2.0f;
         float descriptionH=this.owner.settingDescriptionHeight(setting,w);
         cardH-=descriptionH;
-        float midY = y + cardH / 2.0f;
+        float midY = y + (h - UiLayoutMetrics.ROW_GAP) / 2.0f;
         List<String> labelLines = this.owner.wrapSettingLabelForRow(nvg, setting, w);
         float labelFontSize = this.owner.settingLabelFontSizeForRow(setting);
         float labelLineStep = this.owner.settingLabelLineStepForRow(setting);
@@ -57,7 +57,7 @@ final class MainGUISettingRowRenderer {
                 break;
             }
             case SLIDER: {
-                if(setting instanceof SelectionActionSetting selection)this.renderSelectionAction(nvg,selection,innerX,innerW,y,cardH,labelLines,labelFontSize,labelLineStep,labelBlockH);
+                if(setting instanceof SelectionActionSetting selection)this.renderSelectionAction(nvg,selection,innerX,innerW,y,cardH,h,labelLines,labelFontSize,labelLineStep,labelBlockH);
                 else this.renderSlider(nvg, (SliderSetting)setting, innerX, innerW, y, cardH, midY, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
@@ -67,13 +67,14 @@ final class MainGUISettingRowRenderer {
             }
             case TEXT: {
                 if(setting instanceof InlineToggleSetting combined){
-                    this.renderText(nvg,combined,innerX,InlineRowLayout.durationContentWidth(innerW),y,cardH,labelLines,labelFontSize,labelLineStep,labelBlockH);
+                    this.renderText(nvg,combined,innerX,InlineRowLayout.durationContentWidth(innerW),y,cardH,h,labelLines,labelFontSize,labelLineStep,labelBlockH);
                     this.owner.renderPillControl(nvg,innerX+innerW-38,UiLayoutMetrics.checkboxTop(y,h),combined.isOn(),combined);
-                }else this.renderText(nvg, (TextSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                }else this.renderText(nvg, (TextSetting)setting, innerX, innerW, y, cardH, h, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
             case INFO: {
-                if(setting instanceof BlockTargetSetting target)this.renderBlockTarget(nvg,target,innerX,innerW,y,cardH,mx,my);
+                if(setting instanceof ColorPresetSetting preset)ColorPresetRow.render(nvg,preset,innerX,y,innerW,h);
+                else if(setting instanceof BlockTargetSetting target)this.renderBlockTarget(nvg,target,innerX,innerW,y,cardH,mx,my);
                 else this.renderInfo(nvg, (InfoSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
@@ -110,7 +111,7 @@ final class MainGUISettingRowRenderer {
             }
         }
         if(descriptionH>0){
-            var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,innerW);
+            var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,this.owner.settingDescriptionWidth(setting,w));
             for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,y+cardH-UiLayoutMetrics.TITLE_TOP+UiLayoutMetrics.descriptionGap()+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);
         }
     }
@@ -124,9 +125,9 @@ final class MainGUISettingRowRenderer {
         nvg.rect(x + 4.0f, y + h - 7.0f, Math.max(0.0f, w - 8.0f), 1.0f, Theme.SEPARATOR);
     }
 
-    private void renderSelectionAction(NVGRenderer nvg,SelectionActionSetting setting,float x,float w,float y,float h,List<String> labels,float font,float lineStep,float labelH) {
+    private void renderSelectionAction(NVGRenderer nvg,SelectionActionSetting setting,float x,float w,float y,float h,float rowHeight,List<String> labels,float font,float lineStep,float labelH) {
         for(int i=0;i<labels.size();i++)nvg.text("Inter-Regular",labels.get(i),x,y+(h-labelH)/2+i*lineStep,font,Theme.TEXT_LABEL);
-        float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(x,w),fieldY=y+(h-fieldH)/2;
+        float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(x,w),fieldY=UiLayoutMetrics.inputTop(y,rowHeight);
         nvg.roundedRect(fieldX,fieldY,60,fieldH,4,Theme.BG_FIELD);
         boolean active=this.owner.isActiveSliderEditor(setting);
         nvg.rectOutline(fieldX,fieldY,60,fieldH,4,1,active?Theme.ACCENT_PRIMARY:Theme.BORDER_DEFAULT);
@@ -138,7 +139,7 @@ final class MainGUISettingRowRenderer {
             float caret=start+nvg.textWidth("Inter-Mono",this.owner.safeTextSlice(value,0,this.owner.currentTextCursor()),size);
             nvg.rect(Math.max(fieldX+4,Math.min(fieldX+56,caret)),fieldY+3,1,fieldH-6,Theme.TEXT_PRIMARY);
         }
-        float buttonY=y+(h-24)/2,buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
+        float buttonY=UiLayoutMetrics.controlTop(y,rowHeight,24),buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
         nvg.roundedRect(buttonX,buttonY,buttonW,24,5,Theme.withAlpha(Theme.ACCENT_PRIMARY,.12f));
         nvg.rectOutline(buttonX,buttonY,buttonW,24,5,1,Theme.ACCENT_PRIMARY);
         nvg.textCentered("Inter-Regular","開始選擇目標方塊",buttonX,buttonY,buttonW,24,11.5f,Theme.ACCENT_PRIMARY);
@@ -254,7 +255,7 @@ final class MainGUISettingRowRenderer {
         nvg.circle(upperX, midY, 5.0f, 0xFFFFFFFF);
     }
 
-    private void renderText(NVGRenderer nvg, TextSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
+    private void renderText(NVGRenderer nvg, TextSetting setting, float x, float w, float y, float cardH, float rowHeight, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
         boolean active = this.owner.isActiveTextEditor(setting);
         if (setting.isMultiline()) {
             this.renderMultilineText(nvg, setting, x, w, y, cardH, active, labelLines, labelFontSize, labelLineStep, labelBlockH);
@@ -267,7 +268,7 @@ final class MainGUISettingRowRenderer {
         float fieldW = this.owner.textInlineFieldWidthForRow(w);
         float fieldX = x + w - fieldW;
         float fieldH = UiLayoutMetrics.inputHeight();
-        float fieldY = y + (cardH - fieldH) / 2.0f;
+        float fieldY = UiLayoutMetrics.inputTop(y,rowHeight);
         nvg.roundedRect(fieldX, fieldY, fieldW, fieldH, 7.0f, Theme.BG_FIELD);
         nvg.rectOutline(fieldX, fieldY, fieldW, fieldH, 7.0f, 1.0f, active ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT);
         if (active) {

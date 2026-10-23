@@ -68,7 +68,7 @@ extends NVGScreen {
     static final float FILTER_BAR_H = 36.0f;
     private static final String[] TAB_NAMES = new String[]{"Modules", "Colors", "Config", "Keybinds", "Settings"};
     private static final String[] TAB_DESCS = new String[]{"Manage and configure modules", "Customise HUD and menu colors", "Save and manage config and theme profiles", "Edit Kuanperion keybinds and keep them synced with Minecraft controls", "General client settings"};
-    private static final String[] COLOR_FILTERS = new String[]{"All", "Menu Colors"};
+    private static final String[] COLOR_FILTERS = new String[]{"All", "Menu Colors", "配色收藏"};
     private static final String[] CONFIG_FILTERS = new String[]{"All", "Config Profiles", "Theme Profiles"};
     private static final String[] SINGLE_FILTER = new String[]{"All"};
     static final float RADIUS = 10.0f;
@@ -2177,6 +2177,7 @@ extends NVGScreen {
         this.renderListActionButton(nvg, x, y, w, label, hovered, enabled);
     }
 
+    float settingDescriptionWidth(Setting setting,float rowW){return textLayout.descriptionWidth(setting,rowW);}
     float settingDescriptionHeight(Setting setting,float rowW) {return textLayout.descriptionHeight(setting,rowW);}
 
     float textInlineFieldWidthForRow(float innerWidth) {

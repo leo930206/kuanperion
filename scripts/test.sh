@@ -42,3 +42,5 @@ python3 "$ROOT/scripts/test-jerry-marker-rendering.py" "$JAVA_HOME"
 
 "$ROOT/scripts/test-theme.sh"
 "$ROOT/scripts/test-hotkeys.sh"
+
+"$ROOT/scripts/test-color-presets.sh"

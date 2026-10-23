@@ -18,3 +18,6 @@ Light sky main text/icons (no deep blue), neutral descriptions; more white by re
 
 ## 2.0.3 checkbox alignment
 Center against full cards; verify explained/plain/inline checkbox clicks without moving text or fields, then standard release gate.
+
+## 2.0.4 inputs and color quick slots
+See docs/spec-2.0.4.md. Implement/test input geometry, implement/test bounded color-only storage/actions, actual client verification, standard release.

@@ -79,6 +79,7 @@ public final class SkyThemePalette {
         Map.entry("[Action] Hover","FFD9EDFC"),
         Map.entry("Gradient Blue","B37BC6F5"),
         Map.entry("Gradient Pink","99ECB0CE"));
+    public static java.util.Set<String> keys(){return COLORS.keySet();}
     public static int color(String name) {
         Integer color=COLORS.get(name);
         if(color==null)throw new IllegalArgumentException("Unknown theme token: "+name);

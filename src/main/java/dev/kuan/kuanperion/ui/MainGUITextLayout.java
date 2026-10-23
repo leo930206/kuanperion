@@ -20,12 +20,14 @@ final class MainGUITextLayout {
     MainGUITextLayout() {
     }
 
+    float descriptionWidth(Setting setting,float rowW){return settingLabelMaxWidth(setting,rowW);}
     float descriptionHeight(Setting setting,float rowW) {
         if(!SettingDescriptionCatalog.inlineHelp(setting))return 0;
-        return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),Math.max(40,rowW-32),10.5f * MainGUI.uiTextScale);
+        return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),descriptionWidth(setting,rowW),10.5f * MainGUI.uiTextScale);
     }
     float settingHeight(Setting setting, float rowW) {
         if(setting instanceof BlockTargetSetting)return 66;
+        if(setting instanceof ColorPresetSetting)return ColorPresetRow.height();
         if(SettingDescriptionCatalog.inlineHelp(setting)) {
             float labelHeight=(wrappedSettingLabelLineCount(setting,rowW)-1)*settingLabelLineStep(setting)+settingLabelFontSize(setting);
             return 2*UiLayoutMetrics.TITLE_TOP+labelHeight+descriptionHeight(setting,rowW)+UiLayoutMetrics.ROW_GAP;

@@ -25,3 +25,8 @@
 ## 2.0.3 checkbox alignment
 - [x] Reproduce geometry gap with test; implement full-card checkbox centers and hit regions.
 - [x] Runtime geometry/lower-edge clicks and screenshots verified; regressions/build and release preparation complete; publication recorded by commit/tag.
+
+## 2.0.4 inputs and color quick slots
+- [x] Spec and failing tests; enlarged/full-card input centers and old-default-only height upgrade.
+- [x] Five-slot validated color-only local storage, overwrite confirmation and Color tab integration.
+- [x] Actual client screenshots/clicks, reserved description columns, regressions/build and release preparation; publication recorded by commit/tag.

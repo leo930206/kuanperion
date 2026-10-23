@@ -180,21 +180,24 @@ final class MainGUISettingInteractionController {
         float ip = 16.0f;
         float ix = x + ip;
         float iw = w - ip * 2.0f;
-        float cardH = h - 5.0f - this.owner.settingDescriptionHeight(setting,w);
+        float fullCardH=h-UiLayoutMetrics.ROW_GAP;
+        float cardH = fullCardH - this.owner.settingDescriptionHeight(setting,w);
         // Checkboxes belong to the entire card, not just the title/control region.
         if(my<y || my>y+h-UiLayoutMetrics.ROW_GAP)return;
+        if(setting instanceof ColorPresetSetting preset){ColorPresetRow.click(preset,mx,my,ix,y,iw,h);return;}
         if(setting instanceof ToggleSetting toggle){toggle.toggle();return;}
         if(setting instanceof InlineToggleSetting combined && mx>=ix+iw-38){
             this.owner.commitText();combined.toggle();return;
         }
-        if(my>y+cardH)return;
+        boolean singleLine=setting instanceof TextSetting text && !text.isMultiline();
+        if(my>y+cardH && !singleLine && setting.getType()!=SettingType.SLIDER && setting.getType()!=SettingType.RANGE_SLIDER)return;
         if(setting instanceof InlineToggleSetting combined){
-            this.handleTextClick(combined,mx,my,y,ix,InlineRowLayout.durationContentWidth(iw),cardH);
+            this.handleTextClick(combined,mx,my,y,ix,InlineRowLayout.durationContentWidth(iw),fullCardH);
             return;
         }
         if(setting instanceof SelectionActionSetting selection){
             this.owner.commitText();
-            float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=y+(cardH-fieldH)/2,buttonY=y+(cardH-24)/2;
+            float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=UiLayoutMetrics.inputTop(y,h),buttonY=UiLayoutMetrics.controlTop(y,h,24);
             if(mx>=fieldX+72 && my>=buttonY && my<=buttonY+24)selection.start();
             else if(mx>=fieldX && mx<=fieldX+60 && my>=fieldY && my<=fieldY+fieldH){this.owner.focusSliderEditorField(selection);this.owner.setEditorBounds(fieldX,fieldY,60,fieldH);this.owner.selectAllText();}
             return;
@@ -210,15 +213,15 @@ final class MainGUISettingInteractionController {
                 break;
             }
             case SLIDER: {
-                this.handleSliderClick((SliderSetting)setting, mx, my, y, ix, iw, cardH);
+                this.handleSliderClick((SliderSetting)setting, mx, my, y, ix, iw, fullCardH);
                 break;
             }
             case RANGE_SLIDER: {
-                this.handleRangeSliderClick((RangeSliderSetting)setting, mx, my, y, ix, iw, cardH);
+                this.handleRangeSliderClick((RangeSliderSetting)setting, mx, my, y, ix, iw, fullCardH);
                 break;
             }
             case TEXT: {
-                this.handleTextClick((TextSetting)setting, mx, my, y, ix, iw, cardH);
+                this.handleTextClick((TextSetting)setting, mx, my, y, ix, iw, singleLine?fullCardH:cardH);
                 break;
             }
             case INFO:

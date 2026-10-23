@@ -26,6 +26,12 @@ public final class MainGUIRegistry {
         colors.add(new SliderSetting("漸層濃度",0f,1f,()->Theme.GRADIENT_STRENGTH,v->{Theme.GRADIENT_STRENGTH=v;Theme.saveTheme();}).withDecimals(2));
         colors.add(new ActionSetting("重設顏色",()->{Theme.resetColorsToDefaults();Theme.saveTheme();}));
         COLORS_SUBTABS.add(new ModulesTab.SubTab("Menu Colors","介面主題色彩",List.of(colors)));
+        var store=new dev.kuan.kuanperion.ui.theme.ColorPresetStore(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/color-presets"));
+        var savedColors=SettingGroup.alwaysOn("配色收藏","最多五組；點擊配色立即載入，右側按鈕儲存／再次確認覆寫；只儲存顏色與漸層");
+        for(int slot=1;slot<=dev.kuan.kuanperion.ui.theme.ColorPresetStore.LIMIT;slot++){
+            savedColors.add(new ColorPresetSetting(slot,store,()->com.google.gson.JsonParser.parseString(Theme.exportJson()).getAsJsonObject(),palette->{Theme.importJson(palette.toString());Theme.saveTheme();}));
+        }
+        COLORS_SUBTABS.add(new ModulesTab.SubTab("配色收藏","五個本機配色儲存槽",List.of(savedColors)));
         var keys=SettingGroup.alwaysOn("快捷鍵","點擊後按下單鍵或組合鍵，例如 F、Ctrl + F、Ctrl + Shift + F；Esc 取消");
         for(var setting:KuanperionClient.uiKeybinds())keys.add(setting);
         KEYBINDS_SUBTABS.add(new ModulesTab.SubTab("快捷鍵","與 Minecraft 控制設定同步",List.of(keys)));
@@ -36,7 +42,7 @@ public final class MainGUIRegistry {
             .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
             .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
             .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.3 · Minecraft 26.2 · 僅本機介面"));
+            .add(new InfoSetting("Kuanperion",()->"2.0.4 · Minecraft 26.2 · 僅本機介面"));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
         populated=true;
     }

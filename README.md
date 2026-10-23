@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.3`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.4`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
-勾選框依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。
+勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.3.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.4.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -37,12 +37,18 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 2.0.1 完整未改色的舊晴空預設亦會升級為淺天空藍與較淡／較小漸層，先備份至 `config/kuanperion-theme.before-light-sky.bak`。自訂色不覆蓋；UI 比例、動畫、HUD、快捷鍵保持。2.0.0 未調整的原預設色會自動升級，先備份至 `config/kuanperion-theme.before-sky-blossom.bak`，保留比例、動畫與 HUD 偏好。曾改色／開啟彩虹的自訂主題不自動覆蓋；要切新外觀請手動選「晴空藍粉」。只影響設定介面，不改玩法、遊戲 HUD 或 Webhook。
 
+### 配色收藏（最多五組）
+
+到「顏色 → 配色收藏」：每列右側「儲存目前配色」保存當前顏色，之後點擊該列即可載入。已存槽要改存時，點「覆寫目前配色」，再於 5 秒內點「確認覆寫」；未確認不改檔。
+
+五組保存在 `config/kuanperion/color-presets/slot-1.json`～`slot-5.json`，重啟後保留；覆寫前保留上一份 `.bak`。只保存選單色票、彩虹選取與漸層設定，不影響 Webhook、Mining／Farming、快捷鍵、HUD、比例、動畫、間距與輸入高度。原本「設定檔 → 主題」功能仍獨立存在。
+
 ## 新版設定介面
 
 - 可展開側欄、三欄功能卡片、分類與設定詳情、滑順捲動、搜尋、hover 提示。
 - 原生向量繪圖、卡片／頁面／勾選動畫、色彩選擇器、文字編輯、滑桿與數值輸入。
 - 「模組」只包含現有 Farming、Mining、Pest 通知、Visitor 通知、Jerry 偵測、共用 Discord 通知設定；沒有自動除蟲或其他新巨集。
-- 說明距離統一為標題下方 6 logical px，群組、設定列、搜尋與 hover 使用同一偏好；在「介面設定」可改「說明間距」（6～12）與「輸入框高度」（14～24，預設 16）。數字／單行時間框用較小字，快捷鍵按鈕不縮小。
+- 說明距離統一為標題下方 6 logical px，群組、設定列、搜尋與 hover 使用同一偏好；在「介面設定」可改「說明間距」（6～12）與「輸入框高度」（14～24，預設 22）。數字／單行時間框內文字預設 12 px，快捷鍵按鈕不縮小。
 - Farming／Mining 的工具偵測、智慧暫停、異常處理、範圍／轉速／延遲等設定，直接在列內顯示用途說明，另保留 hover 提示。
 - 點**卡片文字／主體**進設定，點勾選框控制啟停。停止時也能調整偏好，不會因查看設定自動啟動。
 - 「顏色」即時預覽；「設定檔」保存／載入本機功能與主題 Profiles，另有 晴空藍粉、Slate、Sage、Matcha、Dusk、Ember 預設色彩。
@@ -94,6 +100,6 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.3.md](docs/verification-2.0.3.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.4.md](docs/verification-2.0.4.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。

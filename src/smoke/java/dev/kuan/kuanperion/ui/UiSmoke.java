@@ -16,8 +16,8 @@ public final class UiSmoke implements ClientModInitializer {
                 ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;System.out.println("UI_SMOKE_OPEN");return;
             }
             if(waiting||++ticks<35)return;ticks=0;
-            org.lwjgl.glfw.GLFW.glfwSetCursorPos(mc.getWindow().handle(),1000,700);
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets"};
+            org.lwjgl.glfw.GLFW.glfwSetCursorPos(mc.getWindow().handle(),1,1);
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
@@ -26,6 +26,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
             if(phase==11) testTargetRows();
+            if(phase==12) testColorPresets();
                 phaseValidated=true;ticks=32;return; // Capture after two fresh rendered frames.
             }
             phaseValidated=false;
@@ -42,6 +43,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 7->{((dev.kuan.kuanperion.ui.settings.KeybindSetting)dev.kuan.kuanperion.KuanperionClient.uiKeybinds().get(2)).resetToDefault();switchTab(4);}
                 case 8->{ui.activateSearchField();ui.setSearchQuery("通知");}
                 case 10->{var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Pest 通知")).findFirst().orElseThrow();var group=pest.groups().get(0);var setting=group.getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();ui.openSearchResult(0,pest,group,setting);}
+                case 12->{switchTab(1);ui.setActiveFilterIndex(2);ui.setActiveScroll(0,0);ui.refreshContext();}
                 case 11->{var mining=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow();ui.openModuleDetailFromCard(mining);ui.selectModuleCategory(2);}
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
             }
@@ -84,18 +86,54 @@ public final class UiSmoke implements ClientModInitializer {
     private void testInlineDuration() {
         var setting=(dev.kuan.kuanperion.ui.settings.InlineToggleSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();
         var row=rowFor(setting);boolean before=setting.isOn();
-        click(row[0]+row[2]-130,row[1]+22);
+        click(row[0]+row[2]-130,UiLayoutMetrics.inputTop(row[1],row[3])+11);
         if(ui.activeText!=setting || setting.isOn()!=before)throw new AssertionError("duration click toggled checkbox / did not focus editor");
-        if(ui.activeEditorH!=16)throw new AssertionError("notification input not compact default height");
+        if(ui.activeEditorH!=22)throw new AssertionError("notification input not compact default height");
+        if(Math.abs(ui.activeEditorY+ui.activeEditorH/2-(row[1]+(row[3]-5)/2))>.01f)throw new AssertionError("input not full-card centered");
         ui.textBuf=new StringBuilder("2.5");ui.commitText();
         if(!setting.getValue().equals("2.5"))throw new AssertionError("duration did not save");
         setting.setValue("");
         if(!setting.getValue().isEmpty())throw new AssertionError("blank should preserve placeholder state");
         click(row[0]+row[2]-40,UiLayoutMetrics.checkboxTop(row[1],row[3])+19);
         if(setting.isOn()==before||!setting.getValue().isEmpty())throw new AssertionError("checkbox click edited time / failed toggle");
+        var threshold=(dev.kuan.kuanperion.ui.settings.SliderSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.SliderSetting).findFirst().orElseThrow();
+        var numberRow=rowFor(threshold);float innerW=numberRow[2]-32;
+        click(numberRow[0]+16+innerW-innerW/3+33,UiLayoutMetrics.inputTop(numberRow[1],numberRow[3])+11);
+        if(ui.activeSliderField!=threshold || ui.activeEditorH!=22 || Math.abs(ui.activeEditorY+11-(numberRow[1]+(numberRow[3]-5)/2))>.01f)throw new AssertionError("threshold input not centered/enlarged/clickable");
+        ui.commitText();
         var values=dev.kuan.kuanperion.KuanperionClient.exportUiConfig();
         if(!values.get("pestNotificationScreenSeconds").getAsString().equals("3"))throw new AssertionError("blank duration needs safe default");
         System.out.println("UI_SMOKE_INLINE_DURATION_PASS actual mouse hit regions / editor commit / blank placeholder / independent toggle");
+    }
+    private void testColorPresets() throws Exception {
+        var subtab=MainGUIRegistry.COLORS_SUBTABS.get(1);
+        if(ui.flatSubtabsForCurrentFilter().size()!=1 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("color preset tab unreachable");
+        var slots=subtab.groups().get(0).getSettings();
+        if(slots.size()!=5)throw new AssertionError("quick slots not exactly five");
+        var first=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(0);
+        float x=ui.contentX()+20,w=ui.contentW()-40,y=ui.contentScrollTop()+51;
+        float saveX=x+w-16-60,centerY=y+27.5f;
+        int original=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY;
+        var empty=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(4);
+        if(empty.occupied())throw new AssertionError("use a clean smoke sandbox; fifth slot must be empty");
+        click(x+40,centerY+240);if(empty.occupied())throw new AssertionError("empty load unexpectedly saved");
+        boolean existing=first.occupied();
+        click(saveX,centerY);if(existing)click(saveX,centerY);
+        if(!first.occupied())throw new AssertionError("save button missed");
+        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;
+        click(saveX,centerY); // Only arm overwrite.
+        click(x+40,centerY); // Loading must still restore original and cancel confirmation.
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=original)throw new AssertionError("overwrite was not confirmed / click-load missed");
+        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;
+        click(saveX,centerY);click(saveX,centerY);
+        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=original;
+        dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS=345;UiLayoutMetrics.setInputHeight(24);
+        click(x+40,centerY);
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF66C3EF || dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS!=345 || UiLayoutMetrics.inputHeight()!=24)throw new AssertionError("colors load changed layout or failed");
+        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=original;
+        dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS=250;UiLayoutMetrics.reset();
+        dev.kuan.kuanperion.ui.theme.Theme.saveTheme();
+        System.out.println("UI_SMOKE_COLOR_PRESETS_PASS real empty/save/load/overwrite/confirm clicks + exactly five + layout isolation");
     }
     private void testTargetRows() throws Exception {
         var group=ui.getActiveModuleSubTab().groups().get(1);
@@ -143,6 +181,14 @@ public final class UiSmoke implements ClientModInitializer {
         if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f || dev.kuan.kuanperion.ui.theme.Theme.HUD_TITLE!=0xFF010203)throw new AssertionError("migration overwrote non-menu preference");
         var backup=file.resolveSibling("kuanperion-theme.before-sky-blossom.bak");
         if(!java.nio.file.Files.readString(backup).equals(backupBefore==null?original:backupBefore))throw new AssertionError("theme backup not exact");
+        var inputOld=com.google.gson.JsonParser.parseString(saved).getAsJsonObject();
+        inputOld.addProperty("themeSchema",2);inputOld.addProperty("inputHeight",16);
+        java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
+        if(UiLayoutMetrics.inputHeight()!=22 || !java.nio.file.Files.exists(file.resolveSibling("kuanperion-theme.before-input-sizing.bak")) || com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(file)).getAsJsonObject().get("themeSchema").getAsInt()!=3)throw new AssertionError("input default upgrade/backup/persistence");
+        inputOld.addProperty("inputHeight",18);java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
+        if(UiLayoutMetrics.inputHeight()!=18)throw new AssertionError("old custom input height overwritten");
+        inputOld.addProperty("themeSchema",3);inputOld.addProperty("inputHeight",16);java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
+        if(UiLayoutMetrics.inputHeight()!=16)throw new AssertionError("explicit new compact input overwritten");
         var skyField=dev.kuan.kuanperion.ui.theme.SkyThemePalette.class.getDeclaredField("PREVIOUS_SKY");skyField.setAccessible(true);
         var previousSky=new com.google.gson.JsonObject();
         ((java.util.Map<String,String>)skyField.get(null)).forEach(previousSky::addProperty);

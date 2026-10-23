@@ -1,0 +1,6 @@
+# 2.0.4 scope
+- Single-line text/numeric inputs default 22 logical px tall, 12px inner text, centered against full card including explanations. Labels/descriptions remain unchanged. Match editor bounds/caret/hit testing; maintain paired checkbox/time independence and sliders/count action alignment.
+- Editable input height retained. Upgrade only old schema<=2 height=16 to22, back up before upgrade, preserve other custom heights.
+- Colors section gets five fixed quick-save slots, separate from existing general theme profiles. Save includes only menu colors, rainbow membership and gradient switch/coverage/strength. Never include Webhook, gameplay, keybindings, HUD, animation, UI scale, gaps or input sizes.
+- Click a saved slot to load immediately. Empty slots must not apply anything. Separate save button; overwrite requires second click within five seconds. Atomic local files, bounded validated JSON, previous slot backup and honest failure feedback. No network/dependencies.
+- Tests cover 1..5 limit, round trips/restart, overwrite confirmation, missing/corrupt/large input, colors-only scope, per-slot independence, full-row geometry and actual mouse/editor interactions. Standard version/build/install/commit/tag/push gate.

@@ -220,7 +220,7 @@ public class Theme {
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
         obj.addProperty("uiScale", (Number)Float.valueOf(UI_SCALE));
         obj.addProperty("textScale", (Number)Float.valueOf(TEXT_SCALE));
-        obj.addProperty("themeSchema", 2);
+        obj.addProperty("themeSchema", 3);
         obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
         obj.addProperty("gradientCoverage",GRADIENT_COVERAGE);
         obj.addProperty("gradientStrength",GRADIENT_STRENGTH);
@@ -291,6 +291,11 @@ public class Theme {
             } else if (obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean()) {
                 rainbowEntries.add("Accent");
             }
+            boolean migrateInput=obj.has("inputHeight") && obj.get("inputHeight").getAsFloat()==16 && (!obj.has("themeSchema") || obj.get("themeSchema").getAsInt()<3);
+            if(migrateInput){
+                var sizingBackup=THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-input-sizing.bak");
+                if(!java.nio.file.Files.exists(sizingBackup))java.nio.file.Files.copy(THEME_FILE.toPath(),sizingBackup);
+            }
             loadAppearance(obj);
             if(migrateDefault || migrateSky){
                 // Exact previous default only; preserve custom colors, toggle, UI scale and HUD values.
@@ -298,7 +303,7 @@ public class Theme {
                 resetMenuColorsToDefaults();
                 if(migrateSky)GRADIENT_ENABLED=enabled;
                 saveTheme();
-            }
+            }else if(migrateInput)saveTheme();
         }
         catch (Exception ex) {
             ex.printStackTrace();
@@ -315,7 +320,7 @@ public class Theme {
         }
         obj.addProperty("animSpeed", (Number)Float.valueOf(ANIM_TIME_MS));
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
-        obj.addProperty("themeSchema", 2);
+        obj.addProperty("themeSchema", 3);
         obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
         obj.addProperty("gradientCoverage",GRADIENT_COVERAGE);
         obj.addProperty("gradientStrength",GRADIENT_STRENGTH);
@@ -367,7 +372,7 @@ public class Theme {
         if(obj.has("gradientCoverage"))GRADIENT_COVERAGE=finiteRange(obj.get("gradientCoverage").getAsFloat(),.25f,1,.48f);
         if(obj.has("gradientStrength"))GRADIENT_STRENGTH=finiteRange(obj.get("gradientStrength").getAsFloat(),0,1,.60f);
         if(obj.has("descriptionGap"))dev.kuan.kuanperion.ui.UiLayoutMetrics.setDescriptionGap(obj.get("descriptionGap").getAsFloat());
-        if(obj.has("inputHeight"))dev.kuan.kuanperion.ui.UiLayoutMetrics.setInputHeight(obj.get("inputHeight").getAsFloat());
+        if(obj.has("inputHeight"))dev.kuan.kuanperion.ui.UiLayoutMetrics.setInputHeight(dev.kuan.kuanperion.ui.UiLayoutMetrics.migratedInputHeight(obj.has("themeSchema")?obj.get("themeSchema").getAsInt():0,obj.get("inputHeight").getAsFloat()));
     }
 
     public static void resetToDefaults() {
