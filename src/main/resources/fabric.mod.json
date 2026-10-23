@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "kuanperion",
-  "version": "2.0.11",
+  "version": "2.0.12",
   "name": "Kuanperion",
   "description": "Kuanperion client tools for Minecraft 26.2",
   "authors": [

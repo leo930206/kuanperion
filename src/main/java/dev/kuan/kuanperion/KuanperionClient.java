@@ -2721,7 +2721,7 @@ public final class KuanperionClient implements ClientModInitializer {
             .add(new SelectionActionSetting("選擇種類數量",()->(float)miningSelectionTargetCount,v->{miningSelectionTargetCount=Math.round(v);saveConfig();},KuanperionClient::beginUiTargetSelection));
         for(int i=0;i<5;i++) {
             final int index=i;
-            var target=new BlockTargetSetting("優先序 "+(i+1),()->index<TARGET_BLOCKS.size()?TARGET_BLOCKS.get(index):"minecraft:air",
+            var target=new BlockTargetSetting("順位 "+(i+1),()->index<TARGET_BLOCKS.size()?TARGET_BLOCKS.get(index):"minecraft:air",
                 ()->index<TARGET_BLOCKS.size()?uiTargetName(TARGET_BLOCKS.get(index)):"",
                 ()->moveUiTarget(index,-1),()->moveUiTarget(index,1),()->{if(index<TARGET_BLOCKS.size()){TARGET_BLOCKS.remove(index);saveConfig();}},
                 ()->index>0&&index<TARGET_BLOCKS.size(),()->index+1<TARGET_BLOCKS.size());

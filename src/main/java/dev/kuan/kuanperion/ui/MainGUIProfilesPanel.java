@@ -8,7 +8,6 @@ import dev.kuan.kuanperion.notification.NotificationManager;
 import dev.kuan.kuanperion.renderer.NVGRenderer;
 import dev.kuan.kuanperion.ui.MainGUI;
 import dev.kuan.kuanperion.ui.theme.Theme;
-import dev.kuan.kuanperion.ui.theme.ThemePreset;
 import dev.kuan.kuanperion.util.UiLang;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -88,11 +87,6 @@ final class MainGUIProfilesPanel {
         tot += 26.0f;
         y += 10.0f;
         tot += 10.0f;
-        if (!isConfig) {
-            float presetsHeight = this.renderThemePresets(nvg, mx, my, gx, gw, y);
-            y += presetsHeight;
-            tot += presetsHeight;
-        }
         nvg.text("Inter-Bold", UiLang.localize("Save Profile"), gx, y, 10.0f, Theme.TEXT_MUTED);
         tot += 16.0f;
         float fieldW = gw - 76.0f;
@@ -282,45 +276,6 @@ final class MainGUIProfilesPanel {
             }
         });
         return new LayoutCursor(y += importH + 16.0f, tot += importH + 16.0f);
-    }
-
-    private float renderThemePresets(NVGRenderer nvg, float mx, float my, float gx, float gw, float y) {
-        nvg.text("Inter-Bold", UiLang.localize("Colour Presets"), gx, y, 10.0f, Theme.TEXT_MUTED);
-        ThemePreset[] presets = ThemePreset.values();
-        float gap = 8.0f;
-        float buttonH = 32.0f;
-        float minButtonW = nvg.textWidth("Inter-Regular", UiLang.localize("Default Colours"), 12.5f) + 24.0f;
-        for (ThemePreset preset : presets) {
-            minButtonW = Math.max(minButtonW, nvg.textWidth("Inter-Regular", UiLang.localize(preset.label()), 12.5f) + 24.0f);
-        }
-        int columns = Math.clamp((long)((int)((gw + gap) / (minButtonW + gap))), (int)1, (int)(presets.length + 1));
-        float buttonW = (gw - gap * (float)(columns - 1)) / (float)columns;
-        for (int i = 0; i <= presets.length; ++i) {
-            ThemePreset preset;
-            preset = i < presets.length ? presets[i] : null;
-            String label = UiLang.localize(preset == null ? "Default Colours" : preset.label());
-            float buttonX = gx + (float)(i % columns) * (buttonW + gap);
-            float buttonY = y + 16.0f + (float)(i / columns) * (buttonH + gap);
-            boolean hovered = mx >= buttonX && mx <= buttonX + buttonW && my >= buttonY && my <= buttonY + buttonH;
-            int bg = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-            int border = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
-            int text = hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
-            nvg.roundedRect(buttonX, buttonY, buttonW, buttonH, 7.0f, bg);
-            nvg.rectOutline(buttonX, buttonY, buttonW, buttonH, 7.0f, 1.0f, border);
-            nvg.textCentered("Inter-Regular", label, buttonX, buttonY, buttonW, buttonH, 12.5f, text);
-            this.owner.addClickArea(buttonX, buttonY, buttonW, buttonH, () -> {
-                this.owner.commitText();
-                this.owner.commitColor();
-                if (preset == null) {
-                    Theme.resetColorsToDefaults();
-                } else {
-                    preset.apply();
-                }
-                Theme.saveTheme();
-            });
-        }
-        int rows = (presets.length + columns) / columns;
-        return 16.0f + (float)rows * (buttonH + gap) - gap + 18.0f;
     }
 
     private record LayoutCursor(float y, float tot) {

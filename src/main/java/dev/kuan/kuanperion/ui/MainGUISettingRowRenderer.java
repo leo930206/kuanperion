@@ -37,6 +37,9 @@ final class MainGUISettingRowRenderer {
             this.renderSection(nvg, section, x, y, w, h);
             return;
         }
+        if(setting instanceof ThemePresetsSetting) {
+            ThemePresetRow.render(nvg,x,y,w,mx,my);return;
+        }
         float cardH = h - 5.0f;
         this.owner.offerHoverHelp("setting:" + setting.getRawName(), setting.getName(), setting.getDescription(), x, y, w, cardH, mx, my);
         nvg.roundedRect(x, y, w, cardH, 7.0f, Theme.CARD_BG);
@@ -168,9 +171,8 @@ final class MainGUISettingRowRenderer {
     private void renderBlockTarget(NVGRenderer nvg,BlockTargetSetting setting,float x,float w,float y,float h,float mx,float my) {
         nvg.roundedRect(x,y+(h-36)/2,36,36,6,Theme.BG_FIELD);
         if(!nvg.blockIcon(setting.blockId(),x+4,y+(h-28)/2,28))nvg.renderSVG("/assets/kuanperion/icons/modules.svg",x+6,y+(h-24)/2,24,24,Theme.TEXT_MUTED);
-        nvg.text("Inter-Bold",setting.getName(),x+48,y+10,11,Theme.TEXT_MUTED);
-        boolean clipped=this.owner.pushContentLocalScissor(nvg,x+48,y+27,Math.max(20,w-184),24);
-        nvg.text("Inter-Regular",setting.getValue(),x+48,y+28,13,Theme.TEXT_VALUE);
+        boolean clipped=this.owner.pushContentLocalScissor(nvg,x+48,y,Math.max(1,w-184),h);
+        nvg.text("Inter-Regular",setting.displayLabel(),x+48,y+(h-13)/2,13,Theme.TEXT_VALUE);
         this.owner.popContentLocalScissor(nvg,clipped);
         String[] labels={"↑","↓","×"};boolean[] enabled={setting.canMoveUp(),setting.canMoveDown(),true};
         for(int i=0;i<3;i++){

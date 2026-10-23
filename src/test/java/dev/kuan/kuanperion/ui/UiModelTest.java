@@ -3,6 +3,29 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(MainGUISidebar.contains(180,120,20,20,600,194,1),"expanded sidebar owns covered content");
+        require(!MainGUISidebar.contains(214,120,20,20,600,194,1),"right edge belongs to content");
+        require(!MainGUISidebar.contains(180,120,20,20,600,194,0),"collapsed sidebar leaves content interactive");
+        require(MainGUISidebar.contains(100,120,20,20,600,194,.5f),"animated width owns only visible sidebar");
+        require(!MainGUISidebar.contains(160,120,20,20,600,194,.5f),"animation does not block uncovered content");
+        var singleTarget=new BlockTargetSetting("順位 2",()->"minecraft:prismarine",()->"Prismarine",()->{},()->{},()->{},()->true,()->false);
+        require(singleTarget.displayLabel().equals("順位 2: Prismarine"),"priority and localized block on one line");
+        require(dev.kuan.kuanperion.ui.theme.ThemePreset.values().length==6,"exactly six built-in palettes");
+        for(var preset:dev.kuan.kuanperion.ui.theme.ThemePreset.values()) {
+            require(preset.label().matches("[A-Za-z ]+"),"built-in names stay English");
+            require(dev.kuan.kuanperion.util.UiLang.localize(preset.label()).equals(preset.label()),"renderer localization must also keep preset name English");
+            var json=com.google.gson.JsonParser.parseString(preset.json()).getAsJsonObject();
+            require(json.get("Main Panel BG").getAsString().equals("FFFFFFFF"),"built-in themes keep a white main canvas");
+            require(!json.has("uiScale")&&!json.has("textScale")&&!json.has("animTimeMs"),"color presets must not overwrite layout");
+            require(json.size()==29,"each preset defines 25 colors and four gradient/schema fields");
+        }
+        for(float width:new float[]{150,300,600,1000}) {
+            int columns=ThemePresetRow.columns(width);float buttonW=ThemePresetRow.buttonWidth(width);
+            require(columns>=1&&columns<=6&&columns*buttonW+(columns-1)*8<=width+.01f,"six preset buttons wrap without overflow");
+            for(int i=0;i<6;i++)require(ThemePresetRow.buttonIndex(10+i%columns*(buttonW+8)+buttonW/2,20+i/columns*48+20,10,20,width)==i,"preset hit regions follow current layout rather than stale frame click areas");
+            require(ThemePresetRow.buttonIndex(10+buttonW/2,62,10,20,width)==-1,"vertical gap does not apply preset");
+        }
+
         require(MainGUISidebar.entries().stream().map(MainGUISidebar.Entry::label).toList().equals(List.of("Farming","Mining","Other","Setting")),"exactly four sidebar entries");
         for(int i=0;i<3;i++) {
             var entry=MainGUISidebar.entries().get(i);

@@ -14,22 +14,24 @@ public final class UiSmoke implements ClientModInitializer {
         try{
             if(phase<0){
                 if(mc.gui.overlay()!=null||!(mc.gui.screen() instanceof TitleScreen))return;
-                ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;System.out.println("UI_SMOKE_OPEN");return;
+                ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;if(Boolean.getBoolean("kuanperion.smoke.hoverOnly")){ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());phase=29;}System.out.println("UI_SMOKE_OPEN");return;
             }
             boolean expanded = phase >= 13 && phase <= 16 || phase == 21 || phase==30;
             var frame = ui.context().layout;
             double cursorX = expanded ? (frame.px+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth() : 1;
             double cursorY = expanded ? (frame.py+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight() : 1;
-            if(phase==30){cursorY=(MainGUISidebar.rowY(2,frame.py,frame.ph)+22)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
+            if(phase==30){cursorX=(frame.px+(ticks<70?20:120))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(MainGUISidebar.rowY(2,frame.py,frame.ph)+22)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             if(phase==31){cursorX=(frame.contX+(ticks<15?300:60))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+130)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             if(phase==29){cursorX=(frame.contX+220)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+150)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             // Feed the vanilla cursor callback directly: background macOS windows may ignore GLFW cursor warps.
             // This exercises real hover/layout animation without forcing sidebarAnim or moving the user's pointer.
             if(mouseMove==null){mouseMove=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);mouseMove.setAccessible(true);}
             mouseMove.invoke(mc.mouseHandler,mc.getWindow().handle(),cursorX,cursorY);
-            if(expanded && Math.abs(ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))-(frame.px+20))>1)throw new AssertionError("Retina hover coordinate conversion");
+            if(expanded && Math.abs(ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))-(frame.px+(phase==30&&ticks>=70?120:20)))>1)throw new AssertionError("Retina hover coordinate conversion");
+            if(phase==30&&ticks%25==0)System.out.println("UI_HOVER_DIAG tick="+ticks+" main="+ui.getActiveMainTab()+" anim="+ui.context().animation.sidebarAnim+" pointer="+ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))+","+ui.scaleMouseY(mc.mouseHandler.getScaledYPos(mc.getWindow()))+" panel="+ui.panelX()+","+ui.panelY()+" hit="+ui.isSidebarExpandedOverContent(frame.px+120,frame.py+174));
             if(waiting||++ticks<35)return;
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
+            if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
             String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
@@ -37,6 +39,16 @@ public final class UiSmoke implements ClientModInitializer {
             if(!phaseValidated) {
             if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
+            if(phase==4)testBuiltInPaletteClicks();
+            if(phase==30) {
+                for(var section:ui.moduleSectionsForFilter())for(var sub:section.subtabs())if(ui.moduleCardHoverProgress(sub)>.01f)throw new AssertionError("hover pierced expanded sidebar");
+                float old=ui.targetScrollY;ui.handleMouseScroll(frame.px+120,frame.py+174,-1);
+                if(old!=ui.targetScrollY)throw new AssertionError("wheel pierced sidebar");
+                click(frame.px+120,MainGUISidebar.rowY(2,frame.py,frame.ph)+22);
+                if(ui.getActiveModuleSubTab()!=null || ui.context().navigation.activeFilter!=3)throw new AssertionError("click pierced sidebar into Jerry card");
+                System.out.println("UI_SMOKE_TOP_LAYER_PASS sidebar hover/click/wheel cannot reach covered card");
+            }
+            if(phase==31 && ui.moduleCardHoverProgress(MainGUIRegistry.MODULE_SUBTABS.get(0))<.5f)throw new AssertionError("uncovered module lost hover feedback");
             if(phase==2 || phase==13) {
                 var layout=ui.context().layout;
                 float sidebarWidth=60+ui.context().animation.sidebarAnim*(ui.context().animation.computedSidebarExpanded-60);
@@ -99,7 +111,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
                 case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor 通知")).findFirst().orElseThrow());
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
-                case 30 -> clickSidebar(2);
+                case 30 -> {clickSidebar(2);assertGroup(2);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
                 case 31 -> clickSidebar(0);
                 case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
@@ -119,7 +131,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 11->{var mining=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow();ui.openModuleDetailFromCard(mining);ui.selectModuleCategory(2);}
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
             }
-        }catch(Throwable error){System.out.println("UI_SMOKE_FAIL");error.printStackTrace();mc.stop();}
+        }catch(Throwable error){Screenshot.grab(mc.gameDirectory,"failure.png",mc.gameRenderer.mainRenderTarget(),1,message->{});System.out.println("UI_SMOKE_FAIL");error.printStackTrace();mc.stop();}
     }
     private void clickSidebar(int index) {
         var layout=ui.context().layout;
@@ -260,7 +272,7 @@ public final class UiSmoke implements ClientModInitializer {
     }
     private void testColorPresets() throws Exception {
         var subtab=MainGUIRegistry.COLORS_SUBTABS.get(0);
-        if(ui.flatSubtabsForCurrentFilter().size()!=2 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("palette collection unreachable");
+        if(ui.flatSubtabsForCurrentFilter().size()!=3 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("palette collection unreachable");
         var slots=subtab.groups().get(0).getSettings();
         if(slots.size()!=6)throw new AssertionError("five persistent slots plus add action");
         var add=slots.get(5);
@@ -320,6 +332,35 @@ public final class UiSmoke implements ClientModInitializer {
         var mining=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(1);mining.resetToDefault();
         if(!mining.getBoundKeyName().equals("Shift + M") || !farming.getBoundKeyName().equals("Shift + F"))throw new AssertionError("default Latin shortcut labels");
         System.out.println("UI_SMOKE_CHORD_PASS modifier waiting / Ctrl Shift F / plain F / three modifiers / display / profile isolation");
+    }
+
+    private void testBuiltInPaletteClicks() {
+        var subtabs=ui.flatSubtabsForCurrentFilter();
+        if(subtabs.size()!=3 || !subtabs.get(0).name().equals("配色收藏") || !subtabs.get(1).name().equals("Colour Presets") || !subtabs.get(2).name().equals("選單顏色"))throw new AssertionError("palette order");
+        if(MainGUIRegistry.SETTINGS_SUBTABS.stream().flatMap(t->t.groups().stream()).flatMap(g->g.getSettings().stream()).anyMatch(a->a instanceof dev.kuan.kuanperion.ui.settings.InfoSetting))throw new AssertionError("redundant interface info row remains");
+        float x=ui.contentX()+20,w=ui.contentW()-40,y=ui.contentScrollTop()-ui.scrollY;
+        float rowY=0;
+        outer:for(var tab:subtabs)for(var group:tab.groups()){
+            y+=51;
+            for(var setting:group.getSettings()){
+                if(!setting.isVisible())continue;
+                if(setting instanceof dev.kuan.kuanperion.ui.settings.ThemePresetsSetting){rowY=y;break outer;}
+                y+=ui.settingHeightFor(setting,w);
+            }
+            y+=4;
+        }
+        String before=dev.kuan.kuanperion.ui.theme.Theme.exportJson();
+        float scale=dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE,text=dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE,anim=dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS,height=UiLayoutMetrics.inputHeight();
+        int cols=ThemePresetRow.columns(w);float bw=ThemePresetRow.buttonWidth(w);
+        var presets=dev.kuan.kuanperion.ui.theme.ThemePreset.values();
+        for(int i=0;i<presets.length;i++){
+            click(x+(i%cols)*(bw+8)+bw/2,rowY+i/cols*48+20);
+            int expected=(int)Long.parseLong(com.google.gson.JsonParser.parseString(presets[i].json()).getAsJsonObject().get("Accent").getAsString(),16);
+            if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=expected)throw new AssertionError("preset button missed "+presets[i].label());
+            if(scale!=dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE||text!=dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE||anim!=dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS||height!=UiLayoutMetrics.inputHeight())throw new AssertionError("built-in colors changed UI layout");
+        }
+        dev.kuan.kuanperion.ui.theme.Theme.importJson(before);dev.kuan.kuanperion.ui.theme.Theme.saveTheme();
+        System.out.println("UI_SMOKE_BUILTINS_PASS six actual buttons/order/English names/layout retained/interface info removed");
     }
 
     private void testNewUiFeatures(Minecraft mc) throws Exception {

@@ -47,6 +47,8 @@ public final class MainGUIRegistry {
             catch(java.io.IOException|RuntimeException error){dev.kuan.kuanperion.notification.NotificationManager.error("配色收藏","新增失敗，原配色保留");}
         }).visibleWhen(()->store.firstEmptySlot()!=0));
         COLORS_SUBTABS.add(0,new ModulesTab.SubTab("配色收藏","五個本機配色儲存槽",List.of(savedColors)));
+        var builtins=SettingGroup.alwaysOn("Colour Presets", "").add(new ThemePresetsSetting());
+        COLORS_SUBTABS.add(1,new ModulesTab.SubTab("Colour Presets","",List.of(builtins)));
         var keys=SettingGroup.alwaysOn("快捷鍵","點擊後按下單鍵或組合鍵，例如 F、Ctrl + F、Ctrl + Shift + F；Esc 取消");
         for(var setting:KuanperionClient.uiKeybinds())keys.add(setting);
         KEYBINDS_SUBTABS.add(new ModulesTab.SubTab("快捷鍵","與 Minecraft 控制設定同步",List.of(keys)));
@@ -56,8 +58,7 @@ public final class MainGUIRegistry {
             .add(new SliderSetting("動畫時間",Theme.ANIM_TIME_MIN_MS,Theme.ANIM_TIME_MAX_MS,()->Theme.ANIM_TIME_MS,v->{Theme.ANIM_TIME_MS=v;Theme.saveTheme();}).withDecimals(0).withSuffix(" ms"))
             .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
             .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
-            .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.11 · Minecraft 26.2 · 僅本機介面"));
+            .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
         var about=SettingGroup.alwaysOn("Kuanperion","本機 Fabric 客戶端模組")
             .add(new InfoSetting("Mod Version",MainGUIRegistry::modVersion))

@@ -25,12 +25,6 @@ final class MainGUIContentRenderer {
         this.chromeRenderer.renderContentTopBar(nvg, mx, my);
         if (this.owner.searchResultsVisible()) {
             this.owner.renderSearchContentPanel(nvg, mx, my);
-            if (this.owner.hasOpenDropdown()) {
-                this.owner.renderDropdownOverlayPanel(nvg, mx, my);
-            }
-            if (this.owner.hasActiveColorOverlay()) {
-                this.owner.renderColorOverlayPanel(nvg);
-            }
             return;
         }
         if (this.owner.settingsNavigationHeight() > 0) this.chromeRenderer.renderSettingsNavigation(nvg, mx, my);
@@ -43,12 +37,6 @@ final class MainGUIContentRenderer {
         if (context.navigation.activeMain == 1) {
 
             this.owner.renderFlatContentPanel(nvg, mx, my);
-            if (this.owner.hasOpenDropdown()) {
-                this.owner.renderDropdownOverlayPanel(nvg, mx, my);
-            }
-            if (this.owner.hasActiveColorOverlay()) {
-                this.owner.renderColorOverlayPanel(nvg);
-            }
             return;
         }
         if (context.navigation.activeMain == 2) {
@@ -57,12 +45,6 @@ final class MainGUIContentRenderer {
             return;
         }
         this.owner.renderFlatContentPanel(nvg, mx, my);
-        if (this.owner.hasOpenDropdown()) {
-            this.owner.renderDropdownOverlayPanel(nvg, mx, my);
-        }
-        if (this.owner.hasActiveColorOverlay()) {
-            this.owner.renderColorOverlayPanel(nvg);
-        }
     }
 
     void renderModuleDetailView(NVGRenderer nvg, float mx, float my) {
@@ -76,11 +58,5 @@ final class MainGUIContentRenderer {
         float panelH = context.layout.contH - 53.0f - 1.0f;
         this.owner.renderModuleCategoryPanelSection(nvg, mx, my, panelTop, panelH);
         this.owner.renderModuleSettingsPanelSection(nvg, mx, my, panelTop, panelH);
-        if (this.owner.hasOpenDropdown()) {
-            this.owner.renderDropdownOverlayPanel(nvg, mx, my);
-        }
-        if (this.owner.hasActiveColorOverlay()) {
-            this.owner.renderColorOverlayPanel(nvg);
-        }
     }
 }

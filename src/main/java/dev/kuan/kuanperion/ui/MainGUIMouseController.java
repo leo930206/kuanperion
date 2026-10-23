@@ -19,6 +19,10 @@ final class MainGUIMouseController {
         if (this.owner.handleKeybindMouseButtonCapture(click.button())) {
             return true;
         }
+        if(this.owner.isSidebarExpandedOverContent(mx,my)) {
+            if(click.button()==0)this.owner.tryHandleSidebarNavigationClick(mx,my,Minecraft.getInstance());
+            return true;
+        }
         if (click.button() == 1) {
             this.owner.handleRightClickEvent(mx, my);
             return true;

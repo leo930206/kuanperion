@@ -16,6 +16,15 @@ final class MainGUIOverlayController {
         this.owner = owner;
     }
 
+    boolean dropdownContains(float mx,float my) {
+        var dropdown=this.owner.currentOpenDropdown();if(dropdown==null)return false;
+        float height=dropdown.getOptions().size()*30+6;
+        float y=this.owner.dropdownOverlayY()+height>this.owner.panelY()+this.owner.panelH()-4
+            ?this.owner.dropdownOverlayY()-height-this.owner.dropdownButtonHeight():this.owner.dropdownOverlayY();
+        y=Math.max(this.owner.panelY()+4,y)+(1-this.owner.dropdownAnimAmount())*5;
+        return mx>=this.owner.dropdownOverlayX()&&mx<=this.owner.dropdownOverlayX()+this.owner.dropdownOverlayW()&&my>=y&&my<=y+height;
+    }
+
     void renderDropdownOverlay(NVGRenderer nvg, float mx, float my) {
         DropdownSetting dropdown = this.owner.currentOpenDropdown();
         if (dropdown == null) {

@@ -29,6 +29,7 @@ final class MainGUITextLayout {
         return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * lines;
     }
     float settingHeight(Setting setting, float rowW) {
+        if(setting instanceof ThemePresetsSetting)return ThemePresetRow.height(rowW);
         if(setting instanceof ToggleRowSetting)return 50;
         if(setting instanceof BlockTargetSetting)return 66;
         if(setting instanceof ColorPresetSetting preset)return ColorPresetRow.height(preset,rowW);

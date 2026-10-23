@@ -861,7 +861,14 @@ extends NVGScreen {
         this.hoverHelpCandidateTitle = null;
         this.hoverHelpCandidateDescription = null;
         this.transitionRenderer.syncContentTransition();
-        this.transitionRenderer.renderContentWithTransition(nvg, mx, my);
+        boolean sidebarOwnsPointer=this.isSidebarExpandedOverContent(mx,my);
+        boolean overlayOwnsPointer=this.hasActiveColorOverlay()||this.overlayController.dropdownContains(mx,my);
+        float contentMx=sidebarOwnsPointer||overlayOwnsPointer ? -Float.MAX_VALUE : mx;
+        float contentMy=sidebarOwnsPointer||overlayOwnsPointer ? -Float.MAX_VALUE : my;
+        this.transitionRenderer.renderContentWithTransition(nvg, contentMx, contentMy);
+        // Paint and hit-test in the same order: content < picker/dropdown < sidebar.
+        if(this.hasOpenDropdown())this.renderDropdownOverlay(nvg,sidebarOwnsPointer?-Float.MAX_VALUE:mx,sidebarOwnsPointer?-Float.MAX_VALUE:my);
+        if(this.hasActiveColorOverlay())this.renderColorOverlay(nvg);
         this.renderSidebar(nvg, mx, my);
         this.renderHoverHelp(nvg, mx, my);
     }
@@ -2553,8 +2560,7 @@ extends NVGScreen {
     }
 
     boolean isSidebarExpandedOverContent(float mx, float my) {
-        float sbClickW = 60.0f + this.sidebarAnim * ((this.computedSidebarExpanded > 0.0f ? this.computedSidebarExpanded : 194.0f) - 60.0f);
-        return this.sidebarAnim > 0.01f && mx >= this.px && mx < this.px + sbClickW && my >= this.py && my <= this.py + this.ph;
+        return MainGUISidebar.contains(mx,my,this.px,this.py,this.ph,this.computedSidebarExpanded>0?this.computedSidebarExpanded:194,this.sidebarAnim);
     }
 
     private void renderOptionalFeatureHud(NVGRenderer nvg, float dt) {
@@ -2653,6 +2659,7 @@ extends NVGScreen {
     }
 
     boolean handleMouseScroll(float mx, float my, float scrollYDelta) {
+        if(this.isSidebarExpandedOverContent(mx,my)||this.hasActiveColorOverlay()||this.overlayController.dropdownContains(mx,my))return true;
         if (mx < this.contX || mx > this.contX + this.contW || my < this.contY || my > this.contY + this.contH) {
             return false;
         }

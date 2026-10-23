@@ -184,6 +184,7 @@ final class MainGUISettingInteractionController {
         float cardH = fullCardH - this.owner.settingDescriptionHeight(setting,w);
         // Checkboxes belong to the entire card, not just the title/control region.
         if(my<y || my>y+h-UiLayoutMetrics.ROW_GAP)return;
+        if(setting instanceof ThemePresetsSetting){ThemePresetRow.click(mx,my,x,y,w);return;}
         if(setting instanceof ColorPresetSetting preset){ColorPresetRow.click(preset,mx,my,ix,y,iw,h);return;}
         if(setting instanceof ToggleRowSetting choices) {
             if(mx>=ix && mx<ix+iw)choices.choices().get(Math.min(choices.choices().size()-1,(int)((mx-ix)/(iw/choices.choices().size())))).toggle();

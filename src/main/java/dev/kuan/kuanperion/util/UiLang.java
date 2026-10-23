@@ -3,7 +3,7 @@ import java.util.Map;
 /** Local UI labels only; no translation download, account or network service. */
 public final class UiLang {
     private static final Map<String,String> LABELS = Map.ofEntries(
-        Map.entry("Sky Blossom", "晴空藍粉"), Map.entry("Default Colours", "預設顏色"),
+        Map.entry("Default Colours", "預設顏色"),
         Map.entry("Gradient Blue", "漸層天空藍"), Map.entry("Gradient Pink", "漸層淡粉"),
         Map.entry("Modules", "模組"), Map.entry("Colors", "顏色"), Map.entry("Config", "設定檔"),
         Map.entry("Keybinds", "快捷鍵"), Map.entry("Settings", "介面設定"), Map.entry("All", "全部"),

@@ -9,11 +9,11 @@ import java.nio.charset.StandardCharsets;
 
 public enum ThemePreset {
     SKY_BLOSSOM("Sky Blossom", "sky-blossom"),
-    SLATE("Slate", "slate"),
-    SAGE("Sage", "sage"),
-    MATCHA("Matcha", "matcha"),
-    DUSK("Dusk", "dusk"),
-    EMBER("Ember", "ember");
+    SLATE("Ocean Mist", "slate"),
+    SAGE("Mint Garden", "sage"),
+    MATCHA("Peach Cream", "matcha"),
+    DUSK("Lavender Haze", "dusk"),
+    EMBER("Rose Quartz", "ember");
 
     private final String label;
     private final String resourceName;
@@ -33,6 +33,16 @@ public enum ThemePreset {
             if(stream==null)throw new IllegalStateException("Missing theme preset: "+path);
             return new String(stream.readAllBytes(),StandardCharsets.UTF_8);
         }catch(IOException error){throw new IllegalStateException("Could not read theme preset: "+path,error);}
+    }
+
+    private int[] previewColors;
+    public int[] previewColors() {
+        if(previewColors==null){
+            var json=com.google.gson.JsonParser.parseString(json()).getAsJsonObject();
+            previewColors=java.util.stream.Stream.of("Accent","Accent 2","Hover BG","Gradient Blue","Gradient Pink")
+                .mapToInt(key->(int)Long.parseLong(json.get(key).getAsString(),16)|0xFF000000).toArray();
+        }
+        return previewColors.clone();
     }
 
     public void apply() {

@@ -27,5 +27,10 @@ final class MainGUISidebar {
         float top = footerY(panelY, panelHeight);
         return x >= panelX + 12 && x < panelX + sidebarWidth - 12 && y >= top && y < top + FOOTER_HEIGHT;
     }
+    /** Same animated bounds for painting, hover, click and wheel ownership. */
+    static boolean contains(float x,float y,float panelX,float panelY,float panelHeight,float expandedWidth,float animation) {
+        float width=60+Math.clamp(animation,0,1)*(expandedWidth-60);
+        return x>=panelX&&x<panelX+width&&y>=panelY&&y<=panelY+panelHeight;
+    }
     private MainGUISidebar() {}
 }

@@ -194,6 +194,7 @@ final class MainGUITransitionRenderer {
         this.owner.applyContentState(state);
         this.owner.setSuppressNestedContentScissorState(suppressNestedScissor);
         if (!interactive) {
+            mx=my=-Float.MAX_VALUE;
             this.owner.clearTransitionOverlaysForPassiveRender();
         }
         if (moduleBodyOnly) {
@@ -214,6 +215,7 @@ final class MainGUITransitionRenderer {
         MainGUITransientRenderState transientState = this.owner.captureTransientRenderState();
         this.owner.applyContentState(state);
         if (!interactive) {
+            mx=my=-Float.MAX_VALUE;
             this.owner.clearTransitionOverlaysForPassiveRender();
         }
         this.owner.renderContentTopBarPanel(nvg, mx, my);
@@ -230,6 +232,7 @@ final class MainGUITransitionRenderer {
         MainGUITransientRenderState transientState = this.owner.captureTransientRenderState();
         this.owner.applyContentState(state);
         if (!interactive) {
+            mx=my=-Float.MAX_VALUE;
             this.owner.clearTransitionOverlaysForPassiveRender();
         }
         this.owner.renderModuleTopBarPanel(nvg, mx, my);
@@ -255,6 +258,7 @@ final class MainGUITransitionRenderer {
         this.owner.setSuppressNestedContentScissorState(true);
         this.owner.setActiveScroll(this.owner.getModulesOverviewScrollY(), this.owner.getModulesOverviewTargetScrollY());
         if (!interactive) {
+            mx=my=-Float.MAX_VALUE;
             this.owner.clearTransitionOverlaysForPassiveRender();
         }
         if (this.owner.searchResultsVisible()) {
@@ -279,6 +283,7 @@ final class MainGUITransitionRenderer {
         this.owner.applyContentState(state);
         this.owner.setSuppressNestedContentScissorState(true);
         if (!interactive) {
+            mx=my=-Float.MAX_VALUE;
             this.owner.clearTransitionOverlaysForPassiveRender();
         }
         if (this.owner.getActiveMainTab() == 0) {
