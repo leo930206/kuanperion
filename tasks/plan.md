@@ -21,3 +21,6 @@ Center against full cards; verify explained/plain/inline checkbox clicks without
 
 ## 2.0.4 inputs and color quick slots
 See docs/spec-2.0.4.md. Implement/test input geometry, implement/test bounded color-only storage/actions, actual client verification, standard release.
+
+## 2.0.5 avatar and overlap defense
+See docs/spec-2.0.5.md: exact bundled avatar, one texture/context and reserved/clipped explanations; model/runtime tests, standard release.

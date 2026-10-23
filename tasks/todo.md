@@ -30,3 +30,8 @@
 - [x] Spec and failing tests; enlarged/full-card input centers and old-default-only height upgrade.
 - [x] Five-slot validated color-only local storage, overwrite confirmation and Color tab integration.
 - [x] Actual client screenshots/clicks, reserved description columns, regressions/build and release preparation; publication recorded by commit/tag.
+
+## 2.0.5 avatar and overlap defense
+- [x] Test-first avatar metadata/PNG assertion; implement cached original-color PNG and context cleanup.
+- [x] Retain reserved description columns, add bounded clip and Mining selection width regressions.
+- [x] Runtime avatar/cache/screenshots and overlap verification, regressions/build and release preparation; publication recorded by commit/tag.

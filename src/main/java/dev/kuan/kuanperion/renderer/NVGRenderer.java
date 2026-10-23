@@ -18,6 +18,8 @@ import org.lwjgl.nanovg.NVGPaint;
 import org.lwjgl.nanovg.NanoVG;
 
 public class NVGRenderer {
+    public static final String MOD_ICON_PATH="/assets/kuanperion/icon.png";
+    private int modIconHandle=-1;
     private final long vg;
     private final NVGColor c1 = NVGColor.malloc();
     private final NVGColor c2 = NVGColor.malloc();
@@ -269,12 +271,32 @@ public class NVGRenderer {
         NanoVG.nvgFill((long)this.vg);
     }
 
+    /** Bundled mod avatar only: no skin lookup, tint, per-frame decode or network. */
+    public boolean modIcon(float x,float y,float size) {
+        if(modIconHandle==-1){
+            modIconHandle=0;
+            try(var input=dev.kuan.kuanperion.util.UiResources.open(MOD_ICON_PATH)){
+                if(input!=null){
+                    byte[] png=input.readNBytes(2*1024*1024+1);
+                    if(png.length>2*1024*1024)throw new java.io.IOException("Mod icon too large");
+                    ByteBuffer bytes=org.lwjgl.system.MemoryUtil.memAlloc(png.length);
+                    try{bytes.put(png).flip();modIconHandle=NanoVG.nvgCreateImageMem(vg,NanoVG.NVG_IMAGE_NEAREST,bytes);}
+                    finally{org.lwjgl.system.MemoryUtil.memFree(bytes);}
+                }
+                if(modIconHandle<=0)System.err.println("[Kuanperion] Bundled mod icon unavailable; using fallback logo");
+            }catch(java.io.IOException error){System.err.println("[Kuanperion] Unable to read bundled mod icon");}
+        }
+        if(modIconHandle<=0)return false;
+        image(modIconHandle,x,y,size,size,3,1);return true;
+    }
     public boolean blockIcon(String id,float x,float y,float size) {
         if(blockIcons==null)blockIcons=new BlockIconCache(vg,paint);
         return blockIcons.draw(id,x,y,size);
     }
     public void destroy() {
         if(blockIcons!=null)blockIcons.close();
+        if(modIconHandle>0)NanoVG.nvgDeleteImage(vg,modIconHandle);
+        modIconHandle=0;
         c1.free();c2.free();paint.free();
     }
 

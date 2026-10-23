@@ -111,8 +111,12 @@ final class MainGUISettingRowRenderer {
             }
         }
         if(descriptionH>0){
-            var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,this.owner.settingDescriptionWidth(setting,w));
-            for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,y+cardH-UiLayoutMetrics.TITLE_TOP+UiLayoutMetrics.descriptionGap()+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);
+            float helpW=this.owner.settingDescriptionWidth(setting,w);
+            float helpY=y+cardH-UiLayoutMetrics.TITLE_TOP+UiLayoutMetrics.descriptionGap();
+            var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,helpW);
+            boolean clipped=this.owner.pushContentLocalScissor(nvg,innerX,helpY,helpW,Math.max(1,h-5-(helpY-y)));
+            try{for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,helpY+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);}
+            finally{this.owner.popContentLocalScissor(nvg,clipped);}
         }
     }
 

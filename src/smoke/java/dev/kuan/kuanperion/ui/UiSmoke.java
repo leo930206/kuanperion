@@ -21,7 +21,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSafety(mc); testTheme(mc); testSelectedModels(); }
+            if(phase==0) { testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
@@ -52,6 +52,16 @@ public final class UiSmoke implements ClientModInitializer {
     @SuppressWarnings("unchecked")
     private java.util.List<String> selected() throws Exception {
         var f=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("TARGET_BLOCKS");f.setAccessible(true);return (java.util.List<String>)f.get(null);
+    }
+    private void testModIcon() throws Exception {
+        dev.kuan.kuanperion.renderer.NanoVGManager.beginFrame(ui.width,ui.height);
+        try{
+            var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
+            if(!renderer.modIcon(0,0,34))throw new AssertionError("bundled avatar PNG did not render");
+            var field=renderer.getClass().getDeclaredField("modIconHandle");field.setAccessible(true);int first=field.getInt(renderer);
+            if(first<=0 || !renderer.modIcon(0,0,34) || field.getInt(renderer)!=first)throw new AssertionError("avatar texture not reused");
+        }finally{dev.kuan.kuanperion.renderer.NanoVGManager.endFrame();}
+        System.out.println("UI_SMOKE_AVATAR_PASS bundled Fabric PNG / nearest texture / cached handle");
     }
     private void testSelectedModels() throws Exception {
         selected().clear();

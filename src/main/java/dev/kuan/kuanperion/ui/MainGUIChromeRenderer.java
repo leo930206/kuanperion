@@ -43,7 +43,7 @@ final class MainGUIChromeRenderer {
         float logoSize = 34.0f;
         float logoX = context.layout.px + 12.0f + (36.0f - logoSize) / 2.0f;
         float logoY = context.layout.py + (56.0f - logoSize) / 2.0f;
-        nvg.renderSVG("/assets/kuanperion/icons/logo.svg", logoX, logoY, logoSize, logoSize, Theme.ACCENT_PRIMARY);
+        if(!nvg.modIcon(logoX,logoY,logoSize))nvg.renderSVG("/assets/kuanperion/icons/logo.svg", logoX, logoY, logoSize, logoSize, Theme.ACCENT_PRIMARY);
         if (context.animation.sidebarAnim > 0.01f) {
             nvg.save();
             nvg.globalAlpha(context.animation.sidebarAnim);

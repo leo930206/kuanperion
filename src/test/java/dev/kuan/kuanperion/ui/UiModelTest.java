@@ -7,6 +7,11 @@ public final class UiModelTest {
             float top=UiLayoutMetrics.checkboxTop(100,rowHeight);
             require(Math.abs(top+10.5f-(100+(rowHeight-5)/2))<.001f,"checkbox centered in complete card, with or without wrapped description");
         }
+        var metadata=com.google.gson.JsonParser.parseString(new String(UiModelTest.class.getResourceAsStream("/fabric.mod.json").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        require(dev.kuan.kuanperion.renderer.NVGRenderer.MOD_ICON_PATH.equals("/"+metadata.get("icon").getAsString()),"sidebar uses same avatar asset as Fabric mod icon");
+        try(var png=UiModelTest.class.getResourceAsStream(dev.kuan.kuanperion.renderer.NVGRenderer.MOD_ICON_PATH)){
+            var icon=javax.imageio.ImageIO.read(png);require(icon!=null&&icon.getWidth()==icon.getHeight()&&icon.getWidth()>=8,"mod avatar is valid square PNG");
+        }
         require(UiLayoutMetrics.inputHeight()==22,"compact input default");
         require(UiLayoutMetrics.descriptionTop(13.5f)-UiLayoutMetrics.TITLE_TOP-13.5f==6,"uniform six-pixel description gap");
         require(UiLayoutMetrics.inputFont()==12,"larger input font default");
@@ -40,6 +45,7 @@ public final class UiModelTest {
         combined.toggle();require(notify[0]&&seconds[0].equals("2.5"),"toggle does not edit duration");
         int[] count={2},starts={0};
         var selection=new SelectionActionSetting("選擇種類數量",()->(float)count[0],v->count[0]=Math.round(v),()->starts[0]++);
+        for(float width:new float[]{400,600,1000})require(16+metrics.descriptionWidth(selection,width)<=InlineRowLayout.countFieldX(16,width-32)-16,"selection description stays left of count/action controls");
         selection.setValue(9);require(count[0]==5&&starts[0]==0,"count clamps without starting selection");selection.start();require(starts[0]==1,"paired action callback");
         var hidden=new BlockTargetSetting("優先序 1",()->"minecraft:stone",()->"石頭",()->{},()->{},()->{},()->false,()->false).visibleWhen(()->false);
         require(!hidden.isVisible(),"unselected target has no phantom row");
