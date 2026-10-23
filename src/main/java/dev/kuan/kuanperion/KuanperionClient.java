@@ -81,6 +81,7 @@ public final class KuanperionClient implements ClientModInitializer {
     private static final GardenTabNotifications TAB_NOTIFICATIONS = new GardenTabNotifications();
     private static final ScreenNotificationQueue SCREEN_NOTIFICATIONS = new ScreenNotificationQueue();
     private static final JerryFarmingPauseMarkers JERRY_FARMING_MARKERS = new JerryFarmingPauseMarkers();
+    private static final EnumSet<NotificationType> defaultDurationInputs = EnumSet.noneOf(NotificationType.class);
     private static final Map<NotificationType, NotificationChannels> NOTIFICATION_CHANNELS = new EnumMap<>(NotificationType.class);
     private static BigDecimal jerryMarkerMaxSeconds = JerryFarmingPauseMarkers.DEFAULT_MAX_SECONDS;
     private static Set<JerryColor> jerryColors = Set.of(JerryColor.values());
@@ -200,8 +201,10 @@ public final class KuanperionClient implements ClientModInitializer {
     private static int miningTicks = 0;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
-    private static boolean miningComboWasDown = false;
-    private static boolean farmingComboWasDown = false;
+    private static final HotkeyChord.Edge miningHotkeyEdge = new HotkeyChord.Edge();
+    private static final HotkeyChord.Edge farmingHotkeyEdge = new HotkeyChord.Edge();
+    private static int settingsModifiers=0, miningModifiers=1, farmingModifiers=1;
+
     private static BlockPos activeTarget = null;
     private static String activeTargetBlockId = null;
     private static boolean activeTargetStarted = false;
@@ -255,6 +258,7 @@ public final class KuanperionClient implements ClientModInitializer {
         expireJerryFarmingMarkers();
         if (mc.player == null || mc.level == null) SCREEN_NOTIFICATIONS.clear();
         while (settingsKey.consumeClick()) {
+            if (!HotkeyChord.matches(settingsModifiers, currentHotkeyModifiers())) continue;
             if (mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI) mc.gui.screen().onClose();
             else mc.setScreenAndShow(new dev.kuan.kuanperion.ui.MainGUI());
         }
@@ -289,14 +293,26 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void handleShiftHotkeys(Minecraft mc) {
         if (mc.getWindow() == null) return;
-        long handle = mc.getWindow().handle();
-        boolean shift = GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
-        boolean miningCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_M) == GLFW.GLFW_PRESS;
-        boolean farmingCombo = shift && GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
-        if (miningCombo && !miningComboWasDown) toggleMining(mc);
-        if (farmingCombo && !farmingComboWasDown) toggleFarming(mc);
-        miningComboWasDown = miningCombo;
-        farmingComboWasDown = farmingCombo;
+        int modifiers=currentHotkeyModifiers();
+        boolean allowed=mc.player!=null && mc.level!=null && mc.gui.screen()==null
+            && GLFW.glfwGetWindowAttrib(mc.getWindow().handle(),GLFW.GLFW_FOCUSED)==GLFW.GLFW_TRUE;
+        if(miningHotkeyEdge.press(hotkeyDown(toggleMiningKey),HotkeyChord.matches(miningModifiers,modifiers),allowed))toggleMining(mc);
+        if(farmingHotkeyEdge.press(hotkeyDown(toggleFarmingKey),HotkeyChord.matches(farmingModifiers,modifiers),allowed))toggleFarming(mc);
+    }
+
+    public static int currentHotkeyModifiers() {
+        var window=Minecraft.getInstance().getWindow();if(window==null)return 0;
+        long handle=window.handle();int mask=0;
+        int[] left={340,341,342,343},right={344,345,346,347},bits={1,2,4,8};
+        for(int i=0;i<4;i++)if(GLFW.glfwGetKey(handle,left[i])==GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle,right[i])==GLFW.GLFW_PRESS)mask|=bits[i];
+        return mask;
+    }
+    private static boolean hotkeyDown(KeyMapping mapping) {
+        if(mapping==null||mapping.isUnbound())return false;
+        var key=InputConstants.getKey(mapping.saveString());long window=Minecraft.getInstance().getWindow().handle();
+        if(key.getType()==InputConstants.Type.MOUSE)return GLFW.glfwGetMouseButton(window,key.getValue())==GLFW.GLFW_PRESS;
+        if(key.getType()==InputConstants.Type.KEYSYM)return key.getValue()>=0 && GLFW.glfwGetKey(window,key.getValue())==GLFW.GLFW_PRESS;
+        return mapping.isDown();
     }
 
     private static void toggleMining(Minecraft mc) {
@@ -2312,6 +2328,9 @@ public final class KuanperionClient implements ClientModInitializer {
     private static void loadConfig() {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(configFile())) { p.load(in); } catch (Throwable ignored) {}
+        settingsModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.settings.modifiers"),0);
+        miningModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.mining.modifiers"),1);
+        farmingModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.farming.modifiers"),1);
         // Runtime toggles should not auto-resume on client/server join; otherwise recovery can fire while just entering Hypixel.
         miningEnabled = false;
         farmingEnabled = false;
@@ -2334,6 +2353,7 @@ public final class KuanperionClient implements ClientModInitializer {
         abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
                 Boolean.toString(legacyAbnormalHandling)));
         loadNotificationConfig(p);
+        for(var type:NotificationType.values()){if(Boolean.parseBoolean(p.getProperty(type.configKey+"ScreenDurationAuto","false")))defaultDurationInputs.add(type);else defaultDurationInputs.remove(type);}
         JERRY_FARMING_MARKERS.load(p);
         if (miningEnabled && farmingEnabled) farmingEnabled = false;
         scanRadius = parseInt(p.getProperty("scanRadius"), 5, 1, 8);
@@ -2347,6 +2367,7 @@ public final class KuanperionClient implements ClientModInitializer {
                 TARGET_BLOCKS.add(id);
             }
         }
+        miningSelectionTargetCount=parseInt(p.getProperty("miningSelectionTargetCount"),Math.max(1,TARGET_BLOCKS.size()),1,5);
         // Persist legacy marker timestamps once; never restart their timeout on the next launch.
         if (!JERRY_FARMING_MARKERS.isEmpty()) {
             JERRY_FARMING_MARKERS.expire(jerryMarkerMaxSeconds);
@@ -2356,6 +2377,9 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void saveConfig() {
         Properties p = new Properties();
+        p.setProperty("hotkey.settings.modifiers",Integer.toString(settingsModifiers));
+        p.setProperty("hotkey.mining.modifiers",Integer.toString(miningModifiers));
+        p.setProperty("hotkey.farming.modifiers",Integer.toString(farmingModifiers));
         p.setProperty("miningEnabled", "false");
         p.setProperty("farmingEnabled", "false");
         p.setProperty("farmingCrop", farmingCrop.name());
@@ -2369,10 +2393,12 @@ public final class KuanperionClient implements ClientModInitializer {
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
         saveNotificationConfig(p);
+        for(var type:NotificationType.values())p.setProperty(type.configKey+"ScreenDurationAuto",Boolean.toString(defaultDurationInputs.contains(type)));
         JERRY_FARMING_MARKERS.save(p);
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
+        p.setProperty("miningSelectionTargetCount",Integer.toString(miningSelectionTargetCount));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuanperion"); } catch (Throwable ignored) {}
     }
@@ -2603,7 +2629,7 @@ public final class KuanperionClient implements ClientModInitializer {
         return out;
     }
     private static boolean profileKeyAllowed(String key) {
-        return !key.equals("pestWebhookUrl")&&!key.equals("miningEnabled")&&!key.equals("farmingEnabled")&&!key.startsWith("jerryFarmingPauseMarker");
+        return !key.startsWith("hotkey.")&&!key.equals("pestWebhookUrl")&&!key.equals("miningEnabled")&&!key.equals("farmingEnabled")&&!key.startsWith("jerryFarmingPauseMarker");
     }
     public static boolean applyUiConfig(com.google.gson.JsonObject input) {
         Properties values=new Properties();
@@ -2640,15 +2666,15 @@ public final class KuanperionClient implements ClientModInitializer {
             .add(new SliderSetting("偵測半徑",1,8,()->(float)scanRadius,v->{scanRadius=Math.round(v);saveConfig();}).withDecimals(0))
             .add(new SliderSetting("轉動速度",1,40,()->(float)rotationStepDegrees,v->{rotationStepDegrees=Math.round(v);saveConfig();}).withDecimals(0).withSuffix("°"))
             .add(new SliderSetting("挖礦延遲",1,20,()->(float)actionDelayTicks,v->{actionDelayTicks=Math.round(v);saveConfig();}).withDecimals(0).withSuffix(" ticks"));
-        var targets = SettingGroup.alwaysOn("目標方塊", "選擇 1～5 種方塊；排列順序即挖礦優先序")
-            .add(new SliderSetting("選擇種類數量",1,5,()->(float)miningSelectionTargetCount,v->miningSelectionTargetCount=Math.round(v)).withDecimals(0))
-            .add(new ActionSetting("開始選擇目標方塊", KuanperionClient::beginUiTargetSelection));
-        for (int i=0;i<5;i++) {
+        var targets = SettingGroup.alwaysOn("目標方塊", "選取後才顯示圖示與優先序，可移動／刪除")
+            .add(new SelectionActionSetting("選擇種類數量",()->(float)miningSelectionTargetCount,v->{miningSelectionTargetCount=Math.round(v);saveConfig();},KuanperionClient::beginUiTargetSelection));
+        for(int i=0;i<5;i++) {
             final int index=i;
-            targets.add(new InfoSetting("優先序 "+(i+1),()->index<TARGET_BLOCKS.size()?TARGET_BLOCKS.get(index):"未設定"));
-            targets.add(new ActionSetting("↑ 優先序 "+(i+1),()->moveUiTarget(index,-1)).visibleWhen(()->index>0&&index<TARGET_BLOCKS.size()));
-            targets.add(new ActionSetting("↓ 優先序 "+(i+1),()->moveUiTarget(index,1)).visibleWhen(()->index+1<TARGET_BLOCKS.size()));
-            targets.add(new ActionSetting("移除優先序 "+(i+1),()->{ if(index<TARGET_BLOCKS.size()){TARGET_BLOCKS.remove(index);saveConfig();}}).visibleWhen(()->index<TARGET_BLOCKS.size()));
+            var target=new BlockTargetSetting("優先序 "+(i+1),()->index<TARGET_BLOCKS.size()?TARGET_BLOCKS.get(index):"minecraft:air",
+                ()->index<TARGET_BLOCKS.size()?uiTargetName(TARGET_BLOCKS.get(index)):"",
+                ()->moveUiTarget(index,-1),()->moveUiTarget(index,1),()->{if(index<TARGET_BLOCKS.size()){TARGET_BLOCKS.remove(index);saveConfig();}},
+                ()->index>0&&index<TARGET_BLOCKS.size(),()->index+1<TARGET_BLOCKS.size());
+            target.visibleWhen(()->index<TARGET_BLOCKS.size());targets.add(target);
         }
         var mineTab=new ModulesTab.SubTab("Mining", "依種類優先序挖掘",()->miningEnabled,
             v->{if(v!=miningEnabled)toggleMining(Minecraft.getInstance());},List.of(mining,targets));
@@ -2686,11 +2712,14 @@ public final class KuanperionClient implements ClientModInitializer {
             if(v&&pestWebhookUrl.isBlank()){uiInputError("請先在 Discord 通知設定 Webhook 網址");return;}
             var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(v,old.chat(),old.screen(),old.screenSeconds()));}));
         group.add(new ToggleSetting("遊戲內聊天室通知",()->notificationChannels(type).chat(),v->{var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(old.discord(),v,old.screen(),old.screenSeconds()));}));
-        group.add(new ToggleSetting("遊戲內螢幕通知",()->notificationChannels(type).screen(),v->{var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(old.discord(),old.chat(),v,old.screenSeconds()));}));
-        group.add(new TextSetting("螢幕通知顯示時間（秒）","大於 0，可含小數",()->notificationChannels(type).screenSeconds().toPlainString(),text->{
-            BigDecimal seconds=NotificationChannels.parseScreenSeconds(text);
-            if(seconds==null){uiInputError("請輸入有效正小數秒數");return;}
-            var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(old.discord(),old.chat(),old.screen(),seconds));}));
+        group.add(new InlineToggleSetting("遊戲內螢幕通知","顯示時間",
+            ()->defaultDurationInputs.contains(type)?"":notificationChannels(type).screenSeconds().toPlainString(),
+            text->{
+                String input=text.trim();BigDecimal seconds=input.isEmpty()?NotificationChannels.DEFAULT_SCREEN_SECONDS:NotificationChannels.parseScreenSeconds(input);
+                if(seconds==null){uiInputError("請輸入有效正小數秒數；留空使用 3 秒");return;}
+                if(input.isEmpty())defaultDurationInputs.add(type);else defaultDurationInputs.remove(type);
+                var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(old.discord(),old.chat(),old.screen(),seconds));
+            },()->notificationChannels(type).screen(),v->{var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(old.discord(),old.chat(),v,old.screenSeconds()));}));
         return group;
     }
     private static void setUiChannels(NotificationType type,NotificationChannels channels) {
@@ -2706,10 +2735,15 @@ public final class KuanperionClient implements ClientModInitializer {
     }
     private static void uiInputError(String message) { dev.kuan.kuanperion.notification.NotificationManager.error("設定未套用",message); }
     private static void beginUiTargetSelection() {
+        if(Minecraft.getInstance().player==null || Minecraft.getInstance().level==null){uiInputError("請先進入世界，再開始選擇目標方塊");return;}
         miningSelectionTargetCount=Math.max(1,Math.min(5,miningSelectionTargetCount));
         miningEnabled=false;clearActiveTarget(Minecraft.getInstance());TARGET_BLOCKS.clear();selectMode=true;saveConfig();
         Minecraft.getInstance().setScreenAndShow(null);
         say(Minecraft.getInstance(),feature("Mining"),plain(" 方塊選擇：請右鍵選擇 "),warning(Integer.toString(miningSelectionTargetCount)),plain(" 種目標方塊"));
+    }
+    private static String uiTargetName(String id) {
+        try {return BuiltInRegistries.BLOCK.getValue(Identifier.parse(id)).getName().getString();}
+        catch(IllegalArgumentException ex){return id;}
     }
     private static void moveUiTarget(int index,int delta) {
         int next=index+delta;
@@ -2717,13 +2751,27 @@ public final class KuanperionClient implements ClientModInitializer {
         String target=TARGET_BLOCKS.remove(index);TARGET_BLOCKS.add(next,target);saveConfig();
     }
     public static boolean matchesSettingsKey(net.minecraft.client.input.KeyEvent event) {
-        return settingsKey != null && settingsKey.matches(event);
+        return settingsKey != null && settingsKey.matches(event) && HotkeyChord.matches(settingsModifiers,event.modifiers());
     }
 
     public static List<Setting> uiKeybinds() {
-        return List.of(new KeybindSetting("開啟設定",settingsKey),
-            new KeybindSetting("Mining（搭配 Shift）",toggleMiningKey),
-            new KeybindSetting("Farming（搭配 Shift）",toggleFarmingKey));
+        return List.of(new KeybindSetting("開啟設定",settingsKey,0,()->settingsModifiers,(key,mods)->setUiKeybinding(settingsKey,key,mods)),
+            new KeybindSetting("Mining",toggleMiningKey,1,()->miningModifiers,(key,mods)->setUiKeybinding(toggleMiningKey,key,mods)),
+            new KeybindSetting("Farming",toggleFarmingKey,1,()->farmingModifiers,(key,mods)->setUiKeybinding(toggleFarmingKey,key,mods)));
+    }
+
+    private static boolean setUiKeybinding(KeyMapping mapping,InputConstants.Key key,int modifiers) {
+        modifiers &= HotkeyChord.MASK;
+        for(var other:List.of(settingsKey,toggleMiningKey,toggleFarmingKey)) {
+            int otherModifiers=other==settingsKey?settingsModifiers:other==toggleMiningKey?miningModifiers:farmingModifiers;
+            if(other!=mapping && !key.equals(InputConstants.UNKNOWN) && other.matches(key) && otherModifiers==modifiers) {
+                uiInputError("這個按鍵組合已被其他功能使用");return false;
+            }
+        }
+        mapping.setKey(key);KeyMapping.resetMapping();
+        if(mapping==settingsKey)settingsModifiers=modifiers;
+        else if(mapping==toggleMiningKey)miningModifiers=modifiers;else farmingModifiers=modifiers;
+        saveConfig();return true;
     }
 
     private static final class MiningTargetCountScreen extends Screen {

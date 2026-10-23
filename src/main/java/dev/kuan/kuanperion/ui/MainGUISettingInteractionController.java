@@ -3,7 +3,7 @@
 package dev.kuan.kuanperion.ui;
 
 import dev.kuan.kuanperion.ui.MainGUI;
-import dev.kuan.kuanperion.ui.settings.ActionSetting;
+import dev.kuan.kuanperion.ui.settings.*;
 import dev.kuan.kuanperion.ui.settings.ColorSetting;
 import dev.kuan.kuanperion.ui.settings.DropdownListSetting;
 import dev.kuan.kuanperion.ui.settings.DropdownSetting;
@@ -180,7 +180,25 @@ final class MainGUISettingInteractionController {
         float ip = 16.0f;
         float ix = x + ip;
         float iw = w - ip * 2.0f;
-        float cardH = h - 5.0f;
+        float cardH = h - 5.0f - this.owner.settingDescriptionHeight(setting,w);
+        if(my>y+cardH)return;
+        if(setting instanceof InlineToggleSetting combined){
+            if(mx>=ix+iw-38){this.owner.commitText();combined.toggle();}
+            else this.handleTextClick(combined,mx,my,y,ix,InlineRowLayout.durationContentWidth(iw),cardH);
+            return;
+        }
+        if(setting instanceof SelectionActionSetting selection){
+            this.owner.commitText();
+            float fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=y+(cardH-32)/2;
+            if(mx>=fieldX+72 && my>=fieldY && my<=fieldY+32)selection.start();
+            else if(mx>=fieldX && mx<=fieldX+60 && my>=fieldY && my<=fieldY+32){this.owner.focusSliderEditorField(selection);this.owner.setEditorBounds(fieldX,fieldY,60,32);this.owner.selectAllText();}
+            return;
+        }
+        if(setting instanceof BlockTargetSetting target){
+            float startX=ix+iw-116,buttonY=y+(cardH-30)/2;
+            if(my>=buttonY&&my<=buttonY+30){int index=(int)((mx-startX)/40);if(mx>=startX && index<3 && mx<=startX+index*40+36){if(index==0)target.moveUp();else if(index==1)target.moveDown();else target.remove();}}
+            return;
+        }
         switch (setting.getType()) {
             case TOGGLE: {
                 ((ToggleSetting)setting).toggle();
@@ -517,7 +535,7 @@ final class MainGUISettingInteractionController {
         float buttonH = 32.0f;
         float buttonY = y + (cardH - buttonH) / 2.0f;
         float resetW = 60.0f;
-        float bindW = 132.0f;
+        float bindW = InlineRowLayout.keybindWidth(iw);
         float gap = 8.0f;
         float resetX = ix + iw - resetW;
         float bindX = resetX - gap - bindW;

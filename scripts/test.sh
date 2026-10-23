@@ -39,3 +39,6 @@ python3 "$ROOT/scripts/test-pumpkin-melon-start.py" "$JAVA_HOME"
     "$ROOT/src/test/java/dev/kuan/kuanperion/JerryFarmingPauseMarkersTest.java"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.kuanperion.JerryFarmingPauseMarkersTest
 python3 "$ROOT/scripts/test-jerry-marker-rendering.py" "$JAVA_HOME"
+
+"$ROOT/scripts/test-theme.sh"
+"$ROOT/scripts/test-hotkeys.sh"

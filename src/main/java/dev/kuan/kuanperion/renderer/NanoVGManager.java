@@ -75,6 +75,7 @@ public final class NanoVGManager {
         if(uiStencil!=0) GL30.glDeleteRenderbuffers(uiStencil);
         uiFbo=uiStencil=uiWidth=uiHeight=0;
         SVGRenderer.destroy(vg);
+        renderer.destroy();
         NanoVGGL3.nvgDelete((long)vg);
         vg = -1L;
         renderer = null;

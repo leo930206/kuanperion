@@ -894,8 +894,9 @@ extends NVGScreen {
             nvg.translate(-scx, -scy);
             nvg.translate(0.0f, this.animOffsetY);
             nvg.globalAlpha(this.alpha);
-            nvg.shadow(this.px, this.py, this.pw, this.ph, 10.0f, 26.0f, Theme.withAlpha(-16777216, 0.75f));
+            nvg.shadow(this.px, this.py, this.pw, this.ph, 10.0f, 26.0f, Theme.panelShadow());
             nvg.roundedRect(this.px, this.py, this.pw, this.ph, 10.0f, Theme.PANEL_BG);
+            if (Theme.GRADIENT_ENABLED) nvg.cornerWash(this.px, this.py, this.pw, this.ph, 10.0f, Theme.GRADIENT_BLUE, Theme.GRADIENT_PINK);
             nvg.rectOutline(this.px, this.py, this.pw, this.ph, 10.0f, 1.0f, Theme.BORDER_DEFAULT);
             nvg.restore();
             nvg.save();
@@ -2176,6 +2177,8 @@ extends NVGScreen {
         this.renderListActionButton(nvg, x, y, w, label, hovered, enabled);
     }
 
+    float settingDescriptionHeight(Setting setting,float rowW) {return textLayout.descriptionHeight(setting,rowW);}
+
     float textInlineFieldWidthForRow(float innerWidth) {
         return this.textInlineFieldWidth(innerWidth);
     }
@@ -2841,20 +2844,21 @@ extends NVGScreen {
         if (this.activeKeybindCapture == null) {
             return false;
         }
+        if (dev.kuan.kuanperion.HotkeyChord.isModifierKey(input.key())) return true;
         KeybindSetting setting = this.activeKeybindCapture;
         this.activeKeybindCapture = null;
         if (input.key() == 256) {
             return true;
         }
-        if (input.key() == 261 || input.key() == 259) {
+        if ((input.key() == 261 || input.key() == 259) && (input.modifiers() & dev.kuan.kuanperion.HotkeyChord.MASK) == 0) {
             setting.clearBinding();
             return true;
         }
         if (input.key() == -1) {
-            setting.setBoundKey(InputConstants.Type.SCANCODE.getOrCreate(input.scancode()));
+            setting.setBoundKey(InputConstants.Type.SCANCODE.getOrCreate(input.scancode()),input.modifiers());
             return true;
         }
-        setting.setBoundKey(InputConstants.Type.KEYSYM.getOrCreate(input.key()));
+        setting.setBoundKey(InputConstants.Type.KEYSYM.getOrCreate(input.key()),input.modifiers());
         return true;
     }
 
@@ -2868,7 +2872,7 @@ extends NVGScreen {
         }
         KeybindSetting setting = this.activeKeybindCapture;
         this.activeKeybindCapture = null;
-        setting.setBoundKey(InputConstants.Type.MOUSE.getOrCreate(button));
+        setting.setBoundKey(InputConstants.Type.MOUSE.getOrCreate(button),dev.kuan.kuanperion.KuanperionClient.currentHotkeyModifiers());
         return true;
     }
 

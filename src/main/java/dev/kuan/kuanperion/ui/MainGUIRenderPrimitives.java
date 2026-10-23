@@ -83,7 +83,7 @@ final class MainGUIRenderPrimitives {
         int bg;
         bg = !enabled ? Theme.withAlpha(Theme.BG_FIELD, 0.7f) : (hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.16f) : Theme.BG_FIELD);
         border = !enabled ? Theme.withAlpha(Theme.BORDER_DEFAULT, 0.6f) : (hovered ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT);
-        int text = !enabled ? Theme.TEXT_DIM : (hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_SECONDARY);
+        int text = !enabled ? Theme.disabledText() : (hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_SECONDARY);
         nvg.roundedRect(x, y, w, 32.0f, 3.0f, bg);
         nvg.rectOutline(x, y, w, 32.0f, 3.0f, 1.0f, border);
         nvg.textCentered("Inter-Bold", label, x, y + 0.5f, w, 32.0f, 12.0f, text);

@@ -5,7 +5,7 @@ package dev.kuan.kuanperion.ui;
 import dev.kuan.kuanperion.renderer.NVGRenderer;
 import dev.kuan.kuanperion.ui.DropdownChevron;
 import dev.kuan.kuanperion.ui.MainGUI;
-import dev.kuan.kuanperion.ui.settings.ActionSetting;
+import dev.kuan.kuanperion.ui.settings.*;
 import dev.kuan.kuanperion.ui.settings.ColorSetting;
 import dev.kuan.kuanperion.ui.settings.DropdownListSetting;
 import dev.kuan.kuanperion.ui.settings.DropdownSetting;
@@ -40,10 +40,12 @@ final class MainGUISettingRowRenderer {
         float cardH = h - 5.0f;
         this.owner.offerHoverHelp("setting:" + setting.getRawName(), setting.getName(), setting.getDescription(), x, y, w, cardH, mx, my);
         nvg.roundedRect(x, y, w, cardH, 7.0f, Theme.CARD_BG);
-        nvg.rectOutlineSolid(x, y, w, cardH, 7.0f, 1.0f, Theme.withAlpha(-1, 0.12f));
+        nvg.rectOutlineSolid(x, y, w, cardH, 7.0f, 1.0f, Theme.subtleBorder());
         float innerPad = 16.0f;
         float innerX = x + innerPad;
         float innerW = w - innerPad * 2.0f;
+        float descriptionH=this.owner.settingDescriptionHeight(setting,w);
+        cardH-=descriptionH;
         float midY = y + cardH / 2.0f;
         List<String> labelLines = this.owner.wrapSettingLabelForRow(nvg, setting, w);
         float labelFontSize = this.owner.settingLabelFontSizeForRow(setting);
@@ -55,7 +57,8 @@ final class MainGUISettingRowRenderer {
                 break;
             }
             case SLIDER: {
-                this.renderSlider(nvg, (SliderSetting)setting, innerX, innerW, y, cardH, midY, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                if(setting instanceof SelectionActionSetting selection)this.renderSelectionAction(nvg,selection,innerX,innerW,y,cardH,labelLines,labelFontSize,labelLineStep,labelBlockH);
+                else this.renderSlider(nvg, (SliderSetting)setting, innerX, innerW, y, cardH, midY, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
             case RANGE_SLIDER: {
@@ -63,11 +66,15 @@ final class MainGUISettingRowRenderer {
                 break;
             }
             case TEXT: {
-                this.renderText(nvg, (TextSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                if(setting instanceof InlineToggleSetting combined){
+                    this.renderText(nvg,combined,innerX,InlineRowLayout.durationContentWidth(innerW),y,cardH,labelLines,labelFontSize,labelLineStep,labelBlockH);
+                    this.owner.renderPillControl(nvg,innerX+innerW-38,y+(cardH-21)/2,combined.isOn(),combined);
+                }else this.renderText(nvg, (TextSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
             case INFO: {
-                this.renderInfo(nvg, (InfoSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                if(setting instanceof BlockTargetSetting target)this.renderBlockTarget(nvg,target,innerX,innerW,y,cardH,mx,my);
+                else this.renderInfo(nvg, (InfoSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;
             }
             case LIST: {
@@ -102,6 +109,10 @@ final class MainGUISettingRowRenderer {
                 this.renderKeybind(nvg, (KeybindSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
             }
         }
+        if(descriptionH>0){
+            var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,innerW);
+            for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,y+cardH+1+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);
+        }
     }
 
     private void renderSection(NVGRenderer nvg, SectionSetting setting, float x, float y, float w, float h) {
@@ -111,6 +122,42 @@ final class MainGUISettingRowRenderer {
             nvg.text("Inter-Regular", setting.getDescription(), x + 4.0f, titleY + 15.0f, 11.5f, Theme.TEXT_SECONDARY);
         }
         nvg.rect(x + 4.0f, y + h - 7.0f, Math.max(0.0f, w - 8.0f), 1.0f, Theme.SEPARATOR);
+    }
+
+    private void renderSelectionAction(NVGRenderer nvg,SelectionActionSetting setting,float x,float w,float y,float h,List<String> labels,float font,float lineStep,float labelH) {
+        for(int i=0;i<labels.size();i++)nvg.text("Inter-Regular",labels.get(i),x,y+(h-labelH)/2+i*lineStep,font,Theme.TEXT_LABEL);
+        float fieldX=InlineRowLayout.countFieldX(x,w),fieldY=y+(h-32)/2;
+        nvg.roundedRect(fieldX,fieldY,60,32,7,Theme.BG_FIELD);
+        boolean active=this.owner.isActiveSliderEditor(setting);
+        nvg.rectOutline(fieldX,fieldY,60,32,7,1,active?Theme.ACCENT_PRIMARY:Theme.BORDER_DEFAULT);
+        if(active)this.owner.setEditorBounds(fieldX,fieldY,60,32);
+        nvg.textCentered("Inter-Mono",active?this.owner.currentTextBuffer():Integer.toString(Math.round(setting.getValue())),fieldX,fieldY,60,32,12.5f,Theme.TEXT_VALUE);
+        if(active && System.currentTimeMillis()/530%2==0) {
+            String value=this.owner.currentTextBuffer();float size=12.5f;
+            float start=fieldX+(60-nvg.textWidth("Inter-Mono",value,size))/2;
+            float caret=start+nvg.textWidth("Inter-Mono",this.owner.safeTextSlice(value,0,this.owner.currentTextCursor()),size);
+            nvg.rect(Math.max(fieldX+4,Math.min(fieldX+56,caret)),fieldY+6,1,20,Theme.TEXT_PRIMARY);
+        }
+        float buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
+        nvg.roundedRect(buttonX,fieldY,buttonW,32,7,Theme.withAlpha(Theme.ACCENT_PRIMARY,.12f));
+        nvg.rectOutline(buttonX,fieldY,buttonW,32,7,1,Theme.ACCENT_PRIMARY);
+        nvg.textCentered("Inter-Regular","開始選擇目標方塊",buttonX,fieldY,buttonW,32,11.5f,Theme.ACCENT_PRIMARY);
+    }
+
+    private void renderBlockTarget(NVGRenderer nvg,BlockTargetSetting setting,float x,float w,float y,float h,float mx,float my) {
+        nvg.roundedRect(x,y+(h-36)/2,36,36,6,Theme.BG_FIELD);
+        if(!nvg.blockIcon(setting.blockId(),x+4,y+(h-28)/2,28))nvg.renderSVG("/assets/kuanperion/icons/modules.svg",x+6,y+(h-24)/2,24,24,Theme.TEXT_MUTED);
+        nvg.text("Inter-Bold",setting.getName(),x+48,y+10,11,Theme.TEXT_MUTED);
+        boolean clipped=this.owner.pushContentLocalScissor(nvg,x+48,y+27,Math.max(20,w-184),24);
+        nvg.text("Inter-Regular",setting.getValue(),x+48,y+28,13,Theme.TEXT_VALUE);
+        this.owner.popContentLocalScissor(nvg,clipped);
+        String[] labels={"↑","↓","×"};boolean[] enabled={setting.canMoveUp(),setting.canMoveDown(),true};
+        for(int i=0;i<3;i++){
+            float bx=x+w-116+i*40,by=y+(h-30)/2;
+            nvg.roundedRect(bx,by,36,30,5,Theme.ELEMENT_BG);
+            nvg.rectOutline(bx,by,36,30,5,1,Theme.subtleBorder());
+            nvg.textCentered("Inter-Regular",labels[i],bx,by,36,30,14,enabled[i]?Theme.TEXT_VALUE:Theme.disabledText());
+        }
     }
 
     private void renderToggle(NVGRenderer nvg, ToggleSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
@@ -170,7 +217,8 @@ final class MainGUISettingRowRenderer {
         if (fill > 0.0f) {
             nvg.horizontalGradient(trackX, midY - 2.0f, trackW * fill, 4.0f, 2.0f, Theme.SLIDER_LEFT, Theme.ACCENT_PRIMARY);
         }
-        nvg.circle(trackX + trackW * fill, midY, 6.0f, -1);
+        nvg.circle(trackX + trackW * fill, midY, 7.0f, Theme.ACCENT_PRIMARY);
+        nvg.circle(trackX + trackW * fill, midY, 5.0f, 0xFFFFFFFF);
     }
 
     private void renderRangeSlider(NVGRenderer nvg, RangeSliderSetting setting, float x, float w, float y, float cardH, float midY, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
@@ -200,8 +248,10 @@ final class MainGUISettingRowRenderer {
         if (upperX > lowerX) {
             nvg.horizontalGradient(lowerX, midY - 2.0f, upperX - lowerX, 4.0f, 2.0f, Theme.SLIDER_LEFT, Theme.ACCENT_PRIMARY);
         }
-        nvg.circle(lowerX, midY, 6.0f, -1);
-        nvg.circle(upperX, midY, 6.0f, -1);
+        nvg.circle(lowerX, midY, 7.0f, Theme.ACCENT_PRIMARY);
+        nvg.circle(lowerX, midY, 5.0f, 0xFFFFFFFF);
+        nvg.circle(upperX, midY, 7.0f, Theme.ACCENT_PRIMARY);
+        nvg.circle(upperX, midY, 5.0f, 0xFFFFFFFF);
     }
 
     private void renderText(NVGRenderer nvg, TextSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
@@ -237,8 +287,8 @@ final class MainGUISettingRowRenderer {
             float selW = nvg.textWidth("Inter-Regular", this.owner.safeTextSlice(display, selStart, selEnd), fieldTextSize);
             nvg.roundedRect(selX, fieldY + 4.0f, Math.max(1.0f, selW), fieldH - 8.0f, 3.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.28f));
         }
-        if (display.isEmpty() && !active) {
-            nvg.text("Inter-Regular", UiLang.localize(setting.getPlaceholder()), fieldX + textPad, fieldY + (fieldH - fieldTextSize) / 2.0f, fieldTextSize, Theme.TEXT_DIM);
+        if (display.isEmpty() && (!active || setting instanceof InlineToggleSetting)) {
+            nvg.text("Inter-Regular", UiLang.localize(setting.getPlaceholder()), fieldX + textPad, fieldY + (fieldH - fieldTextSize) / 2.0f, fieldTextSize, Theme.disabledText());
         } else {
             nvg.text("Inter-Regular", display, drawX, fieldY + (fieldH - fieldTextSize) / 2.0f, fieldTextSize, Theme.TEXT_PRIMARY);
         }
@@ -258,7 +308,7 @@ final class MainGUISettingRowRenderer {
         float valueY = textY + labelBlockH + 6.0f;
         float valueH = Math.max(24.0f, cardH - (valueY - y) - 10.0f);
         nvg.roundedRect(x, valueY, w, valueH, 7.0f, Theme.BG_FIELD);
-        nvg.rectOutlineSolid(x, valueY, w, valueH, 7.0f, 1.0f, Theme.withAlpha(-1, 0.08f));
+        nvg.rectOutlineSolid(x, valueY, w, valueH, 7.0f, 1.0f, Theme.subtleBorder());
         String value = setting.getValue();
         float textPad = 8.0f;
         float fontSize = 12.0f;
@@ -430,7 +480,7 @@ final class MainGUISettingRowRenderer {
         float buttonY = y + (cardH - buttonH) / 2.0f;
         boolean hovered = mx >= x && mx <= x + w && my >= buttonY && my <= buttonY + buttonH;
         int buttonBg = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-        int buttonBorder = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f);
+        int buttonBorder = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
         int buttonText = hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
         nvg.roundedRect(x, buttonY, w, buttonH, 7.0f, buttonBg);
         nvg.rectOutline(x, buttonY, w, buttonH, 7.0f, 1.0f, buttonBorder);
@@ -454,7 +504,7 @@ final class MainGUISettingRowRenderer {
             this.owner.setHoveredColorSetting(setting);
         }
         nvg.roundedRect(swatchX, swatchY, swatchW, swatchH, 5.0f, setting.getValue() | 0xFF000000);
-        nvg.rectOutline(swatchX, swatchY, swatchW, swatchH, 5.0f, 1.0f, active ? Theme.ACCENT_PRIMARY : Theme.withAlpha(-1, 0.12f));
+        nvg.rectOutline(swatchX, swatchY, swatchW, swatchH, 5.0f, 1.0f, active ? Theme.ACCENT_PRIMARY : Theme.subtleBorder());
     }
 
     private void renderPosition(NVGRenderer nvg, PositionSetting setting, float x, float w, float y, float cardH, float midY, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH, float mx, float my) {
@@ -514,7 +564,7 @@ final class MainGUISettingRowRenderer {
         }
         boolean hovered = mx >= captureX && mx <= captureX + captureW && my >= boxY && my <= boxY + boxH;
         int buttonBg = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-        int buttonBorder = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f);
+        int buttonBorder = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
         int buttonText = hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
         nvg.roundedRect(captureX, boxY, captureW, boxH, 7.0f, buttonBg);
         nvg.rectOutline(captureX, boxY, captureW, boxH, 7.0f, 1.0f, buttonBorder);
@@ -564,7 +614,7 @@ final class MainGUISettingRowRenderer {
         float buttonH = 32.0f;
         float buttonY = y + (cardH - buttonH) / 2.0f;
         float resetW = 60.0f;
-        float bindW = 132.0f;
+        float bindW = InlineRowLayout.keybindWidth(w);
         float gap = 8.0f;
         float resetX = x + w - resetW;
         float bindX = resetX - gap - bindW;
@@ -574,10 +624,11 @@ final class MainGUISettingRowRenderer {
         int bindText = listening ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
         nvg.roundedRect(bindX, buttonY, bindW, buttonH, 7.0f, bindBg);
         nvg.rectOutline(bindX, buttonY, bindW, buttonH, 7.0f, 1.0f, bindBorder);
-        String bindTextValue = listening ? UiLang.localize("Press a key...") : setting.getBoundKeyName();
+        String bindTextValue = listening ? "按住修飾鍵，再按主鍵…" : setting.getBoundKeyName();
         float textPad = 8.0f;
         boolean clipped = this.owner.pushContentLocalScissor(nvg, bindX + textPad, buttonY + 1.0f, bindW - textPad * 2.0f, buttonH - 2.0f);
-        nvg.textCentered("Inter-Regular", bindTextValue, bindX + textPad, buttonY, bindW - textPad * 2.0f, buttonH, 12.0f, bindText);
+        float bindFont=Math.min(12,Math.max(8,12*(bindW-textPad*2)/Math.max(1,nvg.textWidth("Inter-Regular",bindTextValue,12))));
+        nvg.textCentered("Inter-Regular", bindTextValue, bindX + textPad, buttonY, bindW - textPad * 2.0f, buttonH, bindFont, bindText);
         this.owner.popContentLocalScissor(nvg, clipped);
         int resetBg = Theme.ELEMENT_BG;
         int resetBorder = setting.isDefault() ? Theme.BORDER_DEFAULT : Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.28f);

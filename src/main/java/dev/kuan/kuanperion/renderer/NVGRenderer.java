@@ -23,6 +23,7 @@ public class NVGRenderer {
     private final NVGColor c2 = NVGColor.malloc();
     private final NVGPaint paint = NVGPaint.malloc();
     private final MinecraftTextRenderer minecraftText;
+    private BlockIconCache blockIcons;
     private final float[] fontBounds = new float[4];
     private ScissorRegion scissorStack = null;
     private static final int MAX_TEXT_WIDTH_CACHE = 512;
@@ -266,6 +267,31 @@ public class NVGRenderer {
         NanoVG.nvgRoundedRect((long)this.vg, (float)x, (float)y, (float)w, (float)h, (float)radius);
         NanoVG.nvgFillPaint((long)this.vg, (NVGPaint)this.paint);
         NanoVG.nvgFill((long)this.vg);
+    }
+
+    public boolean blockIcon(String id,float x,float y,float size) {
+        if(blockIcons==null)blockIcons=new BlockIconCache(vg,paint);
+        return blockIcons.draw(id,x,y,size);
+    }
+    public void destroy() {
+        if(blockIcons!=null)blockIcons.close();
+        c1.free();c2.free();paint.free();
+    }
+
+    /** Soft corner washes: blue lower-left, pink upper-right; center remains white. */
+    public void cornerWash(float x, float y, float w, float h, float radius, int blue, int pink) {
+        float reach = Math.max(w * 0.64f, h * 0.84f);
+        int[] colors = {blue, pink};
+        float[] cx = {x + w * 0.10f, x + w * 0.96f};
+        float[] cy = {y + h * 0.98f, y + h * 0.04f};
+        for (int i=0; i<2; i++) {
+            color(colors[i], this.c1); color(colors[i] & 0xFFFFFF, this.c2);
+            NanoVG.nvgRadialGradient(this.vg, cx[i], cy[i], 0, reach, this.c1, this.c2, this.paint);
+            NanoVG.nvgBeginPath(this.vg);
+            NanoVG.nvgRoundedRect(this.vg, x, y, w, h, radius);
+            NanoVG.nvgFillPaint(this.vg, this.paint);
+            NanoVG.nvgFill(this.vg);
+        }
     }
 
     public void shadow(float x, float y, float w, float h, float radius, float blur, int color) {

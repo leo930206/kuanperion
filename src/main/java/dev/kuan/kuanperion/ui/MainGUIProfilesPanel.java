@@ -122,7 +122,7 @@ final class MainGUIProfilesPanel {
         float saveBtnW = 60.0f;
         boolean saveHov = mx >= saveBtnX && mx <= saveBtnX + saveBtnW && my >= fieldY && my <= fieldY + fieldH;
         int saveBg = saveHov ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-        int saveBrd = saveHov ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f);
+        int saveBrd = saveHov ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
         int saveTxt = saveHov ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
         nvg.roundedRect(saveBtnX, y, saveBtnW, fieldH, 7.0f, saveBg);
         nvg.rectOutline(saveBtnX, y, saveBtnW, fieldH, 7.0f, 1.0f, saveBrd);
@@ -150,7 +150,7 @@ final class MainGUIProfilesPanel {
         if (profiles.isEmpty()) {
             float emptyH = 42.0f;
             nvg.roundedRect(gx, y, gw, emptyH, 7.0f, Theme.CARD_BG);
-            nvg.rectOutline(gx, y, gw, emptyH, 7.0f, 1.0f, Theme.withAlpha(-1, 0.06f));
+            nvg.rectOutline(gx, y, gw, emptyH, 7.0f, 1.0f, Theme.subtleBorder());
             nvg.textCentered("Inter-Regular", UiLang.localize("No saved profiles yet."), gx, y, gw, emptyH, 11.0f, Theme.TEXT_MUTED);
             y += emptyH + 4.0f;
             tot += emptyH + 4.0f;
@@ -162,7 +162,7 @@ final class MainGUIProfilesPanel {
             for (String name : profiles) {
                 float rowY = y;
                 nvg.roundedRect(gx, rowY, gw, rowH, 7.0f, Theme.CARD_BG);
-                nvg.rectOutline(gx, rowY, gw, rowH, 7.0f, 1.0f, Theme.withAlpha(-1, 0.06f));
+                nvg.rectOutline(gx, rowY, gw, rowH, 7.0f, 1.0f, Theme.subtleBorder());
                 float btnX = gx + gw - 3.0f * (btnW + btnGap) - btnGap;
                 float btnY = rowY + (rowH - btnH) / 2.0f;
                 String profileName = name;
@@ -203,7 +203,7 @@ final class MainGUIProfilesPanel {
                     };
                     boolean bl = isDelete = index == 2;
                     bgColor = isDelete ? (hovered ? Theme.withAlpha(-3394765, 0.2f) : Theme.ELEMENT_BG) : (hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG);
-                    borderColor = isDelete ? (hovered ? Theme.withAlpha(-3394765, 0.45f) : Theme.withAlpha(-1, 0.06f)) : (hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f));
+                    borderColor = isDelete ? (hovered ? Theme.withAlpha(-3394765, 0.45f) : Theme.subtleBorder()) : (hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder());
                     int textColor = isDelete ? (hovered ? -30584 : Theme.TEXT_VALUE) : (hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE);
                     nvg.roundedRect(actionX, btnY, btnW, btnH, 5.0f, bgColor);
                     nvg.rectOutline(actionX, btnY, btnW, btnH, 5.0f, 1.0f, borderColor);
@@ -264,7 +264,7 @@ final class MainGUIProfilesPanel {
         float importH = 32.0f;
         boolean importHovered = mx >= gx && mx <= gx + importW && my >= (y += 10.0f) && my <= y + importH;
         int importBg = importHovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-        int importBrd = importHovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f);
+        int importBrd = importHovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
         int importTxt = importHovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
         nvg.roundedRect(gx, y, importW, importH, 7.0f, importBg);
         nvg.rectOutline(gx, y, importW, importH, 7.0f, 1.0f, importBrd);
@@ -303,7 +303,7 @@ final class MainGUIProfilesPanel {
             float buttonY = y + 16.0f + (float)(i / columns) * (buttonH + gap);
             boolean hovered = mx >= buttonX && mx <= buttonX + buttonW && my >= buttonY && my <= buttonY + buttonH;
             int bg = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.15f) : Theme.ELEMENT_BG;
-            int border = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.withAlpha(-1, 0.06f);
+            int border = hovered ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.35f) : Theme.subtleBorder();
             int text = hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_VALUE;
             nvg.roundedRect(buttonX, buttonY, buttonW, buttonH, 7.0f, bg);
             nvg.rectOutline(buttonX, buttonY, buttonW, buttonH, 7.0f, 1.0f, border);

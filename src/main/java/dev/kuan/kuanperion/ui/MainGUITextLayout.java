@@ -3,7 +3,7 @@
 package dev.kuan.kuanperion.ui;
 
 import dev.kuan.kuanperion.renderer.NVGRenderer;
-import dev.kuan.kuanperion.ui.settings.DropdownListSetting;
+import dev.kuan.kuanperion.ui.settings.*;
 import dev.kuan.kuanperion.ui.settings.DropdownSetting;
 import dev.kuan.kuanperion.ui.settings.InfoSetting;
 import dev.kuan.kuanperion.ui.settings.ListSetting;
@@ -20,9 +20,15 @@ final class MainGUITextLayout {
     MainGUITextLayout() {
     }
 
+    float descriptionHeight(Setting setting,float rowW) {
+        if(!SettingDescriptionCatalog.inlineHelp(setting))return 0;
+        return 6 + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),Math.max(40,rowW-32),10.5f * MainGUI.uiTextScale);
+    }
     float settingHeight(Setting setting, float rowW) {
+        if(setting instanceof BlockTargetSetting)return 66;
+
         float extraLines = Math.max(0, this.wrappedSettingLabelLineCount(setting, rowW) - 1);
-        return switch (setting.getType()) {
+        return descriptionHeight(setting,rowW) + switch (setting.getType()) {
             case SettingType.SECTION -> 46.0f;
             case SettingType.TEXT -> {
                 TextSetting textSetting = (TextSetting)setting;
@@ -79,6 +85,8 @@ final class MainGUITextLayout {
 
     float settingLabelMaxWidth(Setting setting, float rowW) {
         float innerWidth = Math.max(0.0f, rowW - 32.0f);
+        if(setting instanceof SelectionActionSetting)return Math.max(60,innerWidth-InlineRowLayout.countButtonWidth(innerWidth)-12-60-16);
+        if(setting instanceof InlineToggleSetting)return Math.max(60,innerWidth-50-textInlineFieldWidth(innerWidth-50)-12);
         return switch (setting.getType()) {
             case SettingType.TOGGLE -> Math.max(80.0f, innerWidth - 50.0f);
             case SettingType.SLIDER, SettingType.RANGE_SLIDER -> Math.max(80.0f, innerWidth - innerWidth / 3.0f - 12.0f);
@@ -95,7 +103,7 @@ final class MainGUITextLayout {
             case SettingType.MULTI_DROPDOWN -> Math.max(80.0f, innerWidth - 16.0f);
             case SettingType.COLOR -> Math.max(80.0f, innerWidth - 96.0f);
             case SettingType.POSITION -> Math.max(80.0f, innerWidth - (320.0f + this.positionActionStripWidth((PositionSetting)setting)));
-            case SettingType.KEYBIND -> Math.max(80.0f, innerWidth - 220.0f);
+            case SettingType.KEYBIND -> Math.max(80.0f, innerWidth - InlineRowLayout.keybindWidth(innerWidth) - 80);
             default -> Math.max(80.0f, innerWidth - 16.0f);
         };
     }
@@ -169,30 +177,10 @@ final class MainGUITextLayout {
     }
 
     int estimateWrappedLineCount(String text, float maxWidth, float fontSize) {
-        if (text == null || text.isBlank() || maxWidth <= 0.0f) {
-            return 1;
-        }
-        float avgCharWidth = fontSize * 0.52f;
-        int maxChars = Math.max(1, (int)Math.floor(maxWidth / avgCharWidth));
-        int lines = 1;
-        int current = 0;
-        for (String word : text.trim().split("\\s+")) {
-            int wordLength = word.length();
-            if (current == 0) {
-                current = wordLength;
-                lines += Math.max(0, (wordLength - 1) / maxChars);
-                current = (wordLength - 1) % maxChars + 1;
-                continue;
-            }
-            if (current + 1 + wordLength <= maxChars) {
-                current += 1 + wordLength;
-                continue;
-            }
-            ++lines;
-            lines += Math.max(0, (wordLength - 1) / maxChars);
-            current = (wordLength - 1) % maxChars + 1;
-        }
-        return Math.max(1, lines);
+        if(text==null || text.isBlank() || maxWidth<=0)return 1;
+        // CJK glyphs are approximately full em, not the Latin half-em estimate.
+        return UiTextWrap.wrap(text,maxWidth,value->value.codePoints().mapToDouble(cp->
+            fontSize*(cp>=0x2E80?1.05:Character.isWhitespace(cp)?.35:.64)).sum()).size();
     }
 
     List<String> wrapSettingLabel(NVGRenderer nvg, Setting setting, float rowW) {

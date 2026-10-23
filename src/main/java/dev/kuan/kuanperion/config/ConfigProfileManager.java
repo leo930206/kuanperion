@@ -28,7 +28,7 @@ public final class ConfigProfileManager {
     public static void importFromClipboard(String name,String json){write(name,new GsonBuilder().setPrettyPrinting().create().toJson(sanitize(JsonParser.parseString(json).getAsJsonObject())));}
     private static JsonObject sanitize(JsonObject object){
         JsonObject copy=object.deepCopy();
-        for(String key:List.copyOf(copy.keySet()))if(key.equals("pestWebhookUrl")||key.startsWith("jerryFarmingPauseMarker")||key.equals("miningEnabled")||key.equals("farmingEnabled"))copy.remove(key);
+        for(String key:List.copyOf(copy.keySet()))if(key.startsWith("hotkey.")||key.equals("pestWebhookUrl")||key.startsWith("jerryFarmingPauseMarker")||key.equals("miningEnabled")||key.equals("farmingEnabled"))copy.remove(key);
         return copy;
     }
     private static JsonObject read(String name){try{Path file=path(name);if(Files.size(file)>1024*1024)throw new IllegalArgumentException("Profile too large");return JsonParser.parseString(Files.readString(file)).getAsJsonObject();}catch(IOException ex){throw new IllegalStateException(ex);}}

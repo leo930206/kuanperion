@@ -9,3 +9,6 @@ No automation behavior changes, account/OAuth/IRC/telemetry/update subsystem imp
 Verification: ./scripts/test.sh; ./scripts/build.sh; dedicated UI/rename tests; git diff --check; JAR entry/source audit; isolated no-account/no-server smoke test if launch permitted. Source and destination SHA checks before install. Old jar removal only after new jar built and verified. Retain backup outside mods.
 
 Risk: 26.2 deferred rendering, GL state/stencil framebuffer, Chinese font fallback, close animation input locking, config migration, profile secret sanitization.
+
+## 2.0.1 approved follow-up
+White / sky-blue / blue-pink corner gradient; exact old-default-only migration with backup, preserve custom themes. Flexible exact-modifier hotkeys (single key, Ctrl/Alt/Shift/Command combinations), one-shot physical edge and no GUI/background triggers, preserve old bindings. Combine duration/toggle and count/start controls with separate hit regions; blank duration placeholder defaults to 3s. Explain controls inline, reserve CJK line heights. Show only actual selected blocks with runtime resource-pack material icons and live priority/delete controls. No gameplay algorithm changes, remote integrations or credential handling. Validate pure policies/models then real 26.2 isolated screenshots/input; back up, sync, rebuild, install only latest own JAR, commit/tag/push.

@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public enum ThemePreset {
+    SKY_BLOSSOM("Sky Blossom", "sky-blossom"),
     SLATE("Slate", "slate"),
     SAGE("Sage", "sage"),
     MATCHA("Matcha", "matcha"),

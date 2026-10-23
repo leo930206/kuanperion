@@ -31,7 +31,7 @@ final class MainGUIOverlayController {
         nvg.translate(0.0f, slideOffset);
         nvg.shadow(this.owner.dropdownOverlayX(), overlayY, this.owner.dropdownOverlayW(), overlayH, 7.0f, 16.0f, Theme.withAlpha(-16777216, 0.5f));
         nvg.roundedRect(this.owner.dropdownOverlayX(), overlayY, this.owner.dropdownOverlayW(), overlayH, 7.0f, Theme.CARD_BG);
-        nvg.rectOutline(this.owner.dropdownOverlayX(), overlayY, this.owner.dropdownOverlayW(), overlayH, 7.0f, 1.0f, Theme.withAlpha(-1, 0.06f));
+        nvg.rectOutline(this.owner.dropdownOverlayX(), overlayY, this.owner.dropdownOverlayW(), overlayH, 7.0f, 1.0f, Theme.subtleBorder());
         float itemY = overlayY + 3.0f;
         for (int i = 0; i < options.size(); ++i) {
             boolean hovered;

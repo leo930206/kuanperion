@@ -7,3 +7,11 @@
 - [x] Offline runtime/visual validation, report any untested boundaries.
 - [x] README/CHANGELOG/version 2.0.0, verified safe installation and release preparation.
 - Git publication is recorded by the release commit/tag and remote verification.
+
+## 2.0.1 follow-up
+- [x] Palette/legacy preservation/contrast tests and implementation.
+- [x] Flexible key chord policy/capture/persistence/exact matching and safe edges.
+- [x] Paired-row models, separate click regions, blank duration defaults.
+- [x] Explanations/CJK height correction; actual selected targets and material icons.
+- [x] Final runtime screenshot verification, regressions, build/source review.
+- [x] Update docs and prepare verified safe installation/release; Git publication is recorded by release commit/tag.

@@ -26,18 +26,18 @@ public class Theme {
     public static final long ANIM_NORMAL = 250L;
     public static final long ANIM_SLOW = 400L;
     public static int BG_PRIMARY = -14670549;
-    public static int BG_SECONDARY = -14012360;
+    public static int BG_SECONDARY = SkyThemePalette.color("Panel BG");
     public static int BG_TERTIARY = -15262943;
-    public static int BG_HOVER = -13090483;
+    public static int BG_HOVER = SkyThemePalette.color("Hover BG");
     public static int BG_ACTIVE = -12498088;
-    public static int BG_FIELD = -13485499;
-    public static int PANEL_BG = -14670291;
-    public static int SIDEBAR_BG = -15262685;
-    public static int CARD_BG = -13946051;
-    public static int ELEMENT_BG = -13221813;
-    public static int SEPARATOR = -11905693;
-    public static int ACCENT_PRIMARY = -2937041;
-    public static int ACCENT_SECONDARY = -4776932;
+    public static int BG_FIELD = SkyThemePalette.color("Input BG");
+    public static int PANEL_BG = SkyThemePalette.color("Main Panel BG");
+    public static int SIDEBAR_BG = SkyThemePalette.color("Sidebar BG");
+    public static int CARD_BG = SkyThemePalette.color("Card BG");
+    public static int ELEMENT_BG = SkyThemePalette.color("Element BG");
+    public static int SEPARATOR = SkyThemePalette.color("Separator");
+    public static int ACCENT_PRIMARY = SkyThemePalette.color("Accent");
+    public static int ACCENT_SECONDARY = SkyThemePalette.color("Accent 2");
     public static int ACCENT_DIM = 1439903535;
     public static int ACCENT_GLOW = -1714213073;
     public static int ACCENT_ENABLED = -11751600;
@@ -46,28 +46,31 @@ public class Theme {
     public static int STATUS_SUCCESS = -15681151;
     public static int STATUS_WARNING = -680437;
     public static int STATUS_ERROR = -1096636;
-    public static int BORDER_DEFAULT = -10062973;
+    public static int BORDER_DEFAULT = SkyThemePalette.color("Border");
     public static int BORDER_HOVER = -7891547;
     public static int BORDER_ACTIVE = -2937041;
     public static int BORDER_ACCENT = -2937041;
     public static final int BORDER_DRAG = -5592321;
     public static final int BORDER_RESIZE = -22016;
-    public static int TEXT_PRIMARY = -657414;
-    public static int TEXT_SECONDARY = -3945515;
+    public static int TEXT_PRIMARY = SkyThemePalette.color("Text");
+    public static int TEXT_SECONDARY = SkyThemePalette.color("Text Dim");
     public static final int TEXT_TERTIARY = -9735552;
     public static int TEXT_DIM = -5195066;
     public static final int TEXT_DISABLED = -11840157;
     public static final int TEXT_ACCENT = -10262799;
-    public static int TEXT_MUTED = -6641998;
-    public static int TEXT_LABEL = -986122;
-    public static int TEXT_VALUE = -2958879;
-    public static int GROUP_ACTIVE = -4668207;
-    public static int PILL_TRACK = -12168866;
-    public static int PILL_KNOB_OFF = -4931895;
-    public static int SLIDER_LEFT = -11557935;
-    public static int DROPDOWN_BTN_BG = -13221813;
-    public static int ACTION_BTN_BG = -13221813;
-    public static int ACTION_BTN_HOVER = -12168866;
+    public static int TEXT_MUTED = SkyThemePalette.color("Text Muted");
+    public static int TEXT_LABEL = SkyThemePalette.color("Text Label");
+    public static int TEXT_VALUE = SkyThemePalette.color("Text Value");
+    public static int GROUP_ACTIVE = SkyThemePalette.color("Group Active");
+    public static int PILL_TRACK = SkyThemePalette.color("[Toggle] Track");
+    public static int PILL_KNOB_OFF = SkyThemePalette.color("[Toggle] Knob");
+    public static int SLIDER_LEFT = SkyThemePalette.color("[Slider] Left");
+    public static int DROPDOWN_BTN_BG = SkyThemePalette.color("[Dropdown] BG");
+    public static int ACTION_BTN_BG = SkyThemePalette.color("[Action] BG");
+    public static int ACTION_BTN_HOVER = SkyThemePalette.color("[Action] Hover");
+    public static int GRADIENT_BLUE = SkyThemePalette.color("Gradient Blue");
+    public static int GRADIENT_PINK = SkyThemePalette.color("Gradient Pink");
+    public static boolean GRADIENT_ENABLED = true;
     public static final int PADDING = 8;
     public static final int MARGIN = 4;
     public static final int CORNER_RADIUS = 4;
@@ -157,7 +160,8 @@ public class Theme {
         ACTION_BTN_BG = v;
     }), Theme.entry("[Action] Hover", () -> ACTION_BTN_HOVER, v -> {
         ACTION_BTN_HOVER = v;
-    }));
+    }), Theme.entry("Gradient Blue", () -> GRADIENT_BLUE, v -> GRADIENT_BLUE = v),
+        Theme.entry("Gradient Pink", () -> GRADIENT_PINK, v -> GRADIENT_PINK = v));
     public static final List<ThemeEntry> HUD_ENTRIES = List.of(Theme.entry("HUD Background", () -> HUD_BG, v -> {
         HUD_BG = v;
     }), Theme.entry("HUD Border", () -> HUD_BORDER, v -> {
@@ -215,6 +219,8 @@ public class Theme {
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
         obj.addProperty("uiScale", (Number)Float.valueOf(UI_SCALE));
         obj.addProperty("textScale", (Number)Float.valueOf(TEXT_SCALE));
+        obj.addProperty("themeSchema", 1);
+        obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
         JsonArray rainbowArr = new JsonArray();
         for (String s : rainbowEntries) {
             rainbowArr.add(s);
@@ -235,6 +241,17 @@ public class Theme {
         try (FileReader fr = new FileReader(THEME_FILE);){
             String hex;
             JsonObject obj = JsonParser.parseReader((Reader)fr).getAsJsonObject();
+            var savedColors = new java.util.HashMap<String,String>();
+            for (var entry : obj.entrySet())
+                if (entry.getValue().isJsonPrimitive()) savedColors.put(entry.getKey(), entry.getValue().getAsString());
+            boolean rainbow = obj.has("rainbowEntries") && !obj.getAsJsonArray("rainbowEntries").isEmpty()
+                || obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean();
+            boolean migrateDefault = !obj.has("themeSchema") && SkyThemePalette.isLegacyDefault(savedColors, rainbow);
+            if (migrateDefault) {
+                var backup = THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-sky-blossom.bak");
+                if (!java.nio.file.Files.exists(backup)) java.nio.file.Files.copy(THEME_FILE.toPath(), backup);
+            }
+            GRADIENT_ENABLED = obj.has("gradientEnabled") ? obj.get("gradientEnabled").getAsBoolean() : migrateDefault;
             for (ThemeEntry e2 : ENTRIES) {
                 if (!obj.has(e2.label)) continue;
                 hex = obj.get(e2.label).getAsString();
@@ -263,6 +280,7 @@ public class Theme {
             } else if (obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean()) {
                 rainbowEntries.add("Accent");
             }
+            if (migrateDefault) { resetMenuColorsToDefaults(); saveTheme(); }
         }
         catch (Exception ex) {
             ex.printStackTrace();
@@ -279,6 +297,8 @@ public class Theme {
         }
         obj.addProperty("animSpeed", (Number)Float.valueOf(ANIM_TIME_MS));
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
+        obj.addProperty("themeSchema", 1);
+        obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
         JsonArray rainbowArr2 = new JsonArray();
         for (String s : rainbowEntries) {
             rainbowArr2.add(s);
@@ -291,6 +311,7 @@ public class Theme {
         try {
             String hex;
             JsonObject obj = JsonParser.parseString((String)json).getAsJsonObject();
+            GRADIENT_ENABLED = obj.has("gradientEnabled") && obj.get("gradientEnabled").getAsBoolean();
             for (ThemeEntry e2 : ENTRIES) {
                 if (!obj.has(e2.label)) continue;
                 hex = obj.get(e2.label).getAsString();
@@ -327,16 +348,26 @@ public class Theme {
         TEXT_SCALE = 1.0f;
     }
 
+    private static void resetMenuColorsToDefaults() {
+        for (int i = 0; i < ENTRIES.size(); ++i) ENTRIES.get(i).setter.accept(DEFAULT_MENU_COLORS[i]);
+        rainbowEntries.clear();
+        GRADIENT_ENABLED = true;
+    }
+
     public static void resetColorsToDefaults() {
-        int i;
-        for (i = 0; i < ENTRIES.size(); ++i) {
-            Theme.ENTRIES.get((int)i).setter.accept(DEFAULT_MENU_COLORS[i]);
-        }
-        for (i = 0; i < HUD_ENTRIES.size(); ++i) {
+        resetMenuColorsToDefaults();
+        for (int i = 0; i < HUD_ENTRIES.size(); ++i) {
             Theme.HUD_ENTRIES.get((int)i).setter.accept(DEFAULT_HUD_COLORS[i]);
         }
         rainbowEntries.clear();
     }
+
+    public static int panelShadow() {
+        boolean light = (PANEL_BG >>> 16 & 255) + (PANEL_BG >>> 8 & 255) + (PANEL_BG & 255) > 540;
+        return light ? 0x38446E8F : 0xBF000000;
+    }
+    public static int subtleBorder() { return blend(BORDER_DEFAULT, PANEL_BG, 0.25f); }
+    public static int disabledText() { return blend(TEXT_SECONDARY, PANEL_BG, 0.25f); }
 
     public static int withAlpha(int color, int alpha) {
         alpha = Math.max(0, Math.min(255, alpha));
