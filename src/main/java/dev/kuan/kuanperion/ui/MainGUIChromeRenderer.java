@@ -72,8 +72,7 @@ final class MainGUIChromeRenderer {
             this.owner.offerHoverHelp("sidebar:" + entry.label(), entry.label(), entry.description(), context.layout.px, tabY, sbW, 44, mx, my);
         }
         float footerY = MainGUISidebar.footerY(context.layout.py, context.layout.ph);
-        nvg.rect(context.layout.px + 12, footerY - 8, sbW - 24, 1, Theme.SEPARATOR);
-        this.renderFarmProfile(nvg, context, textX, footerY, mx, my);
+        this.renderVersionFooter(nvg, context, sbW, footerY, mx, my);
         nvg.popScissor();
     }
 
@@ -128,19 +127,15 @@ final class MainGUIChromeRenderer {
         nvg.rect(context.layout.contX, context.layout.contY + 53.0f, context.layout.contW, 1.0f, Theme.SEPARATOR);
     }
 
-    private void renderFarmProfile(NVGRenderer nvg, MainGUIContext context, float textX, float rowY, float mx, float my) {
+    private void renderVersionFooter(NVGRenderer nvg, MainGUIContext context, float sidebarWidth, float y, float mx, float my) {
         this.owner.clearLoginButtonBounds();
-        float pillY = rowY + 4.0f;
-        nvg.renderSVG("/assets/kuanperion/icons/logo.svg", context.layout.px + 16, pillY + 5, 26, 26, Theme.ACCENT_PRIMARY);
-        this.owner.offerHoverHelp("sidebar:about", UiLang.localize("About"), "版本與本機模組資訊", context.layout.px + 8, rowY, 44, 44, mx, my);
-        if (context.animation.sidebarAnim <= 0.01f) return;
+        if (context.animation.sidebarAnim <= .01f) return;
         nvg.save();
         nvg.globalAlpha(context.animation.sidebarAnim);
-        String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString();
-        var lines = MainGUISidebar.footerLines(version);
-        nvg.text("Inter-Regular", lines.get(0), textX, pillY + 5, 10, Theme.TEXT_MUTED);
-        nvg.text("Inter-Regular", lines.get(1), textX, pillY + 21, 10, Theme.TEXT_MUTED);
+        String caption = MainGUISidebar.footerLines(MainGUIRegistry.modVersion()).get(0);
+        nvg.text("Inter-Regular", caption, context.layout.px + 12, y + (MainGUISidebar.FOOTER_HEIGHT - MainGUISidebar.FOOTER_FONT) / 2, MainGUISidebar.FOOTER_FONT, Theme.TEXT_MUTED);
         nvg.restore();
+        this.owner.offerHoverHelp("sidebar:about", UiLang.localize("About"), "點擊版本資訊查看模組資訊", context.layout.px + 12, y, sidebarWidth - 24, MainGUISidebar.FOOTER_HEIGHT, mx, my);
     }
 
     private void renderPlayedHours(NVGRenderer nvg, float textX, float cy) {

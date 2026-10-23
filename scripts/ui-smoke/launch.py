@@ -1,6 +1,6 @@
 from pathlib import Path
 import json,subprocess,os
-root=Path(os.environ.get('KUANPERION_SMOKE_DIR','/private/tmp/kuanperion-ui-smoke-2.0.7'))
+root=Path(os.environ.get('KUANPERION_SMOKE_DIR','/private/tmp/kuanperion-ui-smoke-2.0.8'))
 args=json.loads((root/'launch-args.json').read_text())
 with (root/'client.log').open('w') as log:
  p=subprocess.Popen(args,cwd=root/'game',stdout=log,stderr=subprocess.STDOUT)

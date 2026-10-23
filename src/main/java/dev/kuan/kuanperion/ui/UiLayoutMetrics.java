@@ -9,7 +9,7 @@ public final class UiLayoutMetrics {
  public static float checkboxTop(float y,float rowHeight){return controlTop(y,rowHeight,21);}
  public static float controlTop(float y,float rowHeight,float controlHeight){return y+(rowHeight-ROW_GAP-controlHeight)/2;}
  public static float inputTop(float y,float rowHeight){return controlTop(y,rowHeight,inputHeight);}
- public static float migratedInputHeight(int schema,float height){return schema<3 && height==16 ? 22 : clamp(height,14,24,22);}
+ public static float migratedInputHeight(int schema,float height){return clamp(height,14,24,22);}
  public static float inputHeight(){return inputHeight;}
  public static float inputFont(){return Math.min(13,Math.max(10,inputHeight-10));}
  public static float descriptionTop(float titleHeight){return TITLE_TOP+titleHeight+gap;}

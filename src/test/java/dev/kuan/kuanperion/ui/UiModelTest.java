@@ -11,8 +11,15 @@ public final class UiModelTest {
         }
         for(int page=1;page<=4;page++) require(MainGUISidebar.selectedIndex(page,0)==3,"all settings pages share one gear");
         require(MainGUISidebar.selectedIndex(5,0)==-1,"About belongs to footer, not settings");
-        require(MainGUISidebar.footerLines("2.0.7").equals(List.of("Mod Version: 2.0.7","Minecraft 26.2")),"two footer lines without duplicate name");
+        require(MainGUISidebar.footerLines("2.0.8").equals(List.of("Mod Version: 2.0.8")),"single bottom version line without duplicate name");
         require(MainGUISidebar.footerLines("9.1.0").get(0).equals("Mod Version: 9.1.0"),"footer is not hardcoded");
+        require(MainGUISidebar.footerY(20,660)==656,"footer is a compact bottom caption");
+        require(MainGUISidebar.rowY(3,20,660)+44<=MainGUISidebar.footerY(20,660),"Setting cannot overlap caption");
+        require(MainGUISidebar.footerContains(160,667,20,20,660,194,1),"expanded version caption opens About across its text width");
+        require(!MainGUISidebar.footerContains(50,667,20,20,660,60,0),"collapsed footer has no invisible old K hit target");
+        require(!MainGUISidebar.footerContains(50,650,20,20,660,194,1),"old footer icon area above caption is not clickable");
+        require(!MainGUISidebar.footerContains(31,667,20,20,660,194,1),"caption left padding excluded");
+        require(!MainGUISidebar.footerContains(203,667,20,20,660,194,1),"caption right padding excluded");
         for(float rowHeight:new float[]{50,55,68,94}) {
             float top=UiLayoutMetrics.checkboxTop(100,rowHeight);
             require(Math.abs(top+10.5f-(100+(rowHeight-5)/2))<.001f,"checkbox centered in complete card, with or without wrapped description");
@@ -32,7 +39,7 @@ public final class UiModelTest {
         require(controlH==2*UiLayoutMetrics.TITLE_TOP+metrics.settingLabelFontSize(helpToggle),"title no longer vertically centers far above description");
         UiLayoutMetrics.setInputHeight(Float.NaN);require(UiLayoutMetrics.inputHeight()==22,"invalid height resets default");
         UiLayoutMetrics.setInputHeight(100);require(UiLayoutMetrics.inputHeight()==24,"input height bounded");UiLayoutMetrics.reset();
-        require(UiLayoutMetrics.migratedInputHeight(2,16)==22,"old default grows");
+        require(UiLayoutMetrics.migratedInputHeight(2,16)==16,"upgrade preserves stored input height");
         require(UiLayoutMetrics.migratedInputHeight(2,18)==18,"custom old height retained");
         require(UiLayoutMetrics.migratedInputHeight(3,16)==16,"explicit new height retained");
         var paletteDir=java.nio.file.Files.createTempDirectory("preset-ui-");

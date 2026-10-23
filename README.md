@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.7`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.8`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.7.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.8.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -21,7 +21,7 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 單一齒輪 **Setting** 內含「顏色／設定檔／快捷鍵／介面設定」頁籤；顏色與設定檔仍有原分類及五組配色收藏，不刪設定、不重設既有偏好。下文「顏色」「設定檔」「快捷鍵」「介面設定」皆位於 Setting 內。
 
-左上保留大頭貼與名稱；左下只顯示 `Mod Version: 2.0.7`、`Minecraft 26.2` 兩行，版本由 metadata 自動讀取。點左下大 K 進入「關於」查看模組資訊。
+左上保留大頭貼與名稱；底部移除 K 與它上方的分隔線，僅顯示一行 `Mod Version: 2.0.8`，版本由 metadata 自動讀取。展開側欄後點版本文字進入「關於」；收合時不保留隱形 K 按鈕。
 
 ## 快捷鍵
 
@@ -43,7 +43,17 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 「顏色」可開關藍粉漸層、調整兩端色彩、範圍與濃度；預設縮小範圍（0.48）、降低濃度（0.60），讓白色留白更多。「設定檔 → 主題」可選「晴空藍粉」或「預設顏色」，原有深色主題仍保留。
 
-2.0.1 完整未改色的舊晴空預設亦會升級為淺天空藍與較淡／較小漸層，先備份至 `config/kuanperion-theme.before-light-sky.bak`。自訂色不覆蓋；UI 比例、動畫、HUD、快捷鍵保持。2.0.0 未調整的原預設色會自動升級，先備份至 `config/kuanperion-theme.before-sky-blossom.bak`，保留比例、動畫與 HUD 偏好。曾改色／開啟彩虹的自訂主題不自動覆蓋；要切新外觀請手動選「晴空藍粉」。只影響設定介面，不改玩法、遊戲 HUD 或 Webhook。
+自 2.0.8 起，更新不再自動替換舊版預設配色或已儲存的輸入框高度。已有設定優先；想套用新預設請手動重設或選擇配色。
+
+### 更新與設定保留
+關閉遊戲後只替換 `mods/` 中的本模組 JAR；同一個遊戲 instance 會沿用以下檔案，不需要重新設定：
+- `config/kuanperion.properties`：Farming、Mining、通知、Webhook、快捷鍵修飾鍵等。
+- `options.txt`：Minecraft 快捷鍵主鍵。
+- `config/kuanperion-theme.json`：目前配色與介面偏好。
+- `config/kuanperion/`：設定檔、主題、五組配色槽。
+
+換電腦／新 instance 時需另外複製這些設定；備份含 Webhook，請勿公開。新選項才使用預設值；無效數值仍會做安全範圍檢查。Farming／Mining 的「正在執行」狀態不會在重開後自動恢復，這不是設定遺失。舊名稱遷移只在新檔不存在時複製，保留原檔。
+
 
 ### 配色收藏（最多五組）
 
@@ -51,7 +61,7 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 五組保存在 `config/kuanperion/color-presets/slot-1.json`～`slot-5.json`，重啟後保留；覆寫前保留上一份 `.bak`。只保存選單色票、彩虹選取與漸層設定，不影響 Webhook、Mining／Farming、快捷鍵、HUD、比例、動畫、間距與輸入高度。原本「設定檔 → 主題」功能仍獨立存在。
 
-左上角使用模組現有的 Minecraft 大頭貼 icon，保留原色、像素縮放並本機快取；不連線抓取帳號或 skin。底部 K 保留，點擊可進入「關於」。設定說明只在左側預留文字欄換行，避免與右側輸入框及按鈕重疊。
+左上角使用模組現有的 Minecraft 大頭貼 icon，保留原色、像素縮放並本機快取；不連線抓取帳號或 skin。底部無 K，展開後點版本文字可進入「關於」。設定說明只在左側預留文字欄換行，避免與右側輸入框及按鈕重疊。
 
 ### 開選單時的執行行為
 
@@ -116,6 +126,6 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.7.md](docs/verification-2.0.7.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.8.md](docs/verification-2.0.8.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。

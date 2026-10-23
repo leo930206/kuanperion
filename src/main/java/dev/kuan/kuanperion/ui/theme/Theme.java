@@ -246,23 +246,8 @@ public class Theme {
         try (FileReader fr = new FileReader(THEME_FILE);){
             String hex;
             JsonObject obj = JsonParser.parseReader((Reader)fr).getAsJsonObject();
-            var savedColors = new java.util.HashMap<String,String>();
-            for (var entry : obj.entrySet())
-                if (entry.getValue().isJsonPrimitive()) savedColors.put(entry.getKey(), entry.getValue().getAsString());
-            boolean rainbow = obj.has("rainbowEntries") && !obj.getAsJsonArray("rainbowEntries").isEmpty()
-                || obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean();
-            boolean migrateDefault = !obj.has("themeSchema") && SkyThemePalette.isLegacyDefault(savedColors, rainbow);
-            boolean migrateSky = (!obj.has("themeSchema") || obj.get("themeSchema").getAsInt()<2)
-                && SkyThemePalette.isPreviousSkyDefault(savedColors,rainbow);
-            if(migrateSky){
-                var skyBackup=THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-light-sky.bak");
-                if(!java.nio.file.Files.exists(skyBackup))java.nio.file.Files.copy(THEME_FILE.toPath(),skyBackup);
-            }
-            if (migrateDefault) {
-                var backup = THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-sky-blossom.bak");
-                if (!java.nio.file.Files.exists(backup)) java.nio.file.Files.copy(THEME_FILE.toPath(), backup);
-            }
-            GRADIENT_ENABLED = obj.has("gradientEnabled") ? obj.get("gradientEnabled").getAsBoolean() : migrateDefault;
+            // Existing preferences win across releases, even when equal to an older default.
+            GRADIENT_ENABLED = obj.has("gradientEnabled") && obj.get("gradientEnabled").getAsBoolean();
             for (ThemeEntry e2 : ENTRIES) {
                 if (!obj.has(e2.label)) continue;
                 hex = obj.get(e2.label).getAsString();
@@ -291,19 +276,7 @@ public class Theme {
             } else if (obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean()) {
                 rainbowEntries.add("Accent");
             }
-            boolean migrateInput=obj.has("inputHeight") && obj.get("inputHeight").getAsFloat()==16 && (!obj.has("themeSchema") || obj.get("themeSchema").getAsInt()<3);
-            if(migrateInput){
-                var sizingBackup=THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-input-sizing.bak");
-                if(!java.nio.file.Files.exists(sizingBackup))java.nio.file.Files.copy(THEME_FILE.toPath(),sizingBackup);
-            }
             loadAppearance(obj);
-            if(migrateDefault || migrateSky){
-                // Exact previous default only; preserve custom colors, toggle, UI scale and HUD values.
-                boolean enabled=GRADIENT_ENABLED;
-                resetMenuColorsToDefaults();
-                if(migrateSky)GRADIENT_ENABLED=enabled;
-                saveTheme();
-            }else if(migrateInput)saveTheme();
         }
         catch (Exception ex) {
             ex.printStackTrace();

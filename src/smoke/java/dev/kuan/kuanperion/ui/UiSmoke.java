@@ -25,12 +25,14 @@ public final class UiSmoke implements ClientModInitializer {
             if(mouseMove==null){mouseMove=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);mouseMove.setAccessible(true);}
             mouseMove.invoke(mc.mouseHandler,mc.getWindow().handle(),cursorX,cursorY);
             if(expanded && Math.abs(ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))-(frame.px+20))>1)throw new AssertionError("Retina hover coordinate conversion");
-            if(waiting||++ticks<35)return;ticks=0;
+            if(waiting||++ticks<35)return;
+            if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
+            ticks=0;
             String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
+            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
@@ -43,7 +45,15 @@ public final class UiSmoke implements ClientModInitializer {
                 clickSettingsPage(phase-16);
                 if(ui.getActiveMainTab()!=phase-16) throw new AssertionError("Setting subpage mouse route failed");
             }
-            if(phase==21 && (ui.getActiveMainTab()!=5 || !ui.currentTabName().equals("關於"))) throw new AssertionError("footer K did not open separate About");
+            if(phase==21) {
+                var layout=ui.context().layout;
+                String caption=MainGUISidebar.footerLines(MainGUIRegistry.modVersion()).get(0);
+                float width=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer().textWidth("Inter-Regular",caption,MainGUISidebar.FOOTER_FONT);
+                if(width>ui.context().animation.computedSidebarExpanded-24)throw new AssertionError("single-line footer does not fit");
+                click(layout.px+130,MainGUISidebar.footerY(layout.py,layout.ph)+11);
+                if(ui.getActiveMainTab()!=5 || !ui.currentTabName().equals("關於"))throw new AssertionError("version caption did not open About");
+                System.out.println("UI_SMOKE_VERSION_FOOTER_PASS single line fits / expanded text hit / About preserved");
+            }
                 phaseValidated=true;ticks=20;return; // Allow page/sidebar transitions to settle before capture.
             }
             phaseValidated=false;
@@ -55,7 +65,6 @@ public final class UiSmoke implements ClientModInitializer {
                 case 14 -> clickSidebar(1);
                 case 15 -> clickSidebar(2);
                 case 16 -> clickSidebar(3);
-                case 21 -> { var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+22); }
                 case 1-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.get(0));
                 case 2-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow());
                 case 3-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Jerry 偵測")).findFirst().orElseThrow());
@@ -107,12 +116,12 @@ public final class UiSmoke implements ClientModInitializer {
             switchTab(page);
             if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=3 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
         }
-        var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+22);
-        if(ui.getActiveMainTab()!=5 || MainGUIRegistry.ABOUT_SUBTABS.isEmpty())throw new AssertionError("footer About unreachable");
+        var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+11);
+        if(ui.getActiveMainTab()!=4)throw new AssertionError("collapsed footer still has an invisible K action");
         var lines=MainGUISidebar.footerLines(MainGUIRegistry.modVersion());
-        if(!lines.equals(java.util.List.of("Mod Version: "+MainGUIRegistry.modVersion(),"Minecraft 26.2")))throw new AssertionError("wrong footer metadata");
+        if(!lines.equals(java.util.List.of("Mod Version: "+MainGUIRegistry.modVersion()+"")))throw new AssertionError("wrong footer metadata");
         clickSidebar(0);assertGroup(0);
-        System.out.println("UI_SMOKE_SIDEBAR_PASS four visible routes / group membership / detail-back / cross-group search / Setting pages / footer About / metadata");
+        System.out.println("UI_SMOKE_SIDEBAR_PASS four visible routes / group membership / detail-back / cross-group search / Setting pages / collapsed footer / metadata");
     }
     @SuppressWarnings("unchecked")
     private java.util.List<String> selected() throws Exception {
@@ -256,6 +265,34 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_CHORD_PASS modifier waiting / Ctrl Shift F / plain F / three modifiers / display / profile isolation");
     }
 
+    private void testPreferenceReload(Minecraft mc) throws Exception {
+        var cls=dev.kuan.kuanperion.KuanperionClient.class;
+        var save=cls.getDeclaredMethod("saveConfig");save.setAccessible(true);
+        var load=cls.getDeclaredMethod("loadConfig");load.setAccessible(true);
+        save.invoke(null);
+        var file=mc.gameDirectory.toPath().resolve("config/kuanperion.properties");
+        byte[] original=java.nio.file.Files.readAllBytes(file);
+        var prefs=new java.util.Properties();
+        try(var in=java.nio.file.Files.newInputStream(file)){prefs.load(in);}
+        prefs.setProperty("scanRadius","7");prefs.setProperty("actionDelayTicks","9");
+        prefs.setProperty("farmingCrop","CARROT");prefs.setProperty("farmingAutoSetHome","true");
+        prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");
+        prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore");
+        prefs.setProperty("pestNotificationThreshold","4");
+        try {
+            try(var out=java.nio.file.Files.newOutputStream(file)){prefs.store(out,"upgrade fixture");}
+            byte[] before=java.nio.file.Files.readAllBytes(file);
+            load.invoke(null);
+            if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(file)))throw new AssertionError("ordinary config load rewrites file");
+            save.invoke(null);
+            var after=new java.util.Properties();try(var in=java.nio.file.Files.newInputStream(file)){after.load(in);}
+            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","targets","pestNotificationThreshold"))
+                if(!prefs.getProperty(key).equals(after.getProperty(key)))throw new AssertionError("preference lost on reload: "+key);
+            if(!after.getProperty("miningEnabled").equals("false") || !after.getProperty("farmingEnabled").equals("false"))throw new AssertionError("unsafe automatic resume");
+        } finally {java.nio.file.Files.write(file,original);load.invoke(null);}
+        System.out.println("UI_SMOKE_PREFERENCES_PASS config load byte preservation / nondefault Farming Mining notifications modifiers / safe runtime state");
+    }
+
     private void testTheme(Minecraft mc) throws Exception {
         var saved=dev.kuan.kuanperion.ui.theme.Theme.exportJson();
         var file=mc.gameDirectory.toPath().resolve("config/kuanperion-theme.json");
@@ -264,18 +301,15 @@ public final class UiSmoke implements ClientModInitializer {
         ((java.util.Map<String,String>)mapField.get(null)).forEach(legacy::addProperty);
         legacy.addProperty("uiScale",2.25);legacy.addProperty("textScale",1.2);legacy.addProperty("animSpeed",450);
         legacy.addProperty("HUD Title","FF010203");
-        var priorBackup=file.resolveSibling("kuanperion-theme.before-sky-blossom.bak");
-        String backupBefore=java.nio.file.Files.exists(priorBackup)?java.nio.file.Files.readString(priorBackup):null;
         String original=legacy.toString();java.nio.file.Files.writeString(file,original);
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
-        if(dev.kuan.kuanperion.ui.theme.Theme.PANEL_BG!=0xFFFFFFFF || !dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED)throw new AssertionError("old default not upgraded");
-        if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f || dev.kuan.kuanperion.ui.theme.Theme.HUD_TITLE!=0xFF010203)throw new AssertionError("migration overwrote non-menu preference");
-        var backup=file.resolveSibling("kuanperion-theme.before-sky-blossom.bak");
-        if(!java.nio.file.Files.readString(backup).equals(backupBefore==null?original:backupBefore))throw new AssertionError("theme backup not exact");
+        if(!java.nio.file.Files.readString(file).equals(original))throw new AssertionError("loading rewrote saved legacy theme");
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=(int)Long.parseLong(legacy.get("Accent").getAsString(),16))throw new AssertionError("legacy color replaced");
+        if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f || dev.kuan.kuanperion.ui.theme.Theme.HUD_TITLE!=0xFF010203)throw new AssertionError("upgrade overwrote preference");
         var inputOld=com.google.gson.JsonParser.parseString(saved).getAsJsonObject();
         inputOld.addProperty("themeSchema",2);inputOld.addProperty("inputHeight",16);
         java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
-        if(UiLayoutMetrics.inputHeight()!=22 || !java.nio.file.Files.exists(file.resolveSibling("kuanperion-theme.before-input-sizing.bak")) || com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(file)).getAsJsonObject().get("themeSchema").getAsInt()!=3)throw new AssertionError("input default upgrade/backup/persistence");
+        if(UiLayoutMetrics.inputHeight()!=16 || !java.nio.file.Files.readString(file).equals(inputOld.toString()))throw new AssertionError("upgrade overwrote input height/file");
         inputOld.addProperty("inputHeight",18);java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         if(UiLayoutMetrics.inputHeight()!=18)throw new AssertionError("old custom input height overwritten");
         inputOld.addProperty("themeSchema",3);inputOld.addProperty("inputHeight",16);java.nio.file.Files.writeString(file,inputOld.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
@@ -285,9 +319,8 @@ public final class UiSmoke implements ClientModInitializer {
         ((java.util.Map<String,String>)skyField.get(null)).forEach(previousSky::addProperty);
         previousSky.addProperty("themeSchema",1);previousSky.addProperty("gradientEnabled",true);previousSky.addProperty("uiScale",2.25);
         java.nio.file.Files.writeString(file,previousSky.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
-        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF58B9EA || dev.kuan.kuanperion.ui.theme.Theme.TEXT_LABEL!=0xFF50AFE1)throw new AssertionError("2.0.1 sky default not lightened");
-        if(dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_COVERAGE>=.64f || dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_STRENGTH>=1)throw new AssertionError("gradient not reduced");
-        if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f)throw new AssertionError("sky upgrade reset UI scale");
+        if(!java.nio.file.Files.readString(file).equals(previousSky.toString()) || dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=(int)Long.parseLong(previousSky.get("Accent").getAsString(),16))throw new AssertionError("previous sky preset overwritten");
+        if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f)throw new AssertionError("sky load reset UI scale");
         previousSky.addProperty("Text","FF123456");java.nio.file.Files.writeString(file,previousSky.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         if(dev.kuan.kuanperion.ui.theme.Theme.TEXT_PRIMARY!=0xFF123456)throw new AssertionError("custom text overwritten");
         legacy.addProperty("Accent","FF123456");java.nio.file.Files.writeString(file,legacy.toString());
@@ -304,7 +337,7 @@ public final class UiSmoke implements ClientModInitializer {
         dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED=false;
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         if(!dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED)throw new AssertionError("gradient not persisted");
-        System.out.println("UI_SMOKE_THEME_PASS old default migration+backup / custom preservation / presets / gradient persistence");
+        System.out.println("UI_SMOKE_THEME_PASS legacy file byte preservation / stored input height / custom preservation / presets / gradient persistence");
     }
     private void testSettingsShortcut(Minecraft mc) {
         var key=new net.minecraft.client.input.KeyEvent(39,0,0);

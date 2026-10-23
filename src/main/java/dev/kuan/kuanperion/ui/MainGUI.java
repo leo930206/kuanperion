@@ -2651,8 +2651,7 @@ extends NVGScreen {
                 return true;
             }
         }
-        float footerY = MainGUISidebar.footerY(this.py, this.ph);
-        if (mx >= this.px + 8 && mx < this.px + 52 && my >= footerY && my < footerY + 44) {
+        if (MainGUISidebar.footerContains(mx, my, this.px, this.py, this.ph, sbClickW, this.sidebarAnim)) {
             this.actions.switchMainTab(5);
             return true;
         }

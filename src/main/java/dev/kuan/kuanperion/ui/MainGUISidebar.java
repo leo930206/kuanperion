@@ -18,7 +18,12 @@ final class MainGUISidebar {
     static float rowY(int index, float panelY, float panelHeight) {
         return index < 3 ? panelY + 64 + index * 44 : footerY(panelY, panelHeight) - 52;
     }
-    static float footerY(float panelY, float panelHeight) { return panelY + panelHeight - 52; }
-    static List<String> footerLines(String version) { return List.of("Mod Version: " + version, "Minecraft 26.2"); }
+    static float footerY(float panelY, float panelHeight) { return panelY + panelHeight - 24; }
+    static List<String> footerLines(String version) { return List.of("Mod Version: " + version + ""); }
+    static final float FOOTER_HEIGHT = 22, FOOTER_FONT = 9;
+    static boolean footerContains(float x, float y, float panelX, float panelY, float panelHeight, float sidebarWidth, float animation) {
+        float top = footerY(panelY, panelHeight);
+        return animation > .01f && x >= panelX + 12 && x < panelX + sidebarWidth - 12 && y >= top && y < top + FOOTER_HEIGHT;
+    }
     private MainGUISidebar() {}
 }
