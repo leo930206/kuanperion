@@ -33,10 +33,10 @@ final class MainGUIContentRenderer {
             }
             return;
         }
+        if (this.owner.settingsNavigationHeight() > 0) this.chromeRenderer.renderSettingsNavigation(nvg, mx, my);
         if (context.navigation.activeMain == 0) {
-            this.chromeRenderer.renderFilterBar(nvg, mx, my);
-            float scrollTop = context.layout.contY + 53.0f + 1.0f + 36.0f + 1.0f;
-            float scrollH = context.layout.contH - 53.0f - 1.0f - 36.0f - 1.0f;
+            float scrollTop = this.owner.contentScrollTop();
+            float scrollH = this.owner.contentScrollHeight();
             this.owner.renderModuleGridPanel(nvg, mx, my, scrollTop, scrollH);
             return;
         }

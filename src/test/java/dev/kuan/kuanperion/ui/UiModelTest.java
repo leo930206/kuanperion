@@ -3,6 +3,16 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(MainGUISidebar.entries().stream().map(MainGUISidebar.Entry::label).toList().equals(List.of("Farming","Mining","Other","Setting")),"exactly four sidebar entries");
+        for(int i=0;i<3;i++) {
+            var entry=MainGUISidebar.entries().get(i);
+            require(entry.mainTab()==0 && entry.moduleFilter()==i+1,"feature sidebar routes to matching module group");
+            require(MainGUISidebar.selectedIndex(0,i+1)==i,"feature highlight matches group");
+        }
+        for(int page=1;page<=4;page++) require(MainGUISidebar.selectedIndex(page,0)==3,"all settings pages share one gear");
+        require(MainGUISidebar.selectedIndex(5,0)==-1,"About belongs to footer, not settings");
+        require(MainGUISidebar.footerLines("2.0.7").equals(List.of("Mod Version: 2.0.7","Minecraft 26.2")),"two footer lines without duplicate name");
+        require(MainGUISidebar.footerLines("9.1.0").get(0).equals("Mod Version: 9.1.0"),"footer is not hardcoded");
         for(float rowHeight:new float[]{50,55,68,94}) {
             float top=UiLayoutMetrics.checkboxTop(100,rowHeight);
             require(Math.abs(top+10.5f-(100+(rowHeight-5)/2))<.001f,"checkbox centered in complete card, with or without wrapped description");

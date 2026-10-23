@@ -20,15 +20,10 @@ final class MainGUIChromeRenderer {
     }
 
     void renderSidebar(NVGRenderer nvg, float mx, float my) {
-        int settingsColor;
-        boolean settingsHovered;
-        int keybindsColor;
-        boolean keybindsHovered;
-        int hudColor;
         MainGUIContext context = this.owner.context();
         if (context.animation.computedSidebarExpanded < 1.0f) {
             float maxTW = 0.0f;
-            for (String name : new String[]{UiLang.localize("Modules"), UiLang.localize("Colors"), UiLang.localize("Config"), UiLang.localize("Keybinds"), UiLang.localize("Settings"), UiLang.localize("About")}) {
+            for (String name : new String[]{"Farming", "Mining", "Other", "Setting"}) {
                 maxTW = Math.max(maxTW, nvg.textWidth("Inter-Regular", name, 12.0f));
             }
             this.owner.setComputedSidebarExpanded(Math.max(194.0f, 72.0f + Math.max(maxTW, nvg.textWidth("Inter-Bold", "Kuanperion", 18.0f))));
@@ -53,105 +48,32 @@ final class MainGUIChromeRenderer {
         }
         float sepY = context.layout.py + 56.0f;
         nvg.rect(context.layout.px + 12.0f, sepY, sbW - 24.0f, 1.0f, Theme.SEPARATOR);
-        int sidebarHoverColor = Theme.TEXT_VALUE;
-        String[] tabIds = new String[]{"modules", "colors", "config"};
-        String[] tabLabels = new String[]{UiLang.localize("Modules"), UiLang.localize("Colors"), UiLang.localize("Config")};
-        float[] tabIconW = new float[]{16.0f, 16.0f, 14.0f};
-        float[] tabIconH = new float[]{19.0f, 16.0f, 18.0f};
-        float tabsY = sepY + 8.0f;
-        float profileTabY = context.layout.py + context.layout.ph - 8.0f - 44.0f;
-        float settingsTabY = profileTabY - 44.0f - 8.0f;
-        float keybindsTabY = settingsTabY - 44.0f;
-        float hudPositionsTabY = keybindsTabY - 44.0f;
-        float selectedY = switch (context.navigation.activeMain) {
-            case 3 -> keybindsTabY;
-            case 4 -> settingsTabY;
-            default -> tabsY + (float)context.navigation.activeMain * 44.0f;
-        };
-        float highlightY = this.sidebarSelection.update(selectedY - context.layout.py, Theme.ANIM_TIME_MS, System.nanoTime());
-        nvg.roundedRect(context.layout.px + 12.0f, context.layout.py + highlightY + 4.0f, 36.0f, 36.0f, 8.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 85));
-        for (int i = 0; i < tabLabels.length; ++i) {
-            int color;
-            boolean hovered;
-            float tabY = tabsY + (float)i * 44.0f;
-            float pillY = tabY + 4.0f;
-            boolean selected = context.navigation.activeMain == i;
-            boolean bl = hovered = !selected && mx >= context.layout.px && mx < context.layout.px + sbW && my >= tabY && my <= tabY + 44.0f;
-            color = selected ? Theme.ACCENT_PRIMARY : (hovered ? sidebarHoverColor : Theme.TEXT_MUTED);
-            if (hovered) {
-                nvg.roundedRect(context.layout.px + 12.0f, pillY, 36.0f, 36.0f, 8.0f, Theme.withAlpha(Theme.TEXT_MUTED, 51));
-            }
-            float iconOffX = (36.0f - tabIconW[i]) / 2.0f;
-            float iconOffY = (36.0f - tabIconH[i]) / 2.0f;
-            nvg.renderSVG("/assets/kuanperion/icons/" + tabIds[i] + ".svg", context.layout.px + 12.0f + iconOffX, pillY + iconOffY, tabIconW[i], tabIconH[i], color);
+        int selectedIndex = MainGUISidebar.selectedIndex(context.navigation.activeMain, context.navigation.activeFilter);
+        if (selectedIndex >= 0) {
+            float selectedY = MainGUISidebar.rowY(selectedIndex, context.layout.py, context.layout.ph);
+            float highlightY = this.sidebarSelection.update(selectedY - context.layout.py, Theme.ANIM_TIME_MS, System.nanoTime());
+            nvg.roundedRect(context.layout.px + 12, context.layout.py + highlightY + 4, 36, 36, 8, Theme.withAlpha(Theme.ACCENT_PRIMARY, 85));
+        }
+        for (int i = 0; i < MainGUISidebar.entries().size(); i++) {
+            var entry = MainGUISidebar.entries().get(i);
+            float tabY = MainGUISidebar.rowY(i, context.layout.py, context.layout.ph);
+            boolean hovered = mx >= context.layout.px && mx < context.layout.px + sbW && my >= tabY && my < tabY + 44;
+            int color = selectedIndex == i ? Theme.ACCENT_PRIMARY : hovered ? Theme.TEXT_VALUE : Theme.TEXT_MUTED;
+            if (hovered && selectedIndex != i) nvg.roundedRect(context.layout.px + 12, tabY + 4, 36, 36, 8, Theme.withAlpha(Theme.TEXT_MUTED, 51));
+            if (i == 3) nvg.rect(context.layout.px + 12, tabY - 8, sbW - 24, 1, Theme.SEPARATOR);
+            nvg.renderSVG("/assets/kuanperion/icons/" + entry.icon() + ".svg", context.layout.px + 21, tabY + 13, 18, 18, color);
             if (context.animation.sidebarAnim > 0.01f) {
                 nvg.save();
                 nvg.globalAlpha(context.animation.sidebarAnim);
-                nvg.translate((1.0f - context.animation.sidebarAnim) * -6.0f, 0.0f);
-                nvg.text("Inter-Regular", tabLabels[i], textX, pillY + 12.0f, 12.0f, color);
+                nvg.translate((1 - context.animation.sidebarAnim) * -6, 0);
+                nvg.text("Inter-Regular", entry.label(), textX, tabY + 16, 12, color);
                 nvg.restore();
             }
-            String string = "sidebar:" + tabIds[i];
-            String string2 = tabLabels[i];
-            this.owner.offerHoverHelp(string, string2, switch (i) {
-                case 0 -> UiLang.localize("Manage and configure modules");
-                case 1 -> UiLang.localize("Customise HUD and menu colors");
-                default -> UiLang.localize("Save and manage config and theme profiles");
-            }, context.layout.px, tabY, sbW, 44.0f, mx, my);
+            this.owner.offerHoverHelp("sidebar:" + entry.label(), entry.label(), entry.description(), context.layout.px, tabY, sbW, 44, mx, my);
         }
-        nvg.rect(context.layout.px + 12.0f, hudPositionsTabY - 8.0f, sbW - 24.0f, 1.0f, Theme.SEPARATOR);
-        float hudPillY = hudPositionsTabY + 4.0f;
-        boolean hudHovered = mx >= context.layout.px && mx < context.layout.px + sbW && my >= hudPositionsTabY && my <= hudPositionsTabY + 44.0f;
-        int n = hudColor = hudHovered ? sidebarHoverColor : Theme.TEXT_MUTED;
-        if (hudHovered) {
-            nvg.roundedRect(context.layout.px + 12.0f, hudPillY, 36.0f, 36.0f, 8.0f, Theme.withAlpha(Theme.TEXT_MUTED, 51));
-        }
-        float hudIconSize = 18.0f;
-        nvg.renderSVG("/assets/kuanperion/icons/hud_positions.svg", context.layout.px + 12.0f + (36.0f - hudIconSize) / 2.0f, hudPillY + (36.0f - hudIconSize) / 2.0f, hudIconSize, hudIconSize, hudColor);
-        if (context.animation.sidebarAnim > 0.01f) {
-            nvg.save();
-            nvg.globalAlpha(context.animation.sidebarAnim);
-            nvg.translate((1.0f - context.animation.sidebarAnim) * -6.0f, 0.0f);
-            nvg.text("Inter-Regular", UiLang.localize("About"), textX, hudPillY + 12.0f, 12.0f, hudColor);
-            nvg.restore();
-        }
-        this.owner.offerHoverHelp("sidebar:hud_positions", UiLang.localize("About"), UiLang.localize("Kuanperion version and interface settings."), context.layout.px, hudPositionsTabY, sbW, 44.0f, mx, my);
-        float keybindsPillY = keybindsTabY + 4.0f;
-        boolean keybindsSelected = context.navigation.activeMain == 3;
-        boolean bl = keybindsHovered = !keybindsSelected && mx >= context.layout.px && mx < context.layout.px + sbW && my >= keybindsTabY && my <= keybindsTabY + 44.0f;
-        keybindsColor = keybindsSelected ? Theme.ACCENT_PRIMARY : (keybindsHovered ? sidebarHoverColor : Theme.TEXT_MUTED);
-        if (keybindsHovered) {
-            nvg.roundedRect(context.layout.px + 12.0f, keybindsPillY, 36.0f, 36.0f, 8.0f, Theme.withAlpha(Theme.TEXT_MUTED, 51));
-        }
-        float keybindsIconSize = 18.0f;
-        nvg.renderSVG("/assets/kuanperion/icons/keybinds.svg", context.layout.px + 12.0f + (36.0f - keybindsIconSize) / 2.0f, keybindsPillY + (36.0f - keybindsIconSize) / 2.0f, keybindsIconSize, keybindsIconSize, keybindsColor);
-        if (context.animation.sidebarAnim > 0.01f) {
-            nvg.save();
-            nvg.globalAlpha(context.animation.sidebarAnim);
-            nvg.translate((1.0f - context.animation.sidebarAnim) * -6.0f, 0.0f);
-            nvg.text("Inter-Regular", UiLang.localize("Keybinds"), textX, keybindsPillY + 12.0f, 12.0f, keybindsColor);
-            nvg.restore();
-        }
-        this.owner.offerHoverHelp("sidebar:keybinds", UiLang.localize("Keybinds"), UiLang.localize("Edit Kuanperion keybinds and keep them synced with Minecraft controls."), context.layout.px, keybindsTabY, sbW, 44.0f, mx, my);
-        float settingsPillY = settingsTabY + 4.0f;
-        boolean settingsSelected = context.navigation.activeMain == 4;
-        boolean bl2 = settingsHovered = !settingsSelected && mx >= context.layout.px && mx < context.layout.px + sbW && my >= settingsTabY && my <= settingsTabY + 44.0f;
-        settingsColor = settingsSelected ? Theme.ACCENT_PRIMARY : (settingsHovered ? sidebarHoverColor : Theme.TEXT_MUTED);
-        if (settingsHovered) {
-            nvg.roundedRect(context.layout.px + 12.0f, settingsPillY, 36.0f, 36.0f, 8.0f, Theme.withAlpha(Theme.TEXT_MUTED, 51));
-        }
-        float settingsIconSize = 16.0f;
-        nvg.renderSVG("/assets/kuanperion/icons/settings.svg", context.layout.px + 12.0f + (36.0f - settingsIconSize) / 2.0f, settingsPillY + (36.0f - settingsIconSize) / 2.0f, settingsIconSize, settingsIconSize, settingsColor);
-        if (context.animation.sidebarAnim > 0.01f) {
-            nvg.save();
-            nvg.globalAlpha(context.animation.sidebarAnim);
-            nvg.translate((1.0f - context.animation.sidebarAnim) * -6.0f, 0.0f);
-            nvg.text("Inter-Regular", UiLang.localize("Settings"), textX, settingsPillY + 12.0f, 12.0f, settingsColor);
-            nvg.restore();
-        }
-        this.owner.offerHoverHelp("sidebar:settings", UiLang.localize("Settings"), UiLang.localize("General client settings."), context.layout.px, settingsTabY, sbW, 44.0f, mx, my);
-        nvg.rect(context.layout.px + 12.0f, profileTabY - 8.0f, sbW - 24.0f, 1.0f, Theme.SEPARATOR);
-        this.renderFarmProfile(nvg, context, textX, profileTabY, mx, my);
+        float footerY = MainGUISidebar.footerY(context.layout.py, context.layout.ph);
+        nvg.rect(context.layout.px + 12, footerY - 8, sbW - 24, 1, Theme.SEPARATOR);
+        this.renderFarmProfile(nvg, context, textX, footerY, mx, my);
         nvg.popScissor();
     }
 
@@ -210,11 +132,14 @@ final class MainGUIChromeRenderer {
         this.owner.clearLoginButtonBounds();
         float pillY = rowY + 4.0f;
         nvg.renderSVG("/assets/kuanperion/icons/logo.svg", context.layout.px + 16, pillY + 5, 26, 26, Theme.ACCENT_PRIMARY);
+        this.owner.offerHoverHelp("sidebar:about", UiLang.localize("About"), "版本與本機模組資訊", context.layout.px + 8, rowY, 44, 44, mx, my);
         if (context.animation.sidebarAnim <= 0.01f) return;
         nvg.save();
         nvg.globalAlpha(context.animation.sidebarAnim);
-        nvg.text("Inter-Bold", "Kuanperion", textX, pillY + 5, 11, Theme.TEXT_PRIMARY);
-        nvg.text("Inter-Regular", net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString()+" · Minecraft 26.2", textX, pillY + 21, 8, Theme.TEXT_MUTED);
+        String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString();
+        var lines = MainGUISidebar.footerLines(version);
+        nvg.text("Inter-Regular", lines.get(0), textX, pillY + 5, 10, Theme.TEXT_MUTED);
+        nvg.text("Inter-Regular", lines.get(1), textX, pillY + 21, 10, Theme.TEXT_MUTED);
         nvg.restore();
     }
 
@@ -230,11 +155,27 @@ final class MainGUIChromeRenderer {
         return seconds / 3600L + "h " + seconds % 3600L / 60L + "m";
     }
 
+    void renderSettingsNavigation(NVGRenderer nvg, float mx, float my) {
+        MainGUIContext context = this.owner.context();
+        float y = context.layout.contY + 54, x = context.layout.contX + 20;
+        String[] labels = {"顏色", "設定檔", "快捷鍵", "介面設定"};
+        for (int i = 0; i < labels.length; i++) {
+            int page = i + 1;
+            float w = nvg.textWidth("Inter-Regular", labels[i], 12) + 28;
+            boolean selected = context.navigation.activeMain == page;
+            nvg.text("Inter-Regular", labels[i], x + 14, y + 12, 12, selected ? Theme.ACCENT_PRIMARY : Theme.TEXT_MUTED);
+            if (selected) nvg.roundedRect(x + 14, y + 35, w - 28, 2, 1, Theme.ACCENT_PRIMARY);
+            this.owner.addClickArea(x, y, w, 36, () -> this.owner.selectSettingsPage(page));
+            x += w;
+        }
+        nvg.rect(context.layout.contX, y + 36, context.layout.contW, 1, Theme.SEPARATOR);
+    }
+
     void renderFilterBar(NVGRenderer nvg, float mx, float my) {
         MainGUIContext context = this.owner.context();
         String[] options = this.owner.currentTabFilters();
         int selectedIndex = Math.max(0, Math.min(context.navigation.activeFilter, options.length - 1));
-        float barY = context.layout.contY + 53.0f + 1.0f;
+        float barY = context.layout.contY + 53.0f + 1.0f + this.owner.settingsNavigationHeight();
         float textY = barY + 12.0f;
         float optionPad = 14.0f;
         float x = context.layout.contX + 20.0f;

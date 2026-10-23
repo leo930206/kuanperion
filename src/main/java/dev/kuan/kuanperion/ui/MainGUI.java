@@ -67,7 +67,6 @@ extends NVGScreen {
     static final float TOP_BAR_H = 53.0f;
     static final float FILTER_BAR_H = 36.0f;
     private static final String[] TAB_NAMES = new String[]{"Modules", "Colors", "Config", "Keybinds", "Settings"};
-    private static final String[] TAB_DESCS = new String[]{"Manage and configure modules", "Customise HUD and menu colors", "Save and manage config and theme profiles", "Edit Kuanperion keybinds and keep them synced with Minecraft controls", "General client settings"};
     private static final String[] COLOR_FILTERS = new String[]{"All", "Menu Colors", "配色收藏"};
     private static final String[] CONFIG_FILTERS = new String[]{"All", "Config Profiles", "Theme Profiles"};
     private static final String[] SINGLE_FILTER = new String[]{"All"};
@@ -131,7 +130,7 @@ extends NVGScreen {
     float searchBoxY;
     float searchBoxW;
     float searchBoxH;
-    private int activeFilter = 0;
+    private int activeFilter = 1;
     private float filterBarAnimX = 0.0f;
     private float filterBarAnimW = 0.0f;
     private float filterBarTargetX = 0.0f;
@@ -401,6 +400,7 @@ extends NVGScreen {
             case 2 -> MainGUIRegistry.PROFILES_SUBTABS;
             case 3 -> MainGUIRegistry.KEYBINDS_SUBTABS;
             case 4 -> MainGUIRegistry.SETTINGS_SUBTABS;
+            case 5 -> MainGUIRegistry.ABOUT_SUBTABS;
             default -> MainGUIRegistry.PROFILES_SUBTABS;
         };
     }
@@ -420,7 +420,7 @@ extends NVGScreen {
     }
 
     static boolean hasTopFilterBar(int mainTab) {
-        return mainTab >= 0 && mainTab <= 2;
+        return mainTab == 1 || mainTab == 2;
     }
 
     private boolean hasTopFilterBar() {
@@ -428,11 +428,37 @@ extends NVGScreen {
     }
 
     float contentScrollTop() {
-        return this.layoutHelper.contentScrollTop(this.contY, this.hasTopFilterBar(), 53.0f, 36.0f);
+        return this.layoutHelper.contentScrollTop(this.contY, this.hasTopFilterBar(), 53.0f, 36.0f) + this.settingsNavigationHeight();
     }
 
     float contentScrollHeight() {
-        return this.layoutHelper.contentScrollHeight(this.contY, this.contH, this.hasTopFilterBar(), 53.0f, 36.0f);
+        return this.contH - (this.contentScrollTop() - this.contY);
+    }
+
+    float settingsNavigationHeight() { return this.activeMain >= 1 && this.activeMain <= 4 ? 37 : 0; }
+
+    void selectSettingsPage(int page) { this.actions.switchMainTab(page); }
+
+    void selectSidebarEntry(int index) {
+        var entry = MainGUISidebar.entries().get(index);
+        if (entry.mainTab() == 0) {
+            // Switching groups shares the module renderer, but must clear stale detail/search/editors.
+            this.commitText();
+            this.commitColor();
+            this.closeOpenDropdown();
+            this.actions.clearSearch();
+            this.activeMain = 0;
+            this.activeFilter = entry.moduleFilter();
+            this.activeSubtab = 0;
+            this.activeSubTab = null;
+            this.activeCategoryIdx = 0;
+            this.setActiveScroll(0, 0);
+            this.setModulesOverviewScroll(0, 0);
+            this.setModuleDetailScroll(0, 0);
+            this.refreshContext();
+        } else {
+            if (this.activeMain < 1 || this.activeMain > 4) this.actions.switchMainTab(4);
+        }
     }
 
     private void resetActiveContentScroll() {
@@ -556,9 +582,6 @@ extends NVGScreen {
             return availableSections;
         }
         int filterIndex = this.normalizedActiveFilterIndex();
-        if (filterIndex == 0) {
-            return availableSections;
-        }
         int sectionIndex = filterIndex - 1;
         if (sectionIndex < 0 || sectionIndex >= availableSections.size()) {
             return availableSections;
@@ -1769,13 +1792,14 @@ extends NVGScreen {
     }
 
     String currentTabName() {
-        int idx = Math.max(0, Math.min(this.activeMain, TAB_NAMES.length - 1));
-        return UiLang.localize(TAB_NAMES[idx]);
+        if (this.activeMain == 0) return MainGUISidebar.entries().get(MainGUISidebar.selectedIndex(0, this.activeFilter)).label();
+        return this.activeMain == 5 ? UiLang.localize("About") : "Setting";
     }
 
     String currentTabDescription() {
-        int idx = Math.max(0, Math.min(this.activeMain, TAB_DESCS.length - 1));
-        return UiLang.localize(TAB_DESCS[idx]);
+        if (this.activeMain == 0) return MainGUISidebar.entries().get(MainGUISidebar.selectedIndex(0, this.activeFilter)).description();
+        if (this.activeMain == 5) return "版本與模組資訊";
+        return UiLang.localize(TAB_NAMES[this.activeMain]);
     }
 
     String[] currentTabFilters() {
@@ -1787,7 +1811,7 @@ extends NVGScreen {
         if (filters.length == 0) {
             return 0;
         }
-        return Math.max(0, Math.min(this.activeFilter, filters.length - 1));
+        return Math.max(this.activeMain == 0 ? 1 : 0, Math.min(this.activeFilter, filters.length - 1));
     }
 
     private String[] filtersForMainTab(int mainTab) {
@@ -1838,7 +1862,7 @@ extends NVGScreen {
         }
         this.launchTargetApplied = true;
         this.activeMain = Math.max(0, this.launchTarget.mainTab());
-        this.activeFilter = 0;
+        this.activeFilter = this.activeMain == 0 ? 1 : 0;
         this.activeSubtab = 0;
         if (!this.launchTarget.openModuleDetail() || this.launchTarget.moduleName() == null || this.activeMain != 0) {
             return;
@@ -1847,6 +1871,7 @@ extends NVGScreen {
         if (targetSubTab == null) {
             return;
         }
+        this.activeFilter = MainGUIRegistry.moduleFilterFor(targetSubTab);
         this.activeSubTab = targetSubTab;
         this.activeCategoryIdx = 0;
         this.scrollY = 0.0f;
@@ -2618,32 +2643,17 @@ extends NVGScreen {
     }
 
     boolean tryHandleSidebarNavigationClick(float mx, float my, Minecraft minecraft) {
-        if (this.loginButtonW > 0.0f && mx >= this.loginButtonX && mx <= this.loginButtonX + this.loginButtonW && my >= this.loginButtonY && my <= this.loginButtonY + this.loginButtonH) {
-            this.actions.switchMainTab(4);
-            return true;
+        float sbClickW = 60 + this.sidebarAnim * ((this.computedSidebarExpanded > 0 ? this.computedSidebarExpanded : 194) - 60);
+        for (int i = 0; i < MainGUISidebar.entries().size(); i++) {
+            float y = MainGUISidebar.rowY(i, this.py, this.ph);
+            if (mx >= this.px && mx < this.px + sbClickW && my >= y && my < y + 44) {
+                this.selectSidebarEntry(i);
+                return true;
+            }
         }
-        float sbClickW = 60.0f + this.sidebarAnim * ((this.computedSidebarExpanded > 0.0f ? this.computedSidebarExpanded : 194.0f) - 60.0f);
-        float tabsStartY = this.py + 56.0f + 8.0f;
-        for (int i = 0; i < 3; ++i) {
-            float tabY = tabsStartY + (float)i * 44.0f;
-            if (!(mx >= this.px) || !(mx <= this.px + sbClickW) || !(my >= tabY) || !(my <= tabY + 44.0f)) continue;
-            this.actions.switchMainTab(i);
-            return true;
-        }
-        float profileClickY = this.py + this.ph - 8.0f - 44.0f;
-        float settClickY = profileClickY - 44.0f - 8.0f;
-        float keybindsClickY = settClickY - 44.0f;
-        float hudPosClickY = keybindsClickY - 44.0f;
-        if (mx >= this.px && mx <= this.px + sbClickW && my >= hudPosClickY && my <= hudPosClickY + 44.0f) {
-            this.openOptionalHudEditor(minecraft);
-            return true;
-        }
-        if (mx >= this.px && mx <= this.px + sbClickW && my >= keybindsClickY && my <= keybindsClickY + 44.0f) {
-            this.actions.switchMainTab(3);
-            return true;
-        }
-        if (mx >= this.px && mx <= this.px + sbClickW && my >= settClickY && my <= settClickY + 44.0f) {
-            this.actions.switchMainTab(4);
+        float footerY = MainGUISidebar.footerY(this.py, this.ph);
+        if (mx >= this.px + 8 && mx < this.px + 52 && my >= footerY && my < footerY + 44) {
+            this.actions.switchMainTab(5);
             return true;
         }
         return false;
@@ -2656,10 +2666,6 @@ extends NVGScreen {
 
     private void renderOptionalFeatureHud(NVGRenderer nvg, float dt) {
         NotificationManager.render(nvg, this.width, this.height);
-    }
-
-    private void openOptionalHudEditor(Minecraft minecraft) {
-        this.actions.switchMainTab(4);
     }
 
     boolean runClickAreas(float mx, float my) {

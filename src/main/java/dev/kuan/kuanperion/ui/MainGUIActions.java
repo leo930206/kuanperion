@@ -39,6 +39,8 @@ final class MainGUIActions {
 
     void enterModuleDetail(ModulesTab.SubTab subTab) {
         this.owner.setModulesOverviewScroll(this.owner.getActiveScrollY(), this.owner.getActiveTargetScrollY());
+        this.owner.setActiveMainTab(0);
+        this.owner.setActiveFilterIndex(MainGUIRegistry.moduleFilterFor(subTab));
         this.owner.setActiveModuleSubTab(subTab);
         this.owner.setActiveCategoryIndex(0);
         this.owner.setActiveScroll(0.0f, 0.0f);
@@ -58,16 +60,18 @@ final class MainGUIActions {
         if (this.owner.getActiveMainTab() == mainTab) {
             return;
         }
+        this.owner.commitText();
+        this.owner.commitColor();
+        this.owner.closeOpenDropdown();
         this.owner.setActiveMainTab(mainTab);
         this.owner.setActiveSubtabIndex(0);
         this.owner.setActiveScroll(0.0f, 0.0f);
         this.owner.setProfileScroll(0.0f, 0.0f);
         this.clearSearch();
-        this.owner.setActiveFilterIndex(0);
+        this.owner.setActiveFilterIndex(mainTab == 0 ? 1 : 0);
         this.owner.setFilterBarInitialized(false);
         this.owner.setActiveModuleSubTab(null);
         this.owner.setActiveCategoryIndex(0);
-        this.owner.commitText();
         this.owner.refreshContext();
     }
 
@@ -97,8 +101,10 @@ final class MainGUIActions {
 
     private void openModuleSearchResult(ModulesTab.SubTab subTab, SettingGroup group, Setting setting) {
         this.owner.setActiveMainTab(0);
-        this.owner.setActiveFilterIndex(0);
+        this.owner.setActiveFilterIndex(MainGUIRegistry.moduleFilterFor(subTab));
         this.owner.setActiveSubtabIndex(MainGUIActions.indexOf(MainGUIRegistry.MODULE_SUBTABS, subTab));
+        this.owner.setActiveMainTab(0);
+        this.owner.setActiveFilterIndex(MainGUIRegistry.moduleFilterFor(subTab));
         this.owner.setActiveModuleSubTab(subTab);
         this.owner.setActiveScroll(0.0f, 0.0f);
         int groupIndex = subTab.groups().indexOf(group);

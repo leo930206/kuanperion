@@ -2721,7 +2721,7 @@ public final class KuanperionClient implements ClientModInitializer {
                 try { URI uri=URI.create(value); if(!value.isEmpty()&&((!"https".equalsIgnoreCase(uri.getScheme())&&!"http".equalsIgnoreCase(uri.getScheme()))||uri.getHost()==null||uri.getUserInfo()!=null))throw new IllegalArgumentException();
                     pestWebhookUrl=value;saveConfig();
                 }catch(IllegalArgumentException ex){uiInputError("Webhook 網址無效，原值未變更");}}));
-        var webhookTab=new ModulesTab.SubTab("Discord 通知", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
+        var webhookTab=new ModulesTab.SubTab("Discord Webhook", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
         return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,visitorTab)),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
             new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab)));

@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 public final class UiSmoke implements ClientModInitializer {
+    private java.lang.reflect.Method mouseMove;
     private int ticks,phase=-1;private MainGUI ui;private boolean waiting,phaseValidated;
     public void onInitializeClient(){ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
     private void tick(Minecraft mc){
@@ -15,25 +16,46 @@ public final class UiSmoke implements ClientModInitializer {
                 if(mc.gui.overlay()!=null||!(mc.gui.screen() instanceof TitleScreen))return;
                 ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;System.out.println("UI_SMOKE_OPEN");return;
             }
+            boolean expanded = phase >= 13 && phase <= 16 || phase == 21;
+            var frame = ui.context().layout;
+            double cursorX = expanded ? (frame.px+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth() : 1;
+            double cursorY = expanded ? (frame.py+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight() : 1;
+            // Feed the vanilla cursor callback directly: background macOS windows may ignore GLFW cursor warps.
+            // This exercises real hover/layout animation without forcing sidebarAnim or moving the user's pointer.
+            if(mouseMove==null){mouseMove=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);mouseMove.setAccessible(true);}
+            mouseMove.invoke(mc.mouseHandler,mc.getWindow().handle(),cursorX,cursorY);
+            if(expanded && Math.abs(ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))-(frame.px+20))>1)throw new AssertionError("Retina hover coordinate conversion");
             if(waiting||++ticks<35)return;ticks=0;
-            org.lwjgl.glfw.GLFW.glfwSetCursorPos(mc.getWindow().handle(),1,1);
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
+            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
             if(phase==11) testTargetRows();
             if(phase==12) testColorPresets();
-                phaseValidated=true;ticks=32;return; // Capture after two fresh rendered frames.
+            if(expanded && ui.context().animation.sidebarAnim < .95f) throw new AssertionError("sidebar did not expand under real mouse hover");
+            if(phase>=13 && phase<=15) assertGroup(phase-13);
+            if(phase==16 && ui.getActiveMainTab()!=4) throw new AssertionError("gear did not open interface settings");
+            if(phase>=17 && phase<=20) {
+                clickSettingsPage(phase-16);
+                if(ui.getActiveMainTab()!=phase-16) throw new AssertionError("Setting subpage mouse route failed");
+            }
+            if(phase==21 && (ui.getActiveMainTab()!=5 || !ui.currentTabName().equals("關於"))) throw new AssertionError("footer K did not open separate About");
+                phaseValidated=true;ticks=20;return; // Allow page/sidebar transitions to settle before capture.
             }
             phaseValidated=false;
             final String shot=names[phase];
             Screenshot.grab(mc.gameDirectory,shot+".png",mc.gameRenderer.mainRenderTarget(),1,message->System.out.println("UI_SMOKE_CAPTURE "+shot));
             phase++;
             switch(phase){
+                case 13 -> clickSidebar(0);
+                case 14 -> clickSidebar(1);
+                case 15 -> clickSidebar(2);
+                case 16 -> clickSidebar(3);
+                case 21 -> { var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+22); }
                 case 1-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.get(0));
                 case 2-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow());
                 case 3-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Jerry 偵測")).findFirst().orElseThrow());
@@ -48,6 +70,49 @@ public final class UiSmoke implements ClientModInitializer {
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
             }
         }catch(Throwable error){System.out.println("UI_SMOKE_FAIL");error.printStackTrace();mc.stop();}
+    }
+    private void clickSidebar(int index) {
+        var layout=ui.context().layout;
+        click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
+    }
+    private void assertGroup(int index) {
+        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Jerry 偵測","Discord Webhook"}};
+        var sections=ui.moduleSectionsForFilter();
+        if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index);
+    }
+    private void clickSettingsPage(int page) {
+        String[] labels={"顏色","設定檔","快捷鍵","介面設定"};
+        float x=ui.contentX()+20;
+        var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
+        for(int i=0;i<page-1;i++) x+=renderer.textWidth("Inter-Regular",labels[i],12)+28;
+        click(x+20,ui.contentY()+72);
+    }
+    private void testSidebarRouting() throws Exception {
+        for(int i=0;i<3;i++) {
+            ui.setSearchQuery("stale-search");ui.setActiveScroll(50,60);clickSidebar(i);assertGroup(i);
+            if(!ui.searchQuery.isEmpty() || ui.getActiveScrollY()!=0)throw new AssertionError("group navigation kept search/scroll");
+            var subtab=ui.moduleSectionsForFilter().get(0).subtabs().get(0);
+            ui.openModuleDetailFromCard(subtab);
+            if(ui.context().navigation.activeFilter!=i+1)throw new AssertionError("detail lost group");
+            var actions=MainGUI.class.getDeclaredField("actions");actions.setAccessible(true);((MainGUIActions)actions.get(ui)).exitModuleDetail();assertGroup(i);
+        }
+        for(var section:MainGUIRegistry.MODULE_SECTIONS) for(var subtab:section.subtabs()) {
+            var group=subtab.groups().get(0);
+            ui.openSearchResult(0,subtab,group,group.getSettings().isEmpty()?null:group.getSettings().get(0));
+            if(ui.context().navigation.activeFilter!=MainGUIRegistry.moduleFilterFor(subtab))throw new AssertionError("cross-group search route wrong");
+        }
+        clickSidebar(3);
+        if(ui.getActiveMainTab()!=4 || ui.getActiveModuleSubTab()!=null)throw new AssertionError("gear kept feature detail");
+        for(int page=1;page<=4;page++) {
+            switchTab(page);
+            if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=3 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
+        }
+        var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+22);
+        if(ui.getActiveMainTab()!=5 || MainGUIRegistry.ABOUT_SUBTABS.isEmpty())throw new AssertionError("footer About unreachable");
+        var lines=MainGUISidebar.footerLines(MainGUIRegistry.modVersion());
+        if(!lines.equals(java.util.List.of("Mod Version: "+MainGUIRegistry.modVersion(),"Minecraft 26.2")))throw new AssertionError("wrong footer metadata");
+        clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_SIDEBAR_PASS four visible routes / group membership / detail-back / cross-group search / Setting pages / footer About / metadata");
     }
     @SuppressWarnings("unchecked")
     private java.util.List<String> selected() throws Exception {

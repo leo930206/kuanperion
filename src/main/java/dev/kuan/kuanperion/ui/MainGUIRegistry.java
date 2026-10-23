@@ -13,6 +13,14 @@ public final class MainGUIRegistry {
     public static final List<ModulesTab.SubTab> KEYBINDS_SUBTABS=new ArrayList<>();
     public static final List<ModulesTab.SubTab> SETTINGS_SUBTABS=new ArrayList<>();
     public static final List<ModulesTab.SubTab> PROFILES_SUBTABS=List.of(new ModulesTab.SubTab("Config","本機功能設定檔",List.of()),new ModulesTab.SubTab("Themes","本機介面主題",List.of()));
+    public static final List<ModulesTab.SubTab> ABOUT_SUBTABS=new ArrayList<>();
+    public static String modVersion() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString();
+    }
+    static int moduleFilterFor(ModulesTab.SubTab subtab) {
+        for(int i=0;i<MODULE_SECTIONS.size();i++) if(MODULE_SECTIONS.get(i).subtabs().contains(subtab)) return i+1;
+        return 1;
+    }
     private static boolean populated;
     private MainGUIRegistry() {}
     public static void refresh() {
@@ -42,8 +50,13 @@ public final class MainGUIRegistry {
             .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
             .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
             .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.6 · Minecraft 26.2 · 僅本機介面"));
+            .add(new InfoSetting("Kuanperion",()->"2.0.7 · Minecraft 26.2 · 僅本機介面"));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
+        var about=SettingGroup.alwaysOn("Kuanperion","本機 Fabric 客戶端模組")
+            .add(new InfoSetting("Mod Version",MainGUIRegistry::modVersion))
+            .add(new InfoSetting("Minecraft",()->"26.2"))
+            .add(new InfoSetting("功能",()->"Farming / Mining / 通知"));
+        ABOUT_SUBTABS.add(new ModulesTab.SubTab("About","版本與模組資訊",List.of(about)));
         populated=true;
     }
     public record ModuleSection(String id,String displayName,List<ModulesTab.SubTab> subtabs) {}
