@@ -7,7 +7,7 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
-source = (root / "src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistantClient.java").read_text()
+source = (root / "src/main/java/dev/kuan/kuanperion/KuanperionClient.java").read_text()
 
 
 methods = [re.search(r"    private static final int FARMING_RECOVERY_COMMAND_DELAY_TICKS = \d+;", source).group(0)]
@@ -43,7 +43,7 @@ for name in ["detectFarmingLocation", "sidebarLines", "containsLine", "cleanSide
     method = method.replace("sidebarLines(", "readSidebarLines(")
     methods.append(method)
 
-harness = r'''package dev.kuan.skyblockassistant;
+harness = r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.regex.*;
 public final class AbnormalHandlingTest {
@@ -396,5 +396,5 @@ java_home = Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as tmp:
     path = Path(tmp) / "AbnormalHandlingTest.java"
     path.write_text(harness)
-    subprocess.run([str(java_home / "bin/javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp, str(root / "src/main/java/dev/kuan/skyblockassistant/FarmingToolGuard.java"), str(root / "src/main/java/dev/kuan/skyblockassistant/FarmingStallGuard.java"), str(path)], check=True)
-    subprocess.run([str(java_home / "bin/java"), "-cp", tmp, "dev.kuan.skyblockassistant.AbnormalHandlingTest"], check=True)
+    subprocess.run([str(java_home / "bin/javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp, str(root / "src/main/java/dev/kuan/kuanperion/FarmingToolGuard.java"), str(root / "src/main/java/dev/kuan/kuanperion/FarmingStallGuard.java"), str(path)], check=True)
+    subprocess.run([str(java_home / "bin/java"), "-cp", tmp, "dev.kuan.kuanperion.AbnormalHandlingTest"], check=True)

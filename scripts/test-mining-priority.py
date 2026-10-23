@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 root = Path(__file__).resolve().parent.parent
-source = (root / 'src/main/java/dev/kuan/skyblockassistant/KuanSkyBlockAssistantClient.java').read_text()
+source = (root / 'src/main/java/dev/kuan/kuanperion/KuanperionClient.java').read_text()
 def extract(pattern):
     start = re.search(pattern, source).start()
     opening = source.index('{', start)

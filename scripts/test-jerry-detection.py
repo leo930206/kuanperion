@@ -7,8 +7,8 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
-base = root / 'src/main/java/dev/kuan/skyblockassistant'
-client = (base / 'KuanSkyBlockAssistantClient.java').read_text()
+base = root / 'src/main/java/dev/kuan/kuanperion'
+client = (base / 'KuanperionClient.java').read_text()
 def extract(name):
     match = re.search(r'    (?:private|public) static [^\n]+ ' + name + r'\(', client)
     assert match, f'Missing production method: {name}'
@@ -26,7 +26,7 @@ methods = '\n'.join(extract(name) for name in [
 assert 'p.setProperty("jerryStopActionsEnabled"' in client
 assert 'toggleMsg("Jerry 偵測"' not in client
 assert 'Component.literal("Jerry 偵測")' in client
-harness = r'''package dev.kuan.skyblockassistant;
+harness = r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.function.*;
 public class JerryDetectionIntegrationTest {
@@ -178,4 +178,4 @@ with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'JerryDetectionIntegrationTest.java'
     path.write_text(harness)
     subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryMessageMatcher.java'),str(base/'JerryColor.java'),str(base/'FarmingStallGuard.java'),str(base/'NotificationType.java'),str(base/'NotificationChannels.java'),str(path)],check=True)
-    subprocess.run([str(java_home/'bin/java'),'-cp',tmp,'dev.kuan.skyblockassistant.JerryDetectionIntegrationTest'],check=True)
+    subprocess.run([str(java_home/'bin/java'),'-cp',tmp,'dev.kuan.kuanperion.JerryDetectionIntegrationTest'],check=True)

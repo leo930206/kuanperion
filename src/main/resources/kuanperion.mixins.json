@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.kuan.kuanperion.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "EntityTurnMixin",
+    "MinecraftAttackMixin",
+    "UiRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

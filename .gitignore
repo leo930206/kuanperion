@@ -1,3 +1,7 @@
 build/
 *.class
 .DS_Store
+logs/
+config/
+crash-reports/
+options.txt

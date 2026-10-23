@@ -6,8 +6,8 @@ import subprocess
 import sys
 import tempfile
 root=Path(__file__).resolve().parent.parent
-base=root/'src/main/java/dev/kuan/skyblockassistant'
-client=(base/'KuanSkyBlockAssistantClient.java').read_text()
+base=root/'src/main/java/dev/kuan/kuanperion'
+client=(base/'KuanperionClient.java').read_text()
 def method(name):
     match=re.search(r'    private static [^\n]+ '+name+r'\(',client)
     assert match, name
@@ -30,7 +30,7 @@ assert 'JERRY_FARMING_MARKERS.save(p);' in method('saveConfig')
 assert 'JERRY_FARMING_MARKERS' not in method('onFarmingWorldChange'), 'Changing worlds must not delete retained beams'
 renderer=(base/'JerryFarmingMarkerRenderer.java').read_text()
 renderer=renderer[renderer.index('final class JerryFarmingMarkerRenderer'):].replace('final class JerryFarmingMarkerRenderer','static final class JerryFarmingMarkerRenderer',1)
-harness=r'''package dev.kuan.skyblockassistant;
+harness=r'''package dev.kuan.kuanperion;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.*;
@@ -110,4 +110,4 @@ with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'JerryMarkerRenderingTest.java';path.write_text(harness)
     java=Path(sys.argv[1])/'bin'
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryFarmingPauseMarkers.java'),str(path)],check=True)
-    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.JerryMarkerRenderingTest'],check=True)
+    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.kuanperion.JerryMarkerRenderingTest'],check=True)

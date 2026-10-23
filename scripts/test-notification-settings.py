@@ -6,8 +6,8 @@ import subprocess
 import sys
 import tempfile
 root=Path(__file__).resolve().parent.parent
-base=root/'src/main/java/dev/kuan/skyblockassistant'
-source=(base/'KuanSkyBlockAssistantClient.java').read_text()
+base=root/'src/main/java/dev/kuan/kuanperion'
+source=(base/'KuanperionClient.java').read_text()
 def method(name):
     m=re.search(r'    private static [^\n]+ '+name+r'\(',source)
     assert m, f'Missing production method {name}'
@@ -28,7 +28,7 @@ for feature in ['PESTS','VISITORS']:
 assert '害蟲' not in ''.join(p.read_text() for p in base.glob('*.java')), 'Use Pest throughout current production text'
 assert '遊戲聊天室通知' not in (base/'NotificationSettingsScreen.java').read_text()
 assert '遊戲螢幕通知' not in (base/'NotificationSettingsScreen.java').read_text()
-harness=r'''package dev.kuan.skyblockassistant;
+harness=r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.function.*;
 import java.net.URI;
@@ -379,4 +379,4 @@ with tempfile.TemporaryDirectory() as tmp:
     java=Path(sys.argv[1])/'bin'
     deps=[base/(n+'.java') for n in ['ScreenNotificationQueue','NotificationType','NotificationChannels','GardenTabNotifications','JerryColor','JerryFarmingPauseMarkers']]
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,deps),str(path)],check=True)
-    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.NotificationSettingsTest'],check=True)
+    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.kuanperion.NotificationSettingsTest'],check=True)

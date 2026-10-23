@@ -7,8 +7,8 @@ import sys
 import tempfile
 
 root=Path(__file__).resolve().parent.parent
-base=root/'src/main/java/dev/kuan/skyblockassistant'
-source=(base/'KuanSkyBlockAssistantClient.java').read_text()
+base=root/'src/main/java/dev/kuan/kuanperion'
+source=(base/'KuanperionClient.java').read_text()
 def extract(pattern):
     match=re.search(pattern,source)
     assert match, f'Missing production stall integration: {pattern}'
@@ -22,7 +22,7 @@ tick=extract(r'    private static void tick\(')
 assert tick.rstrip().endswith('tickFarmingStallNotification(mc, System.nanoTime());\n    }'), 'Monitor runs after farming and while disabled to clear stale timing'
 for name in ['stopFarming','resetFarmingRuntime','onFarmingWorldChange','startFarmingAutoRecovery']:
     assert 'FARMING_STALL_GUARD.reset();' in extract(r'    private static [^\n]+ '+name+r'\('), f'Reset on {name}'
-harness=r'''package dev.kuan.skyblockassistant;
+harness=r'''package dev.kuan.kuanperion;
 import java.util.*;
 public class FarmingStallIntegrationTest {
     static final FarmingStallGuard FARMING_STALL_GUARD=new FarmingStallGuard();
@@ -123,4 +123,4 @@ with tempfile.TemporaryDirectory() as tmp:
     java=Path(sys.argv[1])/'bin'
     deps=[base/(name+'.java') for name in ['FarmingStallGuard','FarmingToolGuard']]
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,deps),str(path)],check=True)
-    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.FarmingStallIntegrationTest'],check=True)
+    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.kuanperion.FarmingStallIntegrationTest'],check=True)

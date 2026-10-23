@@ -6,8 +6,8 @@ import subprocess
 import sys
 import tempfile
 root=Path(__file__).resolve().parent.parent
-base=root/'src/main/java/dev/kuan/skyblockassistant'
-source=(base/'KuanSkyBlockAssistantClient.java').read_text()
+base=root/'src/main/java/dev/kuan/kuanperion'
+source=(base/'KuanperionClient.java').read_text()
 def declarations(pattern):
     result=[]
     for match in re.finditer(pattern,source):
@@ -22,7 +22,7 @@ enums='\n'.join(declarations(r'    private enum (?:PumpkinMelonState|DirectionKe
 probe=declarations(r'    private static boolean probeStartingCrop\(')[0]
 assert 'beginPumpkinMelonFromLane(player, cropBlockId)' in probe, 'Use actual detected Pumpkin/Melon block, not combined crop enum'
 assert 'pumpkinMelonStartRight = false;' in declarations(r'    private static void resetFarmingRuntime\(')[0], 'Do not reuse last session direction'
-harness=r'''package dev.kuan.skyblockassistant;
+harness=r'''package dev.kuan.kuanperion;
 public class PumpkinMelonStartTest {
     static final double FARMING_ONE_BLOCK_DISTANCE=1.0;
     static final int FARMING_BLOCKED_STEP_TICKS=10,PUMPKIN_MELON_SECOND_MARKER_MIN_TICKS=10;
@@ -118,4 +118,4 @@ with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'PumpkinMelonStartTest.java';path.write_text(harness)
     java=Path(sys.argv[1])/'bin'
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'PumpkinMelonLaneStart.java'),str(path)],check=True)
-    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.skyblockassistant.PumpkinMelonStartTest'],check=True)
+    subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.kuanperion.PumpkinMelonStartTest'],check=True)

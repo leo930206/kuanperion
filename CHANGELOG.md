@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0 — 2026-10-23
+
+- 全面更名 Kuanperion：mod ID、入口／package、資源與 mixin 名稱、快捷鍵分類、遊戲／Discord 通知前綴、JAR 均更新。
+- 保留相容遷移：首次新設定不存在時複製舊設定，不覆寫／刪原檔；新快捷鍵沒有保存時沿用舊綁定。
+- 移植設定介面核心／元件／動畫／配色，適配 Minecraft 26.2 deferred GUI、獨立 stencil framebuffer 與 OpenGL 狀態復原；加入 NanoVG 3.4.1 必要平台依賴。
+- 介面只綁現有 Mining／Farming／通知／Jerry／Webhook；不導入上游玩法、帳號、遙測、IRC、遠端控制或更新器。
+- 新增搜尋、卡片／分類詳情、色彩選擇、UI／文字縮放、動畫速度、主題／本機設定檔與快捷鍵頁；runtime 開關與偏好編輯分開。
+- 修復移植過程的反編譯還原問題、中文字長詞換行、macOS Command 編輯、側欄長品牌名稱及非有限滑桿輸入。
+- Profiles 排除 Webhook／光柱世界座標／runtime 啟停；載入不自動啟用功能、不覆寫本機 Webhook。
+- 保留必要 GPL、OFL、LWJGL／NanoVG 授權與來源；UI 顯示品牌僅 Kuanperion。
+- 新增遷移、設定綁定、文字、動畫／布局測試；沿用所有既有 gameplay 回歸測試。
+
 ## [1.0.132] - 2026-10-22
 
 ### 新增
@@ -614,8 +626,8 @@
 
 ### Changed
 
-- All block names in Kuan HSBA chat messages now hide the `minecraft:` namespace, for example `minecraft:red_mushroom` is displayed as `red_mushroom`.
-- Confirmed all module-generated status and detection messages continue to use the standard `[Kuan HSBA]` prefix; long messages may visually wrap onto a second Minecraft chat line.
+- All block names in Kuanperion chat messages now hide the `minecraft:` namespace, for example `minecraft:red_mushroom` is displayed as `red_mushroom`.
+- Confirmed all module-generated status and detection messages continue to use the standard `[Kuanperion]` prefix; long messages may visually wrap onto a second Minecraft chat line.
 
 ## [1.0.57] - 2026-10-16
 
@@ -649,7 +661,7 @@
 
 - Added a saved `工具偵測` toggle in place of the obsolete crop-selection button.
 - After automatic crop identification, enabled tool detection now verifies the held item name before Farming continues. Mushroom requires `Fungi Cutter`, Melon requires `Melon Dicer`, and Pumpkin requires `Pumpkin Dicer`; Mk. suffixes and other name decorations do not affect the base-name match.
-- Tool mismatches now close Farming and report the detected crop, required tool, and currently held item in the standard `[Kuan HSBA]` chat format.
+- Tool mismatches now close Farming and report the detected crop, required tool, and currently held item in the standard `[Kuanperion]` chat format.
 
 ### Removed
 
@@ -660,7 +672,7 @@
 ### Added
 
 - Farming now attacks the crop under the crosshair on every start, identifies the broken crop block, and automatically switches to the detected crop profile regardless of the previous menu selection.
-- Pumpkim & Melon now reports every row-change and return-state action in chat with the standard `[Kuan HSBA]` prefix.
+- Pumpkim & Melon now reports every row-change and return-state action in chat with the standard `[Kuanperion]` prefix.
 
 ### Changed
 
@@ -690,13 +702,13 @@
 
 ### Added
 
-- Added a unified semantic chat-message color system: gradient/bold `[Kuan HSBA]`, matching Farming/Mining feature colors, green success, red failure, orange warnings, yellow blocks, aqua locations, gold commands, and yellow-green crop names.
+- Added a unified semantic chat-message color system: gradient/bold `[Kuanperion]`, matching Farming/Mining feature colors, green success, red failure, orange warnings, yellow blocks, aqua locations, gold commands, and yellow-green crop names.
 - Mining now refuses to start with an empty target list and reports the reason.
 - Mining now reports once when waiting for an available target and once when a target returns.
 
 ### Changed
 
-- Renamed every chat prefix from `[Kuan SBA]` to `[Kuan HSBA]`.
+- Renamed every chat prefix from `[Kuan SBA]` to `[Kuanperion]`.
 - Standardized all Farming and Mining status, selection, detection, recovery, success, warning, and error messages.
 - Mushroom startup now reports `Auto Farming 開啟，方向確認：Red Mushroom` or `Brown Mushroom`; all crop names share the same yellow-green style.
 
@@ -1050,7 +1062,7 @@
 
 ### Changed
 
-- Renamed the keybind category to "Kuan Hypixel SkyBlock Assistant".
+- Renamed the keybind category to "Kuanperion".
 - Renamed keybind actions to "Select Blocks", "Open Setting", and "Toggle Auto Mining".
 - Changed the default settings key from `Right Shift` to `'`.
 

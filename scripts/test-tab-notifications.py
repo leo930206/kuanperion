@@ -7,8 +7,8 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
-base = root / "src/main/java/dev/kuan/skyblockassistant"
-client = (base / "KuanSkyBlockAssistantClient.java").read_text()
+base = root / "src/main/java/dev/kuan/kuanperion"
+client = (base / "KuanperionClient.java").read_text()
 reader = (base / "GardenTabReader.java").read_text()
 reader = reader[reader.index("final class GardenTabReader"):].replace("final class GardenTabReader", "static final class GardenTabReader", 1)
 screen = (base / "PestThresholdScreen.java").read_text()
@@ -33,7 +33,7 @@ assert 'p.getProperty("pestNotificationThreshold"' in client, "load threshold"
 assert 'p.setProperty("visitorNotificationThreshold"' in client, "save visitor threshold"
 assert 'p.getProperty("visitorNotificationThreshold"' in client, "load visitor threshold"
 
-harness = r'''package dev.kuan.skyblockassistant;
+harness = r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.function.*;
 public class TabNotificationIntegrationTest {
@@ -251,4 +251,4 @@ with tempfile.TemporaryDirectory(prefix="kuan-tab-test-") as tmp:
     java = Path(sys.argv[1]) / "bin"
     subprocess.run([str(java / "javac"), "--release", "21", "-encoding", "UTF-8", "-d", tmp,
                     str(base / "GardenTabNotifications.java"), str(base / "NotificationType.java"), str(base / "NotificationChannels.java"), str(test)], check=True)
-    subprocess.run([str(java / "java"), "-cp", tmp, "dev.kuan.skyblockassistant.TabNotificationIntegrationTest"], check=True)
+    subprocess.run([str(java / "java"), "-cp", tmp, "dev.kuan.kuanperion.TabNotificationIntegrationTest"], check=True)
