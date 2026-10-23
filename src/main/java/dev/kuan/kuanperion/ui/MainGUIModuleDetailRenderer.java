@@ -110,7 +110,7 @@ final class MainGUIModuleDetailRenderer {
         float groupX = rightX + 20.0f;
         float groupW = rightW - 40.0f;
         nvg.text("Inter-Bold", moduleName, rightX + 20.0f, panelTop + 16.0f, 15.0f, Theme.TEXT_PRIMARY);
-        nvg.text("Inter-Regular", moduleDescription, rightX + 20.0f, panelTop + 37.0f, 10.0f, Theme.TEXT_MUTED);
+        nvg.text("Inter-Regular", moduleDescription, rightX + 20.0f, panelTop + 16.0f + 15.0f + UiLayoutMetrics.descriptionGap(), UiLayoutMetrics.DESCRIPTION_FONT, Theme.TEXT_MUTED);
         if (activeSubTab.hasToggle()) {
             float pillX = groupX + groupW - 52.0f;
             float pillY = panelTop + 26.5f;

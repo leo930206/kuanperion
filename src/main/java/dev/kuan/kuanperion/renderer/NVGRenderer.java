@@ -279,13 +279,14 @@ public class NVGRenderer {
     }
 
     /** Soft corner washes: blue lower-left, pink upper-right; center remains white. */
-    public void cornerWash(float x, float y, float w, float h, float radius, int blue, int pink) {
-        float reach = Math.max(w * 0.64f, h * 0.84f);
+    public void cornerWash(float x, float y, float w, float h, float radius, int blue, int pink, float coverage, float strength) {
+        float reach = Math.max(w * coverage, h * coverage * 1.3125f);
         int[] colors = {blue, pink};
         float[] cx = {x + w * 0.10f, x + w * 0.96f};
         float[] cy = {y + h * 0.98f, y + h * 0.04f};
         for (int i=0; i<2; i++) {
-            color(colors[i], this.c1); color(colors[i] & 0xFFFFFF, this.c2);
+            int tint=((int)((colors[i]>>>24)*strength)<<24)|(colors[i]&0xFFFFFF);
+            color(tint, this.c1); color(colors[i] & 0xFFFFFF, this.c2);
             NanoVG.nvgRadialGradient(this.vg, cx[i], cy[i], 0, reach, this.c1, this.c2, this.paint);
             NanoVG.nvgBeginPath(this.vg);
             NanoVG.nvgRoundedRect(this.vg, x, y, w, h, radius);

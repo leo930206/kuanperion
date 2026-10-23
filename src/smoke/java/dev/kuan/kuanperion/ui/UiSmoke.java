@@ -86,6 +86,7 @@ public final class UiSmoke implements ClientModInitializer {
         var row=rowFor(setting);boolean before=setting.isOn();
         click(row[0]+row[2]-130,row[1]+22);
         if(ui.activeText!=setting || setting.isOn()!=before)throw new AssertionError("duration click toggled checkbox / did not focus editor");
+        if(ui.activeEditorH!=16)throw new AssertionError("notification input not compact default height");
         ui.textBuf=new StringBuilder("2.5");ui.commitText();
         if(!setting.getValue().equals("2.5"))throw new AssertionError("duration did not save");
         setting.setValue("");
@@ -120,6 +121,9 @@ public final class UiSmoke implements ClientModInitializer {
         if(farming.getModifiers()!=7||!farming.getBoundKeyName().contains("Ctrl + Alt + Shift"))throw new AssertionError("three modifier capture/display");
         var snapshot=dev.kuan.kuanperion.KuanperionClient.exportUiConfig();
         if(snapshot.keySet().stream().anyMatch(k->k.startsWith("hotkey.")))throw new AssertionError("partial hotkey state leaked into feature profile");
+        farming.resetToDefault();
+        var mining=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(1);mining.resetToDefault();
+        if(!mining.getBoundKeyName().equals("Shift + M") || !farming.getBoundKeyName().equals("Shift + F"))throw new AssertionError("default Latin shortcut labels");
         System.out.println("UI_SMOKE_CHORD_PASS modifier waiting / Ctrl Shift F / plain F / three modifiers / display / profile isolation");
     }
 
@@ -139,6 +143,16 @@ public final class UiSmoke implements ClientModInitializer {
         if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f || dev.kuan.kuanperion.ui.theme.Theme.HUD_TITLE!=0xFF010203)throw new AssertionError("migration overwrote non-menu preference");
         var backup=file.resolveSibling("kuanperion-theme.before-sky-blossom.bak");
         if(!java.nio.file.Files.readString(backup).equals(backupBefore==null?original:backupBefore))throw new AssertionError("theme backup not exact");
+        var skyField=dev.kuan.kuanperion.ui.theme.SkyThemePalette.class.getDeclaredField("PREVIOUS_SKY");skyField.setAccessible(true);
+        var previousSky=new com.google.gson.JsonObject();
+        ((java.util.Map<String,String>)skyField.get(null)).forEach(previousSky::addProperty);
+        previousSky.addProperty("themeSchema",1);previousSky.addProperty("gradientEnabled",true);previousSky.addProperty("uiScale",2.25);
+        java.nio.file.Files.writeString(file,previousSky.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF58B9EA || dev.kuan.kuanperion.ui.theme.Theme.TEXT_LABEL!=0xFF50AFE1)throw new AssertionError("2.0.1 sky default not lightened");
+        if(dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_COVERAGE>=.64f || dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_STRENGTH>=1)throw new AssertionError("gradient not reduced");
+        if(dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE!=2.25f)throw new AssertionError("sky upgrade reset UI scale");
+        previousSky.addProperty("Text","FF123456");java.nio.file.Files.writeString(file,previousSky.toString());dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
+        if(dev.kuan.kuanperion.ui.theme.Theme.TEXT_PRIMARY!=0xFF123456)throw new AssertionError("custom text overwritten");
         legacy.addProperty("Accent","FF123456");java.nio.file.Files.writeString(file,legacy.toString());
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF123456 || dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED)throw new AssertionError("custom old theme replaced");
@@ -147,6 +161,7 @@ public final class UiSmoke implements ClientModInitializer {
         dev.kuan.kuanperion.ui.theme.ThemePreset.SKY_BLOSSOM.apply();
         if(!dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED || dev.kuan.kuanperion.ui.theme.Theme.PANEL_BG!=0xFFFFFFFF)throw new AssertionError("new preset failed");
         dev.kuan.kuanperion.ui.theme.Theme.importJson(saved);
+        dev.kuan.kuanperion.ui.theme.ThemePreset.SKY_BLOSSOM.apply();
         dev.kuan.kuanperion.ui.theme.Theme.UI_SCALE=1.5f;dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE=1;
         dev.kuan.kuanperion.ui.theme.Theme.saveTheme();
         dev.kuan.kuanperion.ui.theme.Theme.GRADIENT_ENABLED=false;

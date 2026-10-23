@@ -189,9 +189,9 @@ final class MainGUISettingInteractionController {
         }
         if(setting instanceof SelectionActionSetting selection){
             this.owner.commitText();
-            float fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=y+(cardH-32)/2;
-            if(mx>=fieldX+72 && my>=fieldY && my<=fieldY+32)selection.start();
-            else if(mx>=fieldX && mx<=fieldX+60 && my>=fieldY && my<=fieldY+32){this.owner.focusSliderEditorField(selection);this.owner.setEditorBounds(fieldX,fieldY,60,32);this.owner.selectAllText();}
+            float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=y+(cardH-fieldH)/2,buttonY=y+(cardH-24)/2;
+            if(mx>=fieldX+72 && my>=buttonY && my<=buttonY+24)selection.start();
+            else if(mx>=fieldX && mx<=fieldX+60 && my>=fieldY && my<=fieldY+fieldH){this.owner.focusSliderEditorField(selection);this.owner.setEditorBounds(fieldX,fieldY,60,fieldH);this.owner.selectAllText();}
             return;
         }
         if(setting instanceof BlockTargetSetting target){
@@ -282,7 +282,7 @@ final class MainGUISettingInteractionController {
         float sliderAreaW = iw / 3.0f;
         float sliderX = ix + iw - sliderAreaW;
         float valueBoxW = 66.0f;
-        float valueBoxH = 32.0f;
+        float valueBoxH = UiLayoutMetrics.inputHeight();
         float valueBoxX = sliderX;
         float valueBoxY = y + (cardH - valueBoxH) / 2.0f;
         float trackX = sliderX + valueBoxW + 14.0f;
@@ -293,7 +293,7 @@ final class MainGUISettingInteractionController {
             boolean sameActive = this.owner.isActiveSliderEditor(setting);
             String value = sameActive ? this.owner.currentTextBuffer() : this.owner.fmtSliderInput(setting);
             float textPad = 6.0f;
-            float fieldTextSize = 12.5f;
+            float fieldTextSize = UiLayoutMetrics.inputFont();
             float startX = valueBoxX + (valueBoxW - (float)value.length() * fieldTextSize * 0.52f) / 2.0f;
             this.owner.focusSliderEditorField(setting);
             this.owner.beginInlineFieldCaretPress(valueBoxX, valueBoxY, valueBoxW, valueBoxH, value, fieldTextSize, startX, mx, my);
@@ -338,14 +338,15 @@ final class MainGUISettingInteractionController {
         }
         float fieldW = this.owner.textInlineFieldWidthForRow(iw);
         float fieldX = ix + iw - fieldW;
-        float fieldY = y + (cardH - 32.0f) / 2.0f;
+        float fieldH=UiLayoutMetrics.inputHeight();
+        float fieldY = y + (cardH - fieldH) / 2.0f;
         float textPad = 6.0f;
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         String value = this.owner.currentTextBuffer();
         float visibleTextW = fieldW - textPad * 2.0f;
         float textOffset = sameActive ? this.owner.inlineTextScrollOffsetApproxFor(value, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;
         float startX = fieldX + textPad - textOffset;
-        this.owner.beginInlineFieldCaretPress(fieldX, fieldY, fieldW, 32.0f, value, fieldTextSize, startX, mx, my);
+        this.owner.beginInlineFieldCaretPress(fieldX, fieldY, fieldW, fieldH, value, fieldTextSize, startX, mx, my);
     }
 
     private void handleListClick(ListSetting list, float mx, float my, float y, float rowW, float ix, float iw) {
@@ -378,7 +379,7 @@ final class MainGUISettingInteractionController {
                 }
                 this.owner.focusListEditorItem(list, i);
                 float textPad = 6.0f;
-                float fieldTextSize = 12.5f;
+                float fieldTextSize = UiLayoutMetrics.inputFont();
                 String value = this.owner.currentTextBuffer();
                 float visibleTextW = fieldW - textPad * 2.0f;
                 float textOffset = sameActive ? this.owner.inlineTextScrollOffsetApproxFor(value, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;

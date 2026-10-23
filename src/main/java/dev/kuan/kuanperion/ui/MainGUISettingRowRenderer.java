@@ -50,7 +50,7 @@ final class MainGUISettingRowRenderer {
         List<String> labelLines = this.owner.wrapSettingLabelForRow(nvg, setting, w);
         float labelFontSize = this.owner.settingLabelFontSizeForRow(setting);
         float labelLineStep = this.owner.settingLabelLineStepForRow(setting);
-        float labelBlockH = (float)labelLines.size() * labelLineStep;
+        float labelBlockH = Math.max(0,labelLines.size()-1)*labelLineStep+labelFontSize;
         switch (setting.getType()) {
             case TOGGLE: {
                 this.renderToggle(nvg, (ToggleSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
@@ -111,7 +111,7 @@ final class MainGUISettingRowRenderer {
         }
         if(descriptionH>0){
             var lines=this.owner.wrapTextForWidth(nvg,setting.getDescription(),"Inter-Regular",10.5f,innerW);
-            for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,y+cardH+1+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);
+            for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),innerX,y+cardH-UiLayoutMetrics.TITLE_TOP+UiLayoutMetrics.descriptionGap()+i*13*MainGUI.uiTextScale,10.5f,Theme.TEXT_MUTED);
         }
     }
 
@@ -119,29 +119,29 @@ final class MainGUISettingRowRenderer {
         float titleY = y + 7.0f;
         nvg.text("Inter-Bold", setting.getName().toUpperCase(), x + 4.0f, titleY, 10.0f, Theme.ACCENT_PRIMARY);
         if (!setting.getDescription().isBlank()) {
-            nvg.text("Inter-Regular", setting.getDescription(), x + 4.0f, titleY + 15.0f, 11.5f, Theme.TEXT_SECONDARY);
+            nvg.text("Inter-Regular", setting.getDescription(), x + 4.0f, titleY + 10.0f + UiLayoutMetrics.descriptionGap(), UiLayoutMetrics.DESCRIPTION_FONT, Theme.TEXT_SECONDARY);
         }
         nvg.rect(x + 4.0f, y + h - 7.0f, Math.max(0.0f, w - 8.0f), 1.0f, Theme.SEPARATOR);
     }
 
     private void renderSelectionAction(NVGRenderer nvg,SelectionActionSetting setting,float x,float w,float y,float h,List<String> labels,float font,float lineStep,float labelH) {
         for(int i=0;i<labels.size();i++)nvg.text("Inter-Regular",labels.get(i),x,y+(h-labelH)/2+i*lineStep,font,Theme.TEXT_LABEL);
-        float fieldX=InlineRowLayout.countFieldX(x,w),fieldY=y+(h-32)/2;
-        nvg.roundedRect(fieldX,fieldY,60,32,7,Theme.BG_FIELD);
+        float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(x,w),fieldY=y+(h-fieldH)/2;
+        nvg.roundedRect(fieldX,fieldY,60,fieldH,4,Theme.BG_FIELD);
         boolean active=this.owner.isActiveSliderEditor(setting);
-        nvg.rectOutline(fieldX,fieldY,60,32,7,1,active?Theme.ACCENT_PRIMARY:Theme.BORDER_DEFAULT);
-        if(active)this.owner.setEditorBounds(fieldX,fieldY,60,32);
-        nvg.textCentered("Inter-Mono",active?this.owner.currentTextBuffer():Integer.toString(Math.round(setting.getValue())),fieldX,fieldY,60,32,12.5f,Theme.TEXT_VALUE);
+        nvg.rectOutline(fieldX,fieldY,60,fieldH,4,1,active?Theme.ACCENT_PRIMARY:Theme.BORDER_DEFAULT);
+        if(active)this.owner.setEditorBounds(fieldX,fieldY,60,fieldH);
+        nvg.textCentered("Inter-Mono",active?this.owner.currentTextBuffer():Integer.toString(Math.round(setting.getValue())),fieldX,fieldY,60,fieldH,UiLayoutMetrics.inputFont(),Theme.TEXT_VALUE);
         if(active && System.currentTimeMillis()/530%2==0) {
-            String value=this.owner.currentTextBuffer();float size=12.5f;
+            String value=this.owner.currentTextBuffer();float size=UiLayoutMetrics.inputFont();
             float start=fieldX+(60-nvg.textWidth("Inter-Mono",value,size))/2;
             float caret=start+nvg.textWidth("Inter-Mono",this.owner.safeTextSlice(value,0,this.owner.currentTextCursor()),size);
-            nvg.rect(Math.max(fieldX+4,Math.min(fieldX+56,caret)),fieldY+6,1,20,Theme.TEXT_PRIMARY);
+            nvg.rect(Math.max(fieldX+4,Math.min(fieldX+56,caret)),fieldY+3,1,fieldH-6,Theme.TEXT_PRIMARY);
         }
-        float buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
-        nvg.roundedRect(buttonX,fieldY,buttonW,32,7,Theme.withAlpha(Theme.ACCENT_PRIMARY,.12f));
-        nvg.rectOutline(buttonX,fieldY,buttonW,32,7,1,Theme.ACCENT_PRIMARY);
-        nvg.textCentered("Inter-Regular","開始選擇目標方塊",buttonX,fieldY,buttonW,32,11.5f,Theme.ACCENT_PRIMARY);
+        float buttonY=y+(h-24)/2,buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
+        nvg.roundedRect(buttonX,buttonY,buttonW,24,5,Theme.withAlpha(Theme.ACCENT_PRIMARY,.12f));
+        nvg.rectOutline(buttonX,buttonY,buttonW,24,5,1,Theme.ACCENT_PRIMARY);
+        nvg.textCentered("Inter-Regular","開始選擇目標方塊",buttonX,buttonY,buttonW,24,11.5f,Theme.ACCENT_PRIMARY);
     }
 
     private void renderBlockTarget(NVGRenderer nvg,BlockTargetSetting setting,float x,float w,float y,float h,float mx,float my) {
@@ -176,7 +176,7 @@ final class MainGUISettingRowRenderer {
         float sliderAreaW = w / 3.0f;
         float sliderX = x + w - sliderAreaW;
         float valueBoxW = 66.0f;
-        float valueBoxH = 32.0f;
+        float valueBoxH = UiLayoutMetrics.inputHeight();
         float valueBoxX = sliderX;
         float valueBoxY = midY - valueBoxH / 2.0f;
         nvg.roundedRect(valueBoxX, valueBoxY, valueBoxW, valueBoxH, 7.0f, Theme.ELEMENT_BG);
@@ -187,7 +187,7 @@ final class MainGUISettingRowRenderer {
         }
         String valueText = active ? this.owner.currentTextBuffer() : this.owner.formatSliderValue(setting);
         float textPad = 6.0f;
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         float valueWidth = nvg.textWidth("Inter-Mono", valueText, fieldTextSize);
         float drawX = valueBoxX + (valueBoxW - valueWidth) / 2.0f;
         float visibleTextW = valueBoxW - textPad * 2.0f;
@@ -229,13 +229,13 @@ final class MainGUISettingRowRenderer {
         float sliderAreaW = w / 3.0f;
         float sliderX = x + w - sliderAreaW;
         float valueBoxW = 120.0f;
-        float valueBoxH = 32.0f;
+        float valueBoxH = UiLayoutMetrics.inputHeight();
         float valueBoxX = sliderX;
         float valueBoxY = midY - valueBoxH / 2.0f;
         nvg.roundedRect(valueBoxX, valueBoxY, valueBoxW, valueBoxH, 7.0f, Theme.ELEMENT_BG);
         nvg.rectOutline(valueBoxX, valueBoxY, valueBoxW, valueBoxH, 7.0f, 1.0f, Theme.BORDER_DEFAULT);
         String valueText = this.owner.formatRangeSliderValue(setting);
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         float valueWidth = nvg.textWidth("Inter-Mono", valueText, fieldTextSize);
         nvg.text("Inter-Mono", valueText, valueBoxX + (valueBoxW - valueWidth) / 2.0f, valueBoxY + (valueBoxH - fieldTextSize) / 2.0f, fieldTextSize, Theme.TEXT_VALUE);
         float trackX = sliderX + valueBoxW + 14.0f;
@@ -266,15 +266,15 @@ final class MainGUISettingRowRenderer {
         }
         float fieldW = this.owner.textInlineFieldWidthForRow(w);
         float fieldX = x + w - fieldW;
-        float fieldY = y + (cardH - 32.0f) / 2.0f;
-        float fieldH = 32.0f;
+        float fieldH = UiLayoutMetrics.inputHeight();
+        float fieldY = y + (cardH - fieldH) / 2.0f;
         nvg.roundedRect(fieldX, fieldY, fieldW, fieldH, 7.0f, Theme.BG_FIELD);
         nvg.rectOutline(fieldX, fieldY, fieldW, fieldH, 7.0f, 1.0f, active ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT);
         if (active) {
             this.owner.setEditorBounds(fieldX, fieldY, fieldW, fieldH);
         }
         float textPad = 6.0f;
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         String display = active ? this.owner.currentTextBuffer() : setting.getValue();
         float visibleTextW = fieldW - textPad * 2.0f;
         float textOffset = active ? this.owner.inlineTextScrollOffsetFor(nvg, "Inter-Regular", display, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;
@@ -295,7 +295,7 @@ final class MainGUISettingRowRenderer {
         if (active && System.currentTimeMillis() / 530L % 2L == 0L) {
             String prefix = this.owner.safeTextSlice(display, 0, this.owner.currentTextCursor());
             float caretX = drawX + nvg.textWidth("Inter-Regular", prefix, fieldTextSize);
-            nvg.rect(caretX, fieldY + 5.0f, 1.0f, fieldH - 10.0f, Theme.TEXT_PRIMARY);
+            nvg.rect(caretX, fieldY + 3.0f, 1.0f, fieldH - 6.0f, Theme.TEXT_PRIMARY);
         }
         this.owner.popContentLocalScissor(nvg, clipped);
     }
@@ -366,7 +366,7 @@ final class MainGUISettingRowRenderer {
             boolean hasValue = i < values.size();
             boolean active = this.owner.isActiveListEditor(setting, i);
             String display = hasValue ? values.get(i) : "";
-            float fieldTextSize = 12.5f;
+            float fieldTextSize = UiLayoutMetrics.inputFont();
             nvg.roundedRect(x, rowY, fieldW, 32.0f, 7.0f, Theme.BG_FIELD);
             nvg.rectOutline(x, rowY, fieldW, 32.0f, 7.0f, 1.0f, active ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT);
             if (active) {
@@ -415,7 +415,7 @@ final class MainGUISettingRowRenderer {
         float itemH = 32.0f;
         float gap = 6.0f;
         float actW = 24.0f;
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         float textPad = 6.0f;
         float itemFieldW = w - actW * 3.0f - gap * 3.0f;
         for (int i = 0; i < values.size(); ++i) {
@@ -464,7 +464,7 @@ final class MainGUISettingRowRenderer {
         nvg.roundedRect(boxX, boxY, boxW, boxH, 7.0f, Theme.BG_FIELD);
         nvg.rectOutline(boxX, boxY, boxW, boxH, 7.0f, 1.0f, open ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT);
         float textPad = 6.0f;
-        float fieldTextSize = 12.5f;
+        float fieldTextSize = UiLayoutMetrics.inputFont();
         boolean clipped = this.owner.pushContentLocalScissor(nvg, boxX + textPad, boxY + 1.0f, boxW - 30.0f - textPad, boxH - 2.0f);
         nvg.text("Inter-Regular", setting.getSelectedOption(), boxX + textPad, boxY + (boxH - fieldTextSize) / 2.0f, fieldTextSize, Theme.TEXT_PRIMARY);
         this.owner.popContentLocalScissor(nvg, clipped);
@@ -542,7 +542,7 @@ final class MainGUISettingRowRenderer {
             }
             String display = active ? this.owner.currentTextBuffer() : String.format("%.1f", values[i]);
             float textPad = 6.0f;
-            float fieldTextSize = 12.5f;
+            float fieldTextSize = UiLayoutMetrics.inputFont();
             float visibleTextW = valueW - textPad * 2.0f;
             float textOffset = active ? this.owner.inlineTextScrollOffsetApproxFor(display, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;
             float drawX = boxX[i] + textPad - textOffset;

@@ -34,7 +34,10 @@ implements Setting {
     }
 
     public String getBoundKeyName() {
-        return dev.kuan.kuanperion.HotkeyChord.prefix(getModifiers())+this.keyMapping.getTranslatedKeyMessage().getString();
+        var key=InputConstants.getKey(keyMapping.saveString());
+        String name=keyMapping.getTranslatedKeyMessage().getString();
+        if(key.getType()==InputConstants.Type.KEYSYM)name=dev.kuan.kuanperion.HotkeyChord.keyName(key.getValue(),name);
+        return dev.kuan.kuanperion.HotkeyChord.prefix(getModifiers())+name;
     }
 
     public boolean isDefault() {

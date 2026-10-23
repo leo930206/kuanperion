@@ -4,6 +4,10 @@ import java.util.Map;
 public final class SettingDescriptionCatalog {
  private SettingDescriptionCatalog(){}
  private static final Map<String,String> HELP=Map.ofEntries(
+  Map.entry("漸層範圍","越小白色留白越多；只縮小角落色彩範圍，不改主底色。"),
+  Map.entry("漸層濃度","越小藍粉越淡；0 為不顯示，1 保留色票原始透明度。"),
+  Map.entry("說明間距","群組與各設定共用的標題／說明間隔；預設 6，可增大。"),
+  Map.entry("輸入框高度","調整數字與單行文字框高度；不影響快捷鍵按鈕或多行文字區。"),
   Map.entry("工具偵測","拿錯農耕工具時暫停動作；換回對應工具後繼續，不會自動換工具。"),
   Map.entry("智慧暫停","開啟背包、聊天室或選單時暫停；關閉畫面後依原本流程繼續。"),
   Map.entry("異常狀況處理","啟用原有掉落／換世界回復流程；非預期停滯滿 5 秒可通知 Discord，需設定 Webhook。"),
@@ -25,5 +29,5 @@ public final class SettingDescriptionCatalog {
   if(setting.getType()==SettingType.KEYBIND)return "先按住所需 Ctrl／Shift／Alt／Command，再按主鍵；也可直接按單鍵。Esc 取消，Delete／Backspace 清除。";
   return HELP.getOrDefault(setting.getRawName(),setting.getName());
  }
- public static boolean inlineHelp(Setting setting){return !describe(setting).equals(setting.getName())&&(setting.getType()==SettingType.TOGGLE||setting.getType()==SettingType.SLIDER);}
+ public static boolean inlineHelp(Setting setting){return !describe(setting).equals(setting.getName())&&(setting.getType()==SettingType.TOGGLE||setting.getType()==SettingType.SLIDER||setting.getType()==SettingType.TEXT);}
 }

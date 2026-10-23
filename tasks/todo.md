@@ -15,3 +15,9 @@
 - [x] Explanations/CJK height correction; actual selected targets and material icons.
 - [x] Final runtime screenshot verification, regressions, build/source review.
 - [x] Update docs and prepare verified safe installation/release; Git publication is recorded by release commit/tag.
+
+## 2.0.2 appearance refinement
+- [x] Light sky main text/icons; neutral descriptions; lower gradient coverage/strength.
+- [x] Shared configurable gap, compact input drawing/hit testing/caret, Latin key labels.
+- [x] Previous-default-only migration/backup, custom preservation, policy/model/regression tests.
+- [x] Actual client screenshots/input validation, regressions/build and release preparation; publication is recorded by commit/tag.

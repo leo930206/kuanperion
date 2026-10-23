@@ -71,6 +71,7 @@ public class Theme {
     public static int GRADIENT_BLUE = SkyThemePalette.color("Gradient Blue");
     public static int GRADIENT_PINK = SkyThemePalette.color("Gradient Pink");
     public static boolean GRADIENT_ENABLED = true;
+    public static float GRADIENT_COVERAGE = .48f, GRADIENT_STRENGTH = .60f;
     public static final int PADDING = 8;
     public static final int MARGIN = 4;
     public static final int CORNER_RADIUS = 4;
@@ -219,8 +220,12 @@ public class Theme {
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
         obj.addProperty("uiScale", (Number)Float.valueOf(UI_SCALE));
         obj.addProperty("textScale", (Number)Float.valueOf(TEXT_SCALE));
-        obj.addProperty("themeSchema", 1);
+        obj.addProperty("themeSchema", 2);
         obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
+        obj.addProperty("gradientCoverage",GRADIENT_COVERAGE);
+        obj.addProperty("gradientStrength",GRADIENT_STRENGTH);
+        obj.addProperty("descriptionGap",dev.kuan.kuanperion.ui.UiLayoutMetrics.descriptionGap());
+        obj.addProperty("inputHeight",dev.kuan.kuanperion.ui.UiLayoutMetrics.inputHeight());
         JsonArray rainbowArr = new JsonArray();
         for (String s : rainbowEntries) {
             rainbowArr.add(s);
@@ -247,6 +252,12 @@ public class Theme {
             boolean rainbow = obj.has("rainbowEntries") && !obj.getAsJsonArray("rainbowEntries").isEmpty()
                 || obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean();
             boolean migrateDefault = !obj.has("themeSchema") && SkyThemePalette.isLegacyDefault(savedColors, rainbow);
+            boolean migrateSky = (!obj.has("themeSchema") || obj.get("themeSchema").getAsInt()<2)
+                && SkyThemePalette.isPreviousSkyDefault(savedColors,rainbow);
+            if(migrateSky){
+                var skyBackup=THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-light-sky.bak");
+                if(!java.nio.file.Files.exists(skyBackup))java.nio.file.Files.copy(THEME_FILE.toPath(),skyBackup);
+            }
             if (migrateDefault) {
                 var backup = THEME_FILE.toPath().resolveSibling("kuanperion-theme.before-sky-blossom.bak");
                 if (!java.nio.file.Files.exists(backup)) java.nio.file.Files.copy(THEME_FILE.toPath(), backup);
@@ -280,7 +291,14 @@ public class Theme {
             } else if (obj.has("rainbowTheme") && obj.get("rainbowTheme").getAsBoolean()) {
                 rainbowEntries.add("Accent");
             }
-            if (migrateDefault) { resetMenuColorsToDefaults(); saveTheme(); }
+            loadAppearance(obj);
+            if(migrateDefault || migrateSky){
+                // Exact previous default only; preserve custom colors, toggle, UI scale and HUD values.
+                boolean enabled=GRADIENT_ENABLED;
+                resetMenuColorsToDefaults();
+                if(migrateSky)GRADIENT_ENABLED=enabled;
+                saveTheme();
+            }
         }
         catch (Exception ex) {
             ex.printStackTrace();
@@ -297,8 +315,12 @@ public class Theme {
         }
         obj.addProperty("animSpeed", (Number)Float.valueOf(ANIM_TIME_MS));
         obj.addProperty("settingSpacing", (Number)SETTING_SPACING);
-        obj.addProperty("themeSchema", 1);
+        obj.addProperty("themeSchema", 2);
         obj.addProperty("gradientEnabled", GRADIENT_ENABLED);
+        obj.addProperty("gradientCoverage",GRADIENT_COVERAGE);
+        obj.addProperty("gradientStrength",GRADIENT_STRENGTH);
+        obj.addProperty("descriptionGap",dev.kuan.kuanperion.ui.UiLayoutMetrics.descriptionGap());
+        obj.addProperty("inputHeight",dev.kuan.kuanperion.ui.UiLayoutMetrics.inputHeight());
         JsonArray rainbowArr2 = new JsonArray();
         for (String s : rainbowEntries) {
             rainbowArr2.add(s);
@@ -328,6 +350,7 @@ public class Theme {
             if (obj.has("settingSpacing")) {
                 SETTING_SPACING = Math.max(0, Math.min(20, obj.get("settingSpacing").getAsInt()));
             }
+            loadAppearance(obj);
             rainbowEntries.clear();
             if (obj.has("rainbowEntries")) {
                 obj.get("rainbowEntries").getAsJsonArray().forEach(e -> rainbowEntries.add(e.getAsString()));
@@ -340,8 +363,16 @@ public class Theme {
         }
     }
 
+    private static void loadAppearance(JsonObject obj) {
+        if(obj.has("gradientCoverage"))GRADIENT_COVERAGE=finiteRange(obj.get("gradientCoverage").getAsFloat(),.25f,1,.48f);
+        if(obj.has("gradientStrength"))GRADIENT_STRENGTH=finiteRange(obj.get("gradientStrength").getAsFloat(),0,1,.60f);
+        if(obj.has("descriptionGap"))dev.kuan.kuanperion.ui.UiLayoutMetrics.setDescriptionGap(obj.get("descriptionGap").getAsFloat());
+        if(obj.has("inputHeight"))dev.kuan.kuanperion.ui.UiLayoutMetrics.setInputHeight(obj.get("inputHeight").getAsFloat());
+    }
+
     public static void resetToDefaults() {
         Theme.resetColorsToDefaults();
+        dev.kuan.kuanperion.ui.UiLayoutMetrics.reset();
         ANIM_TIME_MS = 250.0f;
         SETTING_SPACING = 4;
         UI_SCALE = 1.5f;
@@ -352,6 +383,7 @@ public class Theme {
         for (int i = 0; i < ENTRIES.size(); ++i) ENTRIES.get(i).setter.accept(DEFAULT_MENU_COLORS[i]);
         rainbowEntries.clear();
         GRADIENT_ENABLED = true;
+        GRADIENT_COVERAGE=.48f;GRADIENT_STRENGTH=.60f;
     }
 
     public static void resetColorsToDefaults() {

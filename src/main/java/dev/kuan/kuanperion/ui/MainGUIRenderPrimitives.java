@@ -63,7 +63,7 @@ final class MainGUIRenderPrimitives {
         float textMaxW = Math.max(80.0f, w - 32.0f - (subTab.hasToggle() ? 62.0f : 0.0f));
         List<String> nameLines = this.textLayout.wrapTextToWidth(nvg, UiLang.localize(subTab.name()), "Inter-Bold", 13.0f, textMaxW);
         List<String> descriptionLines = this.textLayout.wrapTextToWidth(nvg, UiLang.localize(subTab.description()), "Inter-Regular", 10.0f, textMaxW);
-        float descriptionY = y + 38.0f + (float)Math.max(0, Math.min(2, nameLines.size()) - 1) * 12.0f;
+        float descriptionY = y + 19 + 13 + UiLayoutMetrics.descriptionGap() + (float)Math.max(0, Math.min(2, nameLines.size()) - 1) * 15;
         for (i = 0; i < Math.min(2, nameLines.size()); ++i) {
             nvg.text("Inter-Bold", nameLines.get(i), textX, y + 19.0f + (float)i * 15.0f, 13.0f, nameColor);
         }

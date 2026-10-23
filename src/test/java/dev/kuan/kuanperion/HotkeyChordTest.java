@@ -1,6 +1,8 @@
 package dev.kuan.kuanperion;
 public final class HotkeyChordTest {
  public static void main(String[] args){
+  require(HotkeyChord.keyName(77,"ㄇ").equals("M"),"M label independent of IME");
+  require(HotkeyChord.keyName(70,"ㄑ").equals("F"),"F label independent of IME");
   for(int expected=0;expected<16;expected++)for(int actual=0;actual<16;actual++)require(HotkeyChord.matches(expected,actual)==(expected==actual),"exact modifiers");
   require(HotkeyChord.matches(0,16|32),"ignore caps/num lock");
   for(int code=340;code<=347;code++)require(HotkeyChord.isModifierKey(code),"modifier capture waits");

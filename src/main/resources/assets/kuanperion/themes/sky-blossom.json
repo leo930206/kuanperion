@@ -1,5 +1,5 @@
 {
-  "Accent": "FF1474A6",
+  "Accent": "FF58B9EA",
   "Accent 2": "FFE4A3C7",
   "Panel BG": "FFF5FAFE",
   "Hover BG": "FFE2F1FC",
@@ -10,14 +10,14 @@
   "Main Panel BG": "FFFFFFFF",
   "Border": "FF9EB9CE",
   "Separator": "FFCADDEB",
-  "Text": "FF17384E",
-  "Text Dim": "FF4B6579",
-  "Text Muted": "FF526D80",
-  "Text Label": "FF284B63",
-  "Text Value": "FF1474A6",
+  "Text": "FF50AFE1",
+  "Text Dim": "FF7E858A",
+  "Text Muted": "FF6B747A",
+  "Text Label": "FF50AFE1",
+  "Text Value": "FF50AFE1",
   "Group Active": "FFD9ECFA",
   "[Toggle] Track": "FFCADDEB",
-  "[Toggle] Knob": "FF688DA8",
+  "[Toggle] Knob": "FF9AD6F3",
   "[Slider] Left": "FFB8DAEF",
   "[Dropdown] BG": "FFEDF6FC",
   "[Action] BG": "FFEAF4FB",
@@ -25,5 +25,7 @@
   "Gradient Blue": "B37BC6F5",
   "Gradient Pink": "99ECB0CE",
   "gradientEnabled": true,
-  "themeSchema": 1
+  "themeSchema": 2,
+  "gradientCoverage": 0.48,
+  "gradientStrength": 0.6
 }

@@ -22,6 +22,8 @@ public final class MainGUIRegistry {
         var colors=SettingGroup.alwaysOn("選單顏色","原始配色與色彩選擇器；即時預覽並儲存");
         for(var entry:Theme.ENTRIES)colors.add(new ColorSetting(entry.label,entry.getter,v->{entry.setter.accept(v);Theme.saveTheme();}));
         colors.add(new ToggleSetting("藍粉漸層背景",()->Theme.GRADIENT_ENABLED,v->{Theme.GRADIENT_ENABLED=v;Theme.saveTheme();}));
+        colors.add(new SliderSetting("漸層範圍",.25f,1f,()->Theme.GRADIENT_COVERAGE,v->{Theme.GRADIENT_COVERAGE=v;Theme.saveTheme();}).withDecimals(2));
+        colors.add(new SliderSetting("漸層濃度",0f,1f,()->Theme.GRADIENT_STRENGTH,v->{Theme.GRADIENT_STRENGTH=v;Theme.saveTheme();}).withDecimals(2));
         colors.add(new ActionSetting("重設顏色",()->{Theme.resetColorsToDefaults();Theme.saveTheme();}));
         COLORS_SUBTABS.add(new ModulesTab.SubTab("Menu Colors","介面主題色彩",List.of(colors)));
         var keys=SettingGroup.alwaysOn("快捷鍵","點擊後按下單鍵或組合鍵，例如 F、Ctrl + F、Ctrl + Shift + F；Esc 取消");
@@ -31,8 +33,10 @@ public final class MainGUIRegistry {
             .add(new SliderSetting("介面大小",Theme.UI_SCALE_MIN,Theme.UI_SCALE_MAX,()->Theme.UI_SCALE,v->{Theme.UI_SCALE=v;Theme.saveTheme();}).withDecimals(2))
             .add(new SliderSetting("文字大小",Theme.TEXT_SCALE_MIN,Theme.TEXT_SCALE_MAX,()->Theme.TEXT_SCALE,v->{Theme.TEXT_SCALE=v;Theme.saveTheme();}).withDecimals(2))
             .add(new SliderSetting("動畫時間",Theme.ANIM_TIME_MIN_MS,Theme.ANIM_TIME_MAX_MS,()->Theme.ANIM_TIME_MS,v->{Theme.ANIM_TIME_MS=v;Theme.saveTheme();}).withDecimals(0).withSuffix(" ms"))
+            .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
+            .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
             .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.1 · Minecraft 26.2 · 僅本機介面"));
+            .add(new InfoSetting("Kuanperion",()->"2.0.2 · Minecraft 26.2 · 僅本機介面"));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
         populated=true;
     }

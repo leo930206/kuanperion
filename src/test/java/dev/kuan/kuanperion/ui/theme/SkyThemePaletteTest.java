@@ -1,7 +1,7 @@
 package dev.kuan.kuanperion.ui.theme;
 import java.util.*;
 public final class SkyThemePaletteTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         var old=new HashMap<String,String>(Map.ofEntries(
             Map.entry("Accent","FFD32F2F"),
             Map.entry("Accent 2","FFB71C1C"),
@@ -36,16 +36,25 @@ public final class SkyThemePaletteTest {
         require(SkyThemePalette.isLegacyDefault(old,false),"case insensitive color");
         old.remove("Text Label");
         require(!SkyThemePalette.isLegacyDefault(old,false),"partial file is not default");
+        require(SkyThemePalette.color("Accent")==0xFF58B9EA,"accent is light sky blue, not deep blue");
         int white=SkyThemePalette.color("Main Panel BG");
         require(white==0xFFFFFFFF,"white main surface");
-        for(String label:List.of("Text","Text Dim","Text Muted","Text Label","Text Value","Accent")) {
+        for(String label:List.of("Text","Text Label","Text Value","Accent")) {
             int color=SkyThemePalette.color(label);
-            require(contrast(color,white)>=4.5,"readable text on white: "+label);
-            require(contrast(color,0xFFE4F3FF)>=4.5,"readable text on blue wash: "+label);
+            require((color>>8&255)>=165 && (color&255)>=215 && (color>>16&255)>=65,"light sky label instead of deep blue: "+label);
+            require(contrast(color,white)>=2,"light-label visibility floor: "+label);
         }
+        int help=SkyThemePalette.color("Text Muted");
+        require(contrast(help,white)>=4.5,"neutral explanation contrast");
+        require(Math.abs((help>>16&255)-(help&255))<25,"explanation is neutral gray, not deep blue");
+        var previousField=SkyThemePalette.class.getDeclaredField("PREVIOUS_SKY");previousField.setAccessible(true);
+        @SuppressWarnings("unchecked") var previous=new HashMap<String,String>((Map<String,String>)previousField.get(null));
+        require(SkyThemePalette.isPreviousSkyDefault(previous,false),"recognize complete 2.0.1 default");
+        require(!SkyThemePalette.isPreviousSkyDefault(previous,true),"keep custom rainbow theme");
+        previous.put("Text","FF123456");require(!SkyThemePalette.isPreviousSkyDefault(previous,false),"keep custom 2.0.1 text");
         require((SkyThemePalette.color("Gradient Blue")&255)>((SkyThemePalette.color("Gradient Blue")>>16)&255),"blue wash");
         require(((SkyThemePalette.color("Gradient Pink")>>16)&255)>((SkyThemePalette.color("Gradient Pink")>>8)&255),"pink wash");
-        System.out.println("SkyThemePaletteTest: PASS (white/blue/pink, contrast, exact legacy migration/custom preservation)");
+        System.out.println("SkyThemePaletteTest: PASS (light sky labels / neutral explanations / previous-default migration / custom preservation)");
     }
     private static double lum(int color) {double sum=0;double[] weight={.2126,.7152,.0722};for(int i=0;i<3;i++){double c=((color>>(16-8*i))&255)/255.0;sum+=weight[i]*(c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));}return sum;}
     private static double contrast(int a,int b) {double x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}

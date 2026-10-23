@@ -115,7 +115,7 @@ final class MainGUISearchPanel {
         this.owner.offerHoverHelp("search-result:" + result.mainTab() + ":" + result.subtab().name() + ":" + title, UiLang.localize(title), MainGUISearchPanel.resultTooltip(result), x, y, w, 54.0f, mx, my);
         nvg.text("Inter-Bold", UiLang.localize(title), x + 14.0f, y + 10.0f, 12.5f, hovered ? Theme.TEXT_PRIMARY : Theme.TEXT_VALUE);
         String context = result.setting() == null ? UiLang.localize("Module settings") : (result.group() == null ? result.subtab().name() : result.group().getName());
-        nvg.text("Inter-Regular", UiLang.localize(context), x + 14.0f, y + 31.0f, 10.5f, Theme.TEXT_MUTED);
+        nvg.text("Inter-Regular", UiLang.localize(context), x + 14.0f, y + 10 + 12.5f + UiLayoutMetrics.descriptionGap(), 10.5f, Theme.TEXT_MUTED);
         nvg.textRight("Inter-Regular", "\u2192", x, y + 16.0f, w - 14.0f, 18.0f, hovered ? Theme.ACCENT_PRIMARY : Theme.TEXT_DIM);
     }
 

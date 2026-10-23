@@ -22,10 +22,14 @@ final class MainGUITextLayout {
 
     float descriptionHeight(Setting setting,float rowW) {
         if(!SettingDescriptionCatalog.inlineHelp(setting))return 0;
-        return 6 + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),Math.max(40,rowW-32),10.5f * MainGUI.uiTextScale);
+        return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),Math.max(40,rowW-32),10.5f * MainGUI.uiTextScale);
     }
     float settingHeight(Setting setting, float rowW) {
         if(setting instanceof BlockTargetSetting)return 66;
+        if(SettingDescriptionCatalog.inlineHelp(setting)) {
+            float labelHeight=(wrappedSettingLabelLineCount(setting,rowW)-1)*settingLabelLineStep(setting)+settingLabelFontSize(setting);
+            return 2*UiLayoutMetrics.TITLE_TOP+labelHeight+descriptionHeight(setting,rowW)+UiLayoutMetrics.ROW_GAP;
+        }
 
         float extraLines = Math.max(0, this.wrappedSettingLabelLineCount(setting, rowW) - 1);
         return descriptionHeight(setting,rowW) + switch (setting.getType()) {

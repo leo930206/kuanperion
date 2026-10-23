@@ -3,6 +3,14 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(UiLayoutMetrics.inputHeight()==16,"compact input default");
+        require(UiLayoutMetrics.descriptionTop(13.5f)-UiLayoutMetrics.TITLE_TOP-13.5f==6,"uniform six-pixel description gap");
+        require(UiLayoutMetrics.descriptionGap()==6,"group and setting share description gap");
+        var helpToggle=new ToggleSetting("工具偵測",()->false,v->{});var metrics=new MainGUITextLayout();
+        float controlH=metrics.settingHeight(helpToggle,600)-5-metrics.descriptionHeight(helpToggle,600);
+        require(controlH==2*UiLayoutMetrics.TITLE_TOP+metrics.settingLabelFontSize(helpToggle),"title no longer vertically centers far above description");
+        UiLayoutMetrics.setInputHeight(Float.NaN);require(UiLayoutMetrics.inputHeight()==16,"invalid height resets default");
+        UiLayoutMetrics.setInputHeight(100);require(UiLayoutMetrics.inputHeight()==24,"input height bounded");UiLayoutMetrics.reset();
         boolean[] notify={false};String[] seconds={""};
         var combined=new InlineToggleSetting("螢幕通知","顯示時間",()->seconds[0],v->seconds[0]=v,()->notify[0],v->notify[0]=v);
         require(combined.getValue().isEmpty() && combined.getPlaceholder().equals("顯示時間"),"blank duration placeholder");

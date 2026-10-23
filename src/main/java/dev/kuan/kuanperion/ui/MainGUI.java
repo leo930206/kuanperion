@@ -327,7 +327,7 @@ extends NVGScreen {
         float bodySize = 11.0f;
         float padX = 12.0f;
         float padY = 10.0f;
-        float titleGap = 6.0f;
+        float titleGap = UiLayoutMetrics.descriptionGap();
         float bodyStep = 14.0f;
         List<String> bodyLines = this.wrapTextForWidth(nvg, this.hoverHelpCandidateDescription, "Inter-Regular", bodySize, maxTextW);
         if (bodyLines.isEmpty()) {
@@ -896,7 +896,7 @@ extends NVGScreen {
             nvg.globalAlpha(this.alpha);
             nvg.shadow(this.px, this.py, this.pw, this.ph, 10.0f, 26.0f, Theme.panelShadow());
             nvg.roundedRect(this.px, this.py, this.pw, this.ph, 10.0f, Theme.PANEL_BG);
-            if (Theme.GRADIENT_ENABLED) nvg.cornerWash(this.px, this.py, this.pw, this.ph, 10.0f, Theme.GRADIENT_BLUE, Theme.GRADIENT_PINK);
+            if (Theme.GRADIENT_ENABLED) nvg.cornerWash(this.px, this.py, this.pw, this.ph, 10.0f, Theme.GRADIENT_BLUE, Theme.GRADIENT_PINK, Theme.GRADIENT_COVERAGE, Theme.GRADIENT_STRENGTH);
             nvg.rectOutline(this.px, this.py, this.pw, this.ph, 10.0f, 1.0f, Theme.BORDER_DEFAULT);
             nvg.restore();
             nvg.save();
@@ -1025,8 +1025,8 @@ extends NVGScreen {
         nvg.rectOutline(x, y, w, 46.0f, 6.0f, 0.8f, Theme.blend(Theme.SEPARATOR, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.22f), lerp));
         int titleColor = interactive ? Theme.TEXT_PRIMARY : Theme.withAlpha(Theme.TEXT_DIM, 210);
         int descColor = interactive ? Theme.TEXT_SECONDARY : Theme.withAlpha(Theme.TEXT_DIM, 170);
-        nvg.text("Inter-Bold", UiLang.localize(group.getName()), x + 12.0f, y + 9.0f, 13.0f, titleColor);
-        nvg.text("Inter-Regular", UiLang.localize(group.getDescription()), x + 12.0f, y + 26.0f, 10.0f, descColor);
+        nvg.text("Inter-Bold", UiLang.localize(group.getName()), x + 12.0f, y + UiLayoutMetrics.TITLE_TOP, 13.5f, titleColor);
+        nvg.text("Inter-Regular", UiLang.localize(group.getDescription()), x + 12.0f, y + UiLayoutMetrics.descriptionTop(13.5f), UiLayoutMetrics.DESCRIPTION_FONT, descColor);
         this.offerHoverHelp("group:" + group.getRawName(), group.getName(), group.getDescription(), x, y, w, 46.0f, mx, my);
         if (this.isPetTrackerGroup(group)) {
             this.renderPetTrackerHeaderButtons(nvg, group, x + w - 12.0f, y + 12.0f, 22.0f, mx, my);
