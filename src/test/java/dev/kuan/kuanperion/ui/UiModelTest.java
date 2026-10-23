@@ -51,11 +51,14 @@ public final class UiModelTest {
             var store=new dev.kuan.kuanperion.ui.theme.ColorPresetStore(paletteDir);int[] applied={0};
             var preset=new ColorPresetSetting(1,store,()->palette,j->applied[0]++);
             require(!preset.load()&&applied[0]==0,"empty slot no-op");
+            require(!preset.isVisible(),"empty palette collection has no numbered rows");
             require(preset.save(1000)==ColorPresetSetting.SaveResult.SAVED,"first save");
+            require(preset.isVisible()&&!preset.previewColors().isEmpty(),"saved palette row has swatches");
             require(preset.load()&&applied[0]==1,"one-click load");
             require(preset.save(2000)==ColorPresetSetting.SaveResult.CONFIRM,"overwrite confirmation");
             require(preset.save(8000)==ColorPresetSetting.SaveResult.CONFIRM,"confirmation expires");
             require(preset.save(8100)==ColorPresetSetting.SaveResult.SAVED,"second click saves");
+            preset.delete();require(!preset.isVisible()&&preset.previewColors().isEmpty(),"delete hides row without touching current theme");
         }finally{try(var paths=java.nio.file.Files.walk(paletteDir)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}}
         boolean[] notify={false};String[] seconds={""};
         var combined=new InlineToggleSetting("螢幕通知","顯示時間",()->seconds[0],v->seconds[0]=v,()->notify[0],v->notify[0]=v);
@@ -102,6 +105,11 @@ public final class UiModelTest {
             float scale=UiScalePolicy.effective(size[0],size[1],1.5f);
             var frame=new MainGUILayout().computeFrameLayout(size[0],size[1],1,scale,60);
             require(Math.abs(frame.px+frame.pw/2-frame.physW/scale/2)<.01f && Math.abs(frame.py+frame.ph/2-frame.physH/scale/2)<.01f,"resize roundtrip always centers");
+        }
+        for(float width:new float[]{360,600,1000}){
+            require(ColorPresetRow.saveX(12,width)>12,"reserved swatch area");
+            require(ColorPresetRow.saveX(12,width)+ColorPresetRow.BUTTON_W+ColorPresetRow.BUTTON_GAP==ColorPresetRow.deleteX(12,width),"save/delete gap");
+            require(ColorPresetRow.columns(width)*(ColorPresetRow.SWATCH+ColorPresetRow.SWATCH_GAP)-ColorPresetRow.SWATCH_GAP<=ColorPresetRow.saveX(0,width)-16,"swatches do not overlap controls");
         }
         System.out.println("UiModelTest: PASS (live bindings, bounds, Chinese text, word navigation, original spring animation, geometry, adaptive scale)");
     }

@@ -35,10 +35,17 @@ public final class MainGUIRegistry {
         colors.add(new ActionSetting("重設顏色",()->{Theme.resetColorsToDefaults();Theme.saveTheme();}));
         COLORS_SUBTABS.add(new ModulesTab.SubTab("Menu Colors","介面主題色彩",List.of(colors)));
         var store=new dev.kuan.kuanperion.ui.theme.ColorPresetStore(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/color-presets"));
-        var savedColors=SettingGroup.alwaysOn("配色收藏","最多五組；點擊配色立即載入，右側按鈕儲存／再次確認覆寫；只儲存顏色與漸層");
+        var savedColors=SettingGroup.alwaysOn("配色收藏","自行新增，最多五組；點色票載入，右側儲存或刪除；色塊順序與下方選單顏色一致");
+        var palettes=new ArrayList<ColorPresetSetting>();
         for(int slot=1;slot<=dev.kuan.kuanperion.ui.theme.ColorPresetStore.LIMIT;slot++){
-            savedColors.add(new ColorPresetSetting(slot,store,()->com.google.gson.JsonParser.parseString(Theme.exportJson()).getAsJsonObject(),palette->{Theme.importJson(palette.toString());Theme.saveTheme();}));
+            var palette=new ColorPresetSetting(slot,store,()->com.google.gson.JsonParser.parseString(Theme.exportJson()).getAsJsonObject(),colorsJson->{Theme.importJson(colorsJson.toString());Theme.saveTheme();},Theme.ENTRIES.stream().map(e->e.label).toList());
+            palettes.add(palette);savedColors.add(palette);
         }
+        savedColors.add(new ActionSetting("新增配色",()->{
+            int slot=store.firstEmptySlot();if(slot==0)return;
+            try{palettes.get(slot-1).save(System.currentTimeMillis());}
+            catch(java.io.IOException|RuntimeException error){dev.kuan.kuanperion.notification.NotificationManager.error("配色收藏","新增失敗，原配色保留");}
+        }).visibleWhen(()->store.firstEmptySlot()!=0));
         COLORS_SUBTABS.add(0,new ModulesTab.SubTab("配色收藏","五個本機配色儲存槽",List.of(savedColors)));
         var keys=SettingGroup.alwaysOn("快捷鍵","點擊後按下單鍵或組合鍵，例如 F、Ctrl + F、Ctrl + Shift + F；Esc 取消");
         for(var setting:KuanperionClient.uiKeybinds())keys.add(setting);
@@ -50,7 +57,7 @@ public final class MainGUIRegistry {
             .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
             .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
             .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.10 · Minecraft 26.2 · 僅本機介面"));
+            .add(new InfoSetting("Kuanperion",()->"2.0.11 · Minecraft 26.2 · 僅本機介面"));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
         var about=SettingGroup.alwaysOn("Kuanperion","本機 Fabric 客戶端模組")
             .add(new InfoSetting("Mod Version",MainGUIRegistry::modVersion))

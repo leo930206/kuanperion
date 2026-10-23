@@ -31,6 +31,13 @@ public final class ColorPresetStoreTest {
    expectFailure(()->corrupt.read(3));expectFailure(()->corrupt.read(4));require(corrupt.read(5)!=null,"bad slot isolated");
    corrupt.save(3,source,true);require(new ColorPresetStore(dir).read(3)!=null,"explicit repair by overwrite");
    try(var files=Files.list(dir)){require(files.noneMatch(p->p.toString().endsWith(".tmp")),"no temp file leftovers");}
+   require(corrupt.firstEmptySlot()==0,"full collection cannot add a sixth");
+   String deleted=Files.readString(dir.resolve("slot-2.json"));
+   corrupt.delete(2);require(!corrupt.occupied(2)&&corrupt.firstEmptySlot()==2,"delete frees slot");
+   require(Files.readString(dir.resolve("slot-2.json.deleted.bak")).equals(deleted),"delete retains exact backup");
+   require(!new ColorPresetStore(dir).occupied(2),"deleted palette stays deleted after restart");
+   corrupt.save(2,source,false);require(new ColorPresetStore(dir).occupied(2),"add reuses free slot");
+   expectFailure(()->corrupt.delete(0));expectFailure(()->corrupt.delete(6));
    System.out.println("ColorPresetStoreTest: PASS (five-slot/restart/allowlist/overwrite/backup/corruption/size/atomic cleanup)");
   }finally{try(var paths=Files.walk(dir)){for(Path p:paths.sorted(java.util.Comparator.reverseOrder()).toList())Files.delete(p);}}
  }

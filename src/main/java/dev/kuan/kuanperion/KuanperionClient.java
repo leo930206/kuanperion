@@ -213,6 +213,9 @@ public final class KuanperionClient implements ClientModInitializer {
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
     private static KeyMapping sethomeKey;
+    private static KeyMapping homeKey;
+    private static final HotkeyChord.Edge homeHotkeyEdge = new HotkeyChord.Edge();
+    private static int homeModifiers=0;
     private static final HotkeyChord.Edge sethomeHotkeyEdge = new HotkeyChord.Edge();
     private static int sethomeModifiers=0;
     private static boolean jerryAutoSethomeEnabled=false;
@@ -231,6 +234,7 @@ public final class KuanperionClient implements ClientModInitializer {
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
         sethomeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.sethome", InputConstants.Type.KEYSYM, -1, category));
+        homeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, -1, category));
         try {
             var oldKeys=LegacyConfigMigration.legacyKeyOverrides(new File(Minecraft.getInstance().gameDirectory,"options.txt").toPath());
             var bindings=Map.of("settings",settingsKey,"toggle_mining",toggleMiningKey,"toggle_farming",toggleFarmingKey);
@@ -307,6 +311,7 @@ public final class KuanperionClient implements ClientModInitializer {
         if(miningHotkeyEdge.press(hotkeyDown(toggleMiningKey),HotkeyChord.matches(miningModifiers,modifiers),allowed))toggleMining(mc);
         if(farmingHotkeyEdge.press(hotkeyDown(toggleFarmingKey),HotkeyChord.matches(farmingModifiers,modifiers),allowed))toggleFarming(mc);
         if(sethomeHotkeyEdge.press(hotkeyDown(sethomeKey),HotkeyChord.matches(sethomeModifiers,modifiers),allowed))sendCommand(mc,"sethome");
+        if(homeHotkeyEdge.press(hotkeyDown(homeKey),HotkeyChord.matches(homeModifiers,modifiers),allowed))sendCommand(mc,"home");
     }
 
     public static int currentHotkeyModifiers() {
@@ -2368,6 +2373,7 @@ public final class KuanperionClient implements ClientModInitializer {
     private static void loadConfig() {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(configFile())) { p.load(in); } catch (Throwable ignored) {}
+        homeModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.home.modifiers"),0);
         sethomeModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.sethome.modifiers"),0);
         jerryAutoSethomeEnabled=Boolean.parseBoolean(p.getProperty("jerryAutoSethomeEnabled","false"));
         settingsModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.settings.modifiers"),0);
@@ -2419,6 +2425,7 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void saveConfig() {
         Properties p = new Properties();
+        p.setProperty("hotkey.home.modifiers",Integer.toString(homeModifiers));
         p.setProperty("hotkey.sethome.modifiers",Integer.toString(sethomeModifiers));
         p.setProperty("jerryAutoSethomeEnabled",Boolean.toString(jerryAutoSethomeEnabled));
         p.setProperty("hotkey.settings.modifiers",Integer.toString(settingsModifiers));
@@ -2805,20 +2812,21 @@ public final class KuanperionClient implements ClientModInitializer {
         return List.of(new KeybindSetting("開啟設定",settingsKey,0,()->settingsModifiers,(key,mods)->setUiKeybinding(settingsKey,key,mods)),
             new KeybindSetting("Mining",toggleMiningKey,1,()->miningModifiers,(key,mods)->setUiKeybinding(toggleMiningKey,key,mods)),
             new KeybindSetting("Farming",toggleFarmingKey,1,()->farmingModifiers,(key,mods)->setUiKeybinding(toggleFarmingKey,key,mods)),
-            new KeybindSetting("/sethome",sethomeKey,0,()->sethomeModifiers,(key,mods)->setUiKeybinding(sethomeKey,key,mods)));
+            new KeybindSetting("/sethome",sethomeKey,0,()->sethomeModifiers,(key,mods)->setUiKeybinding(sethomeKey,key,mods)),
+            new KeybindSetting("/home",homeKey,0,()->homeModifiers,(key,mods)->setUiKeybinding(homeKey,key,mods)));
     }
 
     private static boolean setUiKeybinding(KeyMapping mapping,InputConstants.Key key,int modifiers) {
         modifiers &= HotkeyChord.MASK;
-        for(var other:List.of(settingsKey,toggleMiningKey,toggleFarmingKey,sethomeKey)) {
-            int otherModifiers=other==settingsKey?settingsModifiers:other==toggleMiningKey?miningModifiers:other==toggleFarmingKey?farmingModifiers:sethomeModifiers;
+        for(var other:List.of(settingsKey,toggleMiningKey,toggleFarmingKey,sethomeKey,homeKey)) {
+            int otherModifiers=other==settingsKey?settingsModifiers:other==toggleMiningKey?miningModifiers:other==toggleFarmingKey?farmingModifiers:other==sethomeKey?sethomeModifiers:homeModifiers;
             if(other!=mapping && !key.equals(InputConstants.UNKNOWN) && other.matches(key) && otherModifiers==modifiers) {
                 uiInputError("這個按鍵組合已被其他功能使用");return false;
             }
         }
         mapping.setKey(key);KeyMapping.resetMapping();
         if(mapping==settingsKey)settingsModifiers=modifiers;
-        else if(mapping==toggleMiningKey)miningModifiers=modifiers;else if(mapping==toggleFarmingKey)farmingModifiers=modifiers;else sethomeModifiers=modifiers;
+        else if(mapping==toggleMiningKey)miningModifiers=modifiers;else if(mapping==toggleFarmingKey)farmingModifiers=modifiers;else if(mapping==sethomeKey)sethomeModifiers=modifiers;else homeModifiers=modifiers;
         saveConfig();return true;
     }
 

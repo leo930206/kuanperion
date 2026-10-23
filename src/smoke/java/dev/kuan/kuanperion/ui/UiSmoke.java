@@ -16,10 +16,12 @@ public final class UiSmoke implements ClientModInitializer {
                 if(mc.gui.overlay()!=null||!(mc.gui.screen() instanceof TitleScreen))return;
                 ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;System.out.println("UI_SMOKE_OPEN");return;
             }
-            boolean expanded = phase >= 13 && phase <= 16 || phase == 21;
+            boolean expanded = phase >= 13 && phase <= 16 || phase == 21 || phase==30;
             var frame = ui.context().layout;
             double cursorX = expanded ? (frame.px+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth() : 1;
             double cursorY = expanded ? (frame.py+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight() : 1;
+            if(phase==30){cursorY=(MainGUISidebar.rowY(2,frame.py,frame.ph)+22)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
+            if(phase==31){cursorX=(frame.contX+(ticks<15?300:60))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+130)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             if(phase==29){cursorX=(frame.contX+220)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+150)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             // Feed the vanilla cursor callback directly: background macOS windows may ignore GLFW cursor warps.
             // This exercises real hover/layout animation without forcing sidebarAnim or moving the user's pointer.
@@ -29,7 +31,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(waiting||++ticks<35)return;
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
@@ -97,6 +99,8 @@ public final class UiSmoke implements ClientModInitializer {
                 case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
                 case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor 通知")).findFirst().orElseThrow());
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
+                case 30 -> clickSidebar(2);
+                case 31 -> clickSidebar(0);
                 case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
                 case 14 -> clickSidebar(1);
@@ -243,35 +247,50 @@ public final class UiSmoke implements ClientModInitializer {
         if(!values.get("pestNotificationScreenSeconds").getAsString().equals("3"))throw new AssertionError("blank duration needs safe default");
         System.out.println("UI_SMOKE_INLINE_DURATION_PASS actual mouse hit regions / editor commit / blank placeholder / independent toggle");
     }
+    private float[] paletteRow(dev.kuan.kuanperion.ui.settings.Setting target){
+        float x=ui.contentX()+20,w=ui.contentW()-40,y=ui.contentScrollTop()+51;
+        for(var item:MainGUIRegistry.COLORS_SUBTABS.get(0).groups().get(0).getSettings()){
+            if(!item.isVisible())continue;float h=ui.settingHeightFor(item,w);
+            if(item==target)return new float[]{x,y,w,h};y+=h;
+        }
+        throw new AssertionError("palette row hidden");
+    }
+    private void addPalette(dev.kuan.kuanperion.ui.settings.Setting add){
+        float[] row=paletteRow(add);click(row[0]+row[2]/2,UiLayoutMetrics.controlTop(row[1],row[3],32)+16);
+    }
     private void testColorPresets() throws Exception {
         var subtab=MainGUIRegistry.COLORS_SUBTABS.get(0);
-        if(ui.flatSubtabsForCurrentFilter().size()!=2 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("color preset tab unreachable");
+        if(ui.flatSubtabsForCurrentFilter().size()!=2 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("palette collection unreachable");
         var slots=subtab.groups().get(0).getSettings();
-        if(slots.size()!=5)throw new AssertionError("quick slots not exactly five");
+        if(slots.size()!=6)throw new AssertionError("five persistent slots plus add action");
+        var add=slots.get(5);
+        if(slots.stream().filter(dev.kuan.kuanperion.ui.settings.ColorPresetSetting.class::isInstance).anyMatch(dev.kuan.kuanperion.ui.settings.Setting::isVisible))throw new AssertionError("fresh collection must be empty");
         var first=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(0);
-        float x=ui.contentX()+20,w=ui.contentW()-40,y=ui.contentScrollTop()+51;
-        float saveX=x+w-12-60,centerY=y+27.5f;
         int original=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY;
-        var empty=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(4);
-        if(empty.occupied())throw new AssertionError("use a clean smoke sandbox; fifth slot must be empty");
-        click(x+40,centerY+240);if(empty.occupied())throw new AssertionError("empty load unexpectedly saved");
-        boolean existing=first.occupied();
-        click(saveX,centerY);if(existing)click(saveX,centerY);
-        if(!first.occupied())throw new AssertionError("save button missed");
+        addPalette(add);if(!first.isVisible())throw new AssertionError("add button missed");
+        if(first.previewColors().size()!=dev.kuan.kuanperion.ui.theme.Theme.ENTRIES.size() || first.previewColors().get(0)!=original || first.previewColors().get(1)!=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_SECONDARY)throw new AssertionError("saved swatch order not menu order");
+        float[] row=paletteRow(first);float x=row[0]+12,w=row[2]-24,cy=UiLayoutMetrics.controlTop(row[1],row[3],28)+14;
+        float saveX=ColorPresetRow.saveX(x,w)+32,deleteX=ColorPresetRow.deleteX(x,w)+32;
         dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;
-        click(saveX,centerY); // Only arm overwrite.
-        click(x+40,centerY); // Loading must still restore original and cancel confirmation.
-        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=original)throw new AssertionError("overwrite was not confirmed / click-load missed");
-        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;
-        click(saveX,centerY);click(saveX,centerY);
+        click(saveX,cy);click(x+10,cy);
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=original)throw new AssertionError("save overwrote without confirmation / swatch load missed");
+        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;click(saveX,cy);click(saveX,cy);
+        if(first.previewColors().get(0)!=0xFF66C3EF)throw new AssertionError("save did not refresh saved swatches");
         dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=original;
         dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS=345;UiLayoutMetrics.setInputHeight(24);
-        click(x+40,centerY);
-        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF66C3EF || dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS!=345 || UiLayoutMetrics.inputHeight()!=24)throw new AssertionError("colors load changed layout or failed");
-        dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=original;
+        click(x+10,cy);
+        if(dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF66C3EF || dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS!=345 || UiLayoutMetrics.inputHeight()!=24)throw new AssertionError("palette load changed non-color preference");
+        click(deleteX,cy);if(first.isVisible() || dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY!=0xFF66C3EF)throw new AssertionError("delete did not remove row / changed active colors");
+        addPalette(add);dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=original;addPalette(add);
+        // Fill the collection using its actual add control; then leave two examples for screenshots.
+        for(int i=2;i<5;i++)addPalette(add);
+        if(add.isVisible())throw new AssertionError("sixth palette can be added");
+        for(int i=2;i<5;i++)((dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(i)).delete();
+        if(!add.isVisible())throw new AssertionError("delete did not restore add control");
         dev.kuan.kuanperion.ui.theme.Theme.ANIM_TIME_MS=250;UiLayoutMetrics.reset();
         dev.kuan.kuanperion.ui.theme.Theme.saveTheme();
-        System.out.println("UI_SMOKE_COLOR_PRESETS_PASS real empty/save/load/overwrite/confirm clicks + exactly five + layout isolation");
+        ui.setActiveScroll(0,0);ui.refreshContext();
+        System.out.println("UI_SMOKE_COLOR_PRESETS_PASS empty/add/swatch order/save/confirm/load/delete/five-limit/re-add/independent theme layout");
     }
     private void testTargetRows() throws Exception {
         var group=ui.getActiveModuleSubTab().groups().get(1);
@@ -311,7 +330,14 @@ public final class UiSmoke implements ClientModInitializer {
         var chars=component.getSiblings();
         if(chars.get(0).getStyle().isBold() || chars.get(0).getStyle().getColor().getValue()!=0x58B9EA || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xF3A3B5)throw new AssertionError("nonbold gradient endpoints");
         var keys=dev.kuan.kuanperion.KuanperionClient.uiKeybinds();
-        if(keys.size()!=4 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault())throw new AssertionError("unbound sethome shortcut");
+        if(keys.size()!=5 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault() || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4)).isDefault())throw new AssertionError("unbound home/sethome shortcuts");
+        var home=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4);
+        var sethome=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3);
+        ui.beginKeybindCapture(home);ui.keyPressed(new net.minecraft.client.input.KeyEvent(341,0,2));ui.keyPressed(new net.minecraft.client.input.KeyEvent(72,0,2));
+        if(home.getModifiers()!=2 || !home.getBoundKeyName().equals("Ctrl + H"))throw new AssertionError("home chord capture failed");
+        sethome.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.h"),2);
+        if(!sethome.isDefault())throw new AssertionError("duplicate home/sethome chord accepted");
+        home.resetToDefault();
         var jerry=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow();
         var row=(dev.kuan.kuanperion.ui.settings.ToggleRowSetting)jerry.groups().get(0).getSettings().get(0);
         if(row.choices().size()!=4 || row.choices().stream().anyMatch(t->!t.getName().endsWith(" Jerry")))throw new AssertionError("one four-color row");
@@ -344,7 +370,7 @@ public final class UiSmoke implements ClientModInitializer {
         try(var in=java.nio.file.Files.newInputStream(file)){prefs.load(in);}
         prefs.setProperty("scanRadius","7");prefs.setProperty("actionDelayTicks","9");
         prefs.setProperty("farmingCrop","CARROT");prefs.setProperty("farmingAutoSetHome","true");
-        prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");
+        prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");prefs.setProperty("hotkey.home.modifiers","7");
         prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore");
         prefs.setProperty("pestNotificationThreshold","4");
         try {
@@ -354,7 +380,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(file)))throw new AssertionError("ordinary config load rewrites file");
             save.invoke(null);
             var after=new java.util.Properties();try(var in=java.nio.file.Files.newInputStream(file)){after.load(in);}
-            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","targets","pestNotificationThreshold"))
+            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","targets","pestNotificationThreshold"))
                 if(!prefs.getProperty(key).equals(after.getProperty(key)))throw new AssertionError("preference lost on reload: "+key);
             if(!after.getProperty("miningEnabled").equals("false") || !after.getProperty("farmingEnabled").equals("false"))throw new AssertionError("unsafe automatic resume");
         } finally {java.nio.file.Files.write(file,original);load.invoke(null);}

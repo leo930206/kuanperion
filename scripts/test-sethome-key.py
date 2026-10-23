@@ -11,10 +11,10 @@ method=source[a:b]
 java=r'''package dev.kuan.kuanperion;
 import java.util.*;
 public class SethomeKeyTest {
- static final HotkeyChord.Edge miningHotkeyEdge=new HotkeyChord.Edge(), farmingHotkeyEdge=new HotkeyChord.Edge(),sethomeHotkeyEdge=new HotkeyChord.Edge();
- static int miningModifiers=1,farmingModifiers=1,sethomeModifiers=0,mods;
+ static final HotkeyChord.Edge miningHotkeyEdge=new HotkeyChord.Edge(), farmingHotkeyEdge=new HotkeyChord.Edge(),sethomeHotkeyEdge=new HotkeyChord.Edge(),homeHotkeyEdge=new HotkeyChord.Edge();
+ static int miningModifiers=1,farmingModifiers=1,sethomeModifiers=0,homeModifiers=0,mods;
  static class Key {boolean bound,down;}
- static Key toggleMiningKey=new Key(),toggleFarmingKey=new Key(),sethomeKey=new Key();
+ static Key toggleMiningKey=new Key(),toggleFarmingKey=new Key(),sethomeKey=new Key(),homeKey=new Key();
  static boolean hotkeyDown(Key key){return key.bound&&key.down;}
  static int currentHotkeyModifiers(){return mods;}
  static int farming,mining;static List<String> commands=new ArrayList<>();
@@ -38,6 +38,17 @@ public class SethomeKeyTest {
    if(mode==0)mc.gui.screen=new Object();if(mode==1)GLFW.focused=false;if(mode==2)mc.player=null;
    sethomeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==3,"GUI/focus/world suppression");
    mc.gui.screen=null;GLFW.focused=true;mc.player=new Object();handleShiftHotkeys(mc);check(commands.size()==3,"held suppressed key does not fire after context returns");
+  }
+  sethomeKey.down=false;mods=0;homeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==3,"home initially unbound");
+  homeKey.down=false;handleShiftHotkeys(mc);homeKey.bound=true;homeKey.down=true;handleShiftHotkeys(mc);
+  check(commands.size()==4&&commands.get(3).equals("home"),"home sends exact command independently of sethome");
+  for(int i=0;i<100;i++)handleShiftHotkeys(mc);check(commands.size()==4,"held home does not repeat");
+  homeKey.down=false;handleShiftHotkeys(mc);homeModifiers=3;mods=3;homeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==5,"home chord");
+  for(int mode=0;mode<3;mode++){
+   homeKey.down=false;handleShiftHotkeys(mc);
+   if(mode==0)mc.gui.screen=new Object();if(mode==1)GLFW.focused=false;if(mode==2)mc.player=null;
+   homeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==5,"home GUI/focus/world guards");
+   mc.gui.screen=null;GLFW.focused=true;mc.player=new Object();handleShiftHotkeys(mc);check(commands.size()==5,"home held key suppressed after context return");
   }
   check(farming==0&&mining==0,"no interference with farming/mining");
   System.out.println("SethomeKeyTest: PASS (unbound, one-shot, exact modifiers, screen/focus/world guards, no cross-feature action)");

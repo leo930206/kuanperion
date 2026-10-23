@@ -295,7 +295,9 @@ extends NVGScreen {
     static final float SB_BOT_PAD = 8.0f;
 
     void offerHoverHelp(String key, String title, String description, float x, float y, float w, float h, float mx, float my) {
-        // No tooltip overlays anywhere. A subtle outline is the common hover feedback.
+        // Sidebar owns its original icon/text hover; cards own exactly one outline.
+        if(key!=null && (key.startsWith("sidebar:") || key.startsWith("module:")))return;
+        // No tooltip overlays anywhere. Other controls retain their subtle outline feedback.
         if (mx >= x && mx <= x+w && my >= y && my <= y+h && NanoVGManager.isInitialized()) {
             NanoVGManager.getRenderer().rectOutlineSolid(x,y,w,h,6,.9f,Theme.withAlpha(Theme.ACCENT_PRIMARY,.42f));
         }

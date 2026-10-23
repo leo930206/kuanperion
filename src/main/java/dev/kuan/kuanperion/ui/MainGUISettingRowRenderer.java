@@ -89,7 +89,7 @@ final class MainGUISettingRowRenderer {
                 break;
             }
             case INFO: {
-                if(setting instanceof ColorPresetSetting preset)ColorPresetRow.render(nvg,preset,innerX,y,innerW,h);
+                if(setting instanceof ColorPresetSetting preset)ColorPresetRow.render(nvg,preset,innerX,y,innerW,h,mx,my);
                 else if(setting instanceof BlockTargetSetting target)this.renderBlockTarget(nvg,target,innerX,innerW,y,cardH,mx,my);
                 else this.renderInfo(nvg, (InfoSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
                 break;

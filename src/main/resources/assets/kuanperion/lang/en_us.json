@@ -4,5 +4,6 @@
   "key.kuanperion.toggle_farming": "Shift+F Toggle Auto Farming",
   "key.category.kuanperion.keys": "Kuanperion",
   "category.kuanperion.keys": "Kuanperion",
-  "key.kuanperion.sethome": "Set Home (/sethome)"
+  "key.kuanperion.sethome": "Set Home (/sethome)",
+  "key.kuanperion.home": "Go Home (/home)"
 }

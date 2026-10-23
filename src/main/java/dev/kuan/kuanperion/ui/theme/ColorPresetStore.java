@@ -48,6 +48,16 @@ public final class ColorPresetStore {
    slots[slot-1]=new Slot(true,colors,null);
   }finally{Files.deleteIfExists(temporary);}
  }
+ public int firstEmptySlot(){for(int i=1;i<=LIMIT;i++)if(!occupied(i))return i;return 0;}
+ public void delete(int slot)throws IOException{
+  Path file=path(slot);
+  if(Files.exists(file,LinkOption.NOFOLLOW_LINKS)){
+   if(!Files.isRegularFile(file,LinkOption.NOFOLLOW_LINKS))throw new IOException("Refusing non-file preset");
+   // Keep the last deleted snapshot, but do not treat the backup as an active palette.
+   Files.move(file,file.resolveSibling(file.getFileName()+".deleted.bak"),StandardCopyOption.REPLACE_EXISTING);
+  }
+  slots[slot-1]=new Slot(false,null,null);
+ }
  private static JsonObject canonical(JsonObject source){
   JsonObject colors=new JsonObject();
   for(String name:SkyThemePalette.keys()){

@@ -34,15 +34,11 @@ final class MainGUIRenderPrimitives {
     void renderModuleCard(NVGRenderer nvg, ModulesTab.SubTab subTab, float x, float y, float w, float hover, float mx, float my) {
         int i;
         float height = 82.0f;
-        float lift = hover * 4.0f;
+
         boolean enabled = subTab.isEnabled();
         nvg.save();
-        nvg.translate(0.0f, -lift);
-        if (hover > 0.01f) {
-            nvg.shadow(x, y, w, height, 7.0f, 14.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, hover * 0.18f));
-        }
         nvg.roundedRect(x, y, w, height, 7.0f, Theme.CARD_BG);
-        int border = hover > .01f ? Theme.blend(Theme.SEPARATOR,Theme.BORDER_HOVER,hover) : Theme.SEPARATOR;
+        int border = hover > .01f ? Theme.blend(Theme.SEPARATOR,Theme.ACCENT_PRIMARY,hover) : Theme.SEPARATOR;
         nvg.rectOutlineSolid(x,y,w,height,7,1,border);
         float pillX = x + w - 52.0f;
         float pillY = y + (height - 21.0f) / 2.0f;

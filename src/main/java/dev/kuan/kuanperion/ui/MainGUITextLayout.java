@@ -31,7 +31,7 @@ final class MainGUITextLayout {
     float settingHeight(Setting setting, float rowW) {
         if(setting instanceof ToggleRowSetting)return 50;
         if(setting instanceof BlockTargetSetting)return 66;
-        if(setting instanceof ColorPresetSetting)return ColorPresetRow.height();
+        if(setting instanceof ColorPresetSetting preset)return ColorPresetRow.height(preset,rowW);
         if(SettingDescriptionCatalog.inlineHelp(setting)) {
             float labelHeight=(wrappedSettingLabelLineCount(setting,rowW)-1)*settingLabelLineStep(setting)+settingLabelFontSize(setting);
             return 2*UiLayoutMetrics.TITLE_TOP+labelHeight+descriptionHeight(setting,rowW)+UiLayoutMetrics.ROW_GAP;
