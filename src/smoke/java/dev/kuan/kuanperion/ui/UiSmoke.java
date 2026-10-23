@@ -34,6 +34,14 @@ public final class UiSmoke implements ClientModInitializer {
             if(!phaseValidated) {
             if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
+            if(phase==2 || phase==13) {
+                var layout=ui.context().layout;
+                float sidebarWidth=60+ui.context().animation.sidebarAnim*(ui.context().animation.computedSidebarExpanded-60);
+                String caption=MainGUISidebar.footerText(MainGUIRegistry.modVersion(),phase==13);
+                float width=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer().textWidth("Inter-Regular",caption,MainGUISidebar.FOOTER_FONT);
+                if(width>sidebarWidth-24 || Math.abs(MainGUISidebar.footerTextX(layout.px,sidebarWidth,width)+width/2-(layout.px+sidebarWidth/2))>.01f)throw new AssertionError("footer not fitted/centered");
+                System.out.println("UI_SMOKE_CENTERED_FOOTER_PASS expanded="+(phase==13)+" caption="+caption);
+            }
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
             if(phase==11) testTargetRows();
@@ -117,9 +125,9 @@ public final class UiSmoke implements ClientModInitializer {
             if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=3 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
         }
         var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+11);
-        if(ui.getActiveMainTab()!=4)throw new AssertionError("collapsed footer still has an invisible K action");
+        if(ui.getActiveMainTab()!=5)throw new AssertionError("visible collapsed version did not open About");
         var lines=MainGUISidebar.footerLines(MainGUIRegistry.modVersion());
-        if(!lines.equals(java.util.List.of("Mod Version: "+MainGUIRegistry.modVersion()+"")))throw new AssertionError("wrong footer metadata");
+        if(!lines.equals(java.util.List.of("Mod Version "+MainGUIRegistry.modVersion()+"")))throw new AssertionError("wrong footer metadata");
         clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_SIDEBAR_PASS four visible routes / group membership / detail-back / cross-group search / Setting pages / collapsed footer / metadata");
     }

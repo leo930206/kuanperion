@@ -129,12 +129,13 @@ final class MainGUIChromeRenderer {
 
     private void renderVersionFooter(NVGRenderer nvg, MainGUIContext context, float sidebarWidth, float y, float mx, float my) {
         this.owner.clearLoginButtonBounds();
-        if (context.animation.sidebarAnim <= .01f) return;
-        nvg.save();
-        nvg.globalAlpha(context.animation.sidebarAnim);
-        String caption = MainGUISidebar.footerLines(MainGUIRegistry.modVersion()).get(0);
-        nvg.text("Inter-Regular", caption, context.layout.px + 12, y + (MainGUISidebar.FOOTER_HEIGHT - MainGUISidebar.FOOTER_FONT) / 2, MainGUISidebar.FOOTER_FONT, Theme.TEXT_MUTED);
-        nvg.restore();
+        String version = MainGUIRegistry.modVersion();
+        String fullCaption = MainGUISidebar.footerText(version, true);
+        float fullWidth = nvg.textWidth("Inter-Regular", fullCaption, MainGUISidebar.FOOTER_FONT);
+        // Keep the short version visible while the full label cannot fit during expansion.
+        String caption = MainGUISidebar.footerText(version, context.animation.sidebarAnim > .5f && fullWidth <= sidebarWidth - 24);
+        float textWidth = nvg.textWidth("Inter-Regular", caption, MainGUISidebar.FOOTER_FONT);
+        nvg.text("Inter-Regular", caption, MainGUISidebar.footerTextX(context.layout.px, sidebarWidth, textWidth), y + (MainGUISidebar.FOOTER_HEIGHT - MainGUISidebar.FOOTER_FONT) / 2, MainGUISidebar.FOOTER_FONT, Theme.TEXT_MUTED);
         this.owner.offerHoverHelp("sidebar:about", UiLang.localize("About"), "點擊版本資訊查看模組資訊", context.layout.px + 12, y, sidebarWidth - 24, MainGUISidebar.FOOTER_HEIGHT, mx, my);
     }
 
