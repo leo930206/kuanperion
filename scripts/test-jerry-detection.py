@@ -42,6 +42,10 @@ public class JerryDetectionIntegrationTest {
     static boolean farmingDesiredForward, farmingDesiredBack, farmingDesiredLeft, farmingDesiredRight, farmingDesiredJump;
     static boolean abnormalHandlingEnabled;
     static String activeTargetBlockId, lastFarmingLocationDiagnostic, pestWebhookUrl;
+    static boolean jerryAutoSethomeEnabled;
+    static String farmingRecoveryOrigin="";
+    static final List<String> commands=new ArrayList<>();
+    static void sendCommand(Minecraft mc,String command){commands.add(command);}
     static Object activeTarget;
     static int limboChatSeenTick, saves, releases;
     static final List<String> FARMING_COMMAND_QUEUE = new ArrayList<>();
@@ -93,6 +97,13 @@ public class JerryDetectionIntegrationTest {
     }
     public static void main(String[] args) {
         Minecraft mc=Minecraft.getInstance();
+        reset();jerryAutoSethomeEnabled=true;commands.clear();
+        handleJerryMessage(mc,"You found a Green Jerry!");
+        check(commands.equals(List.of("sethome")),"Jerry sends sethome independently of channels");
+        jerryColors=Set.of();commands.clear();handleJerryMessage(mc,"You found a Green Jerry!");
+        check(commands.isEmpty(),"all colors disabled means no auto sethome");
+        jerryAutoSethomeEnabled=false;
+
         handleReceivedMessage(null);
         for (String color : List.of("Green", "Blue", "Purple", "Golden"))
         for (String template : TEMPLATES)

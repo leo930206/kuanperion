@@ -23,9 +23,13 @@ final class MainGUITextLayout {
     float descriptionWidth(Setting setting,float rowW){return settingLabelMaxWidth(setting,rowW);}
     float descriptionHeight(Setting setting,float rowW) {
         if(!SettingDescriptionCatalog.inlineHelp(setting))return 0;
-        return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * estimateWrappedLineCount(setting.getDescription(),descriptionWidth(setting,rowW),10.5f * MainGUI.uiTextScale);
+                int lines=dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized()
+            ? wrapTextToWidth(dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer(),setting.getDescription(),"Inter-Regular",10.5f,descriptionWidth(setting,rowW)).size()
+            : estimateWrappedLineCount(setting.getDescription(),descriptionWidth(setting,rowW),10.5f*MainGUI.uiTextScale);
+        return UiLayoutMetrics.descriptionGap() + 13 * MainGUI.uiTextScale * lines;
     }
     float settingHeight(Setting setting, float rowW) {
+        if(setting instanceof ToggleRowSetting)return 50;
         if(setting instanceof BlockTargetSetting)return 66;
         if(setting instanceof ColorPresetSetting)return ColorPresetRow.height();
         if(SettingDescriptionCatalog.inlineHelp(setting)) {
@@ -68,7 +72,7 @@ final class MainGUITextLayout {
             }
             case SettingType.ACTION -> 50.0f;
             case SettingType.MULTI_DROPDOWN -> {
-                float innerWidth = Math.max(1.0f, rowW - 32.0f);
+                float innerWidth = Math.max(1.0f, rowW - 24.0f);
                 float labelBlockH = (float)this.wrappedSettingLabelLineCount(setting, rowW) * this.settingLabelLineStep(setting);
                 int rows = ((MultiDropdownSetting)setting).rowCount(innerWidth);
                 yield 12.0f + labelBlockH + 8.0f + (float)rows * 28.0f + (float)(rows - 1) * 6.0f + 12.0f;
@@ -78,6 +82,8 @@ final class MainGUITextLayout {
     }
 
     int wrappedSettingLabelLineCount(Setting setting, float rowW) {
+        if(dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized())
+            return wrapTextToWidth(dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer(),UiLang.localize(setting.getName()),"Inter-Regular",settingLabelFontSize(setting),settingLabelMaxWidth(setting,rowW)).size();
         return this.estimateWrappedLineCount(UiLang.localize(setting.getName()), this.settingLabelMaxWidth(setting, rowW), this.settingLabelFontSize(setting));
     }
 
@@ -90,9 +96,9 @@ final class MainGUITextLayout {
     }
 
     float settingLabelMaxWidth(Setting setting, float rowW) {
-        float innerWidth = Math.max(0.0f, rowW - 32.0f);
+        float innerWidth = Math.max(0.0f, rowW - 24.0f);
         if(setting instanceof SelectionActionSetting)return Math.max(60,innerWidth-InlineRowLayout.countButtonWidth(innerWidth)-12-60-16);
-        if(setting instanceof InlineToggleSetting)return Math.max(60,innerWidth-50-textInlineFieldWidth(innerWidth-50)-12);
+        if(setting instanceof InlineToggleSetting)return Math.max(60,innerWidth-50-((TextSetting)setting).fieldWidth(innerWidth-50)-12);
         return switch (setting.getType()) {
             case SettingType.TOGGLE -> Math.max(80.0f, innerWidth - 50.0f);
             case SettingType.SLIDER, SettingType.RANGE_SLIDER -> Math.max(80.0f, innerWidth - innerWidth / 3.0f - 12.0f);
@@ -101,7 +107,7 @@ final class MainGUITextLayout {
                 if (textSetting.isMultiline()) {
                     yield Math.max(80.0f, innerWidth - 16.0f);
                 }
-                yield Math.max(80.0f, innerWidth - this.textInlineFieldWidth(innerWidth) - 12.0f);
+                yield Math.max(80.0f, innerWidth - textSetting.fieldWidth(innerWidth) - 12.0f);
             }
             case SettingType.INFO -> Math.max(80.0f, innerWidth - 16.0f);
             case SettingType.LIST, SettingType.DROPDOWN_LIST -> Math.max(80.0f, innerWidth);

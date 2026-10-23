@@ -20,6 +20,7 @@ public final class UiSmoke implements ClientModInitializer {
             var frame = ui.context().layout;
             double cursorX = expanded ? (frame.px+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth() : 1;
             double cursorY = expanded ? (frame.py+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight() : 1;
+            if(phase==29){cursorX=(frame.contX+220)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+150)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             // Feed the vanilla cursor callback directly: background macOS windows may ignore GLFW cursor warps.
             // This exercises real hover/layout animation without forcing sidebarAnim or moving the user's pointer.
             if(mouseMove==null){mouseMove=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);mouseMove.setAccessible(true);}
@@ -28,11 +29,11 @@ public final class UiSmoke implements ClientModInitializer {
             if(waiting||++ticks<35)return;
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testSelectedModels(); }
+            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==2 || phase==13) {
                 var layout=ui.context().layout;
@@ -41,6 +42,26 @@ public final class UiSmoke implements ClientModInitializer {
                 float width=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer().textWidth("Inter-Regular",caption,MainGUISidebar.FOOTER_FONT);
                 if(width>sidebarWidth-24 || Math.abs(MainGUISidebar.footerTextX(layout.px,sidebarWidth,width)+width/2-(layout.px+sidebarWidth/2))>.01f)throw new AssertionError("footer not fitted/centered");
                 System.out.println("UI_SMOKE_CENTERED_FOOTER_PASS expanded="+(phase==13)+" caption="+caption);
+            }
+            if(phase>=22) {
+                var layout=ui.context().layout;
+                if(Math.abs(layout.px+layout.pw/2-layout.physW/MainGUI.uiScale/2)>.1f || Math.abs(layout.py+layout.ph/2-layout.physH/MainGUI.uiScale/2)>.1f)throw new AssertionError("runtime resize off center");
+            }
+            if(phase==26) {
+                var row=(dev.kuan.kuanperion.ui.settings.ToggleRowSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().get(0);
+                boolean[] before=new boolean[4];for(int i=0;i<4;i++)before[i]=row.choices().get(i).getValue();
+                var bounds=rowFor(row);float cell=(bounds[2]-24)/4;
+                for(int i=0;i<4;i++){click(bounds[0]+12+cell*(i+.5f),bounds[1]+20);if(row.choices().get(i).getValue()==before[i])throw new AssertionError("Jerry cell click missed");}
+                for(int i=0;i<4;i++)row.choices().get(i).setValue(before[i]);
+                System.out.println("UI_SMOKE_JERRY_ROW_PASS four independent real cell clicks");
+            }
+            if(phase==27) {
+                var setting=ui.getActiveModuleSubTab().groups().get(0).getSettings().get(0);
+                var bounds=rowFor(setting);var metrics=new MainGUITextLayout();
+                var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
+                int lines=metrics.wrapTextToWidth(renderer,setting.getDescription(),"Inter-Regular",10.5f,metrics.descriptionWidth(setting,bounds[2])).size();
+                float expected=2*UiLayoutMetrics.TITLE_TOP+metrics.settingLabelFontSize(setting)+UiLayoutMetrics.descriptionGap()+13*MainGUI.uiTextScale*lines+UiLayoutMetrics.ROW_GAP;
+                if(Math.abs(ui.settingHeightFor(setting,bounds[2])-expected)>.01f)throw new AssertionError("unused estimated description whitespace");
             }
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
@@ -69,6 +90,14 @@ public final class UiSmoke implements ClientModInitializer {
             Screenshot.grab(mc.gameDirectory,shot+".png",mc.gameRenderer.mainRenderTarget(),1,message->System.out.println("UI_SMOKE_CAPTURE "+shot));
             phase++;
             switch(phase){
+                case 22 -> org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),820,600);
+                case 23 -> org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1100,760);
+                case 24 -> org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1440,900);
+                case 25 -> {org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1100,760);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Discord Webhook")).findFirst().orElseThrow());}
+                case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
+                case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor 通知")).findFirst().orElseThrow());
+                case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
+                case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
                 case 14 -> clickSidebar(1);
                 case 15 -> clickSidebar(2);
@@ -82,7 +111,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 7->{((dev.kuan.kuanperion.ui.settings.KeybindSetting)dev.kuan.kuanperion.KuanperionClient.uiKeybinds().get(2)).resetToDefault();switchTab(4);}
                 case 8->{ui.activateSearchField();ui.setSearchQuery("通知");}
                 case 10->{var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Pest 通知")).findFirst().orElseThrow();var group=pest.groups().get(0);var setting=group.getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();ui.openSearchResult(0,pest,group,setting);}
-                case 12->{switchTab(1);ui.setActiveFilterIndex(2);ui.setActiveScroll(0,0);ui.refreshContext();}
+                case 12->{switchTab(1);ui.setActiveFilterIndex(0);ui.setActiveScroll(0,0);ui.refreshContext();}
                 case 11->{var mining=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow();ui.openModuleDetailFromCard(mining);ui.selectModuleCategory(2);}
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
             }
@@ -98,10 +127,11 @@ public final class UiSmoke implements ClientModInitializer {
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index);
     }
     private void clickSettingsPage(int page) {
-        String[] labels={"顏色","設定檔","快捷鍵","介面設定"};
+        String[] labels={"設定檔","介面","顏色","快捷鍵"};
+        int[] pages={2,4,1,3};
         float x=ui.contentX()+20;
         var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
-        for(int i=0;i<page-1;i++) x+=renderer.textWidth("Inter-Regular",labels[i],12)+28;
+        for(int i=0;i<java.util.stream.IntStream.range(0,4).filter(j->pages[j]==page).findFirst().orElseThrow();i++) x+=renderer.textWidth("Inter-Regular",labels[i],12)+28;
         click(x+20,ui.contentY()+72);
     }
     private void testSidebarRouting() throws Exception {
@@ -194,7 +224,7 @@ public final class UiSmoke implements ClientModInitializer {
     private void testInlineDuration() {
         var setting=(dev.kuan.kuanperion.ui.settings.InlineToggleSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();
         var row=rowFor(setting);boolean before=setting.isOn();
-        click(row[0]+row[2]-130,UiLayoutMetrics.inputTop(row[1],row[3])+11);
+        click(row[0]+row[2]-100,UiLayoutMetrics.inputTop(row[1],row[3])+11);
         if(ui.activeText!=setting || setting.isOn()!=before)throw new AssertionError("duration click toggled checkbox / did not focus editor");
         if(ui.activeEditorH!=22)throw new AssertionError("notification input not compact default height");
         if(Math.abs(ui.activeEditorY+ui.activeEditorH/2-(row[1]+(row[3]-5)/2))>.01f)throw new AssertionError("input not full-card centered");
@@ -205,8 +235,8 @@ public final class UiSmoke implements ClientModInitializer {
         click(row[0]+row[2]-40,UiLayoutMetrics.checkboxTop(row[1],row[3])+19);
         if(setting.isOn()==before||!setting.getValue().isEmpty())throw new AssertionError("checkbox click edited time / failed toggle");
         var threshold=(dev.kuan.kuanperion.ui.settings.SliderSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.SliderSetting).findFirst().orElseThrow();
-        var numberRow=rowFor(threshold);float innerW=numberRow[2]-32;
-        click(numberRow[0]+16+innerW-innerW/3+33,UiLayoutMetrics.inputTop(numberRow[1],numberRow[3])+11);
+        var numberRow=rowFor(threshold);float innerW=numberRow[2]-24;
+        click(numberRow[0]+12+innerW-innerW/3+33,UiLayoutMetrics.inputTop(numberRow[1],numberRow[3])+11);
         if(ui.activeSliderField!=threshold || ui.activeEditorH!=22 || Math.abs(ui.activeEditorY+11-(numberRow[1]+(numberRow[3]-5)/2))>.01f)throw new AssertionError("threshold input not centered/enlarged/clickable");
         ui.commitText();
         var values=dev.kuan.kuanperion.KuanperionClient.exportUiConfig();
@@ -214,13 +244,13 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_INLINE_DURATION_PASS actual mouse hit regions / editor commit / blank placeholder / independent toggle");
     }
     private void testColorPresets() throws Exception {
-        var subtab=MainGUIRegistry.COLORS_SUBTABS.get(1);
-        if(ui.flatSubtabsForCurrentFilter().size()!=1 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("color preset tab unreachable");
+        var subtab=MainGUIRegistry.COLORS_SUBTABS.get(0);
+        if(ui.flatSubtabsForCurrentFilter().size()!=2 || ui.flatSubtabsForCurrentFilter().get(0)!=subtab)throw new AssertionError("color preset tab unreachable");
         var slots=subtab.groups().get(0).getSettings();
         if(slots.size()!=5)throw new AssertionError("quick slots not exactly five");
         var first=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(0);
         float x=ui.contentX()+20,w=ui.contentW()-40,y=ui.contentScrollTop()+51;
-        float saveX=x+w-16-60,centerY=y+27.5f;
+        float saveX=x+w-12-60,centerY=y+27.5f;
         int original=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY;
         var empty=(dev.kuan.kuanperion.ui.settings.ColorPresetSetting)slots.get(4);
         if(empty.occupied())throw new AssertionError("use a clean smoke sandbox; fifth slot must be empty");
@@ -271,6 +301,36 @@ public final class UiSmoke implements ClientModInitializer {
         var mining=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(1);mining.resetToDefault();
         if(!mining.getBoundKeyName().equals("Shift + M") || !farming.getBoundKeyName().equals("Shift + F"))throw new AssertionError("default Latin shortcut labels");
         System.out.println("UI_SMOKE_CHORD_PASS modifier waiting / Ctrl Shift F / plain F / three modifiers / display / profile isolation");
+    }
+
+    private void testNewUiFeatures(Minecraft mc) throws Exception {
+        var client=dev.kuan.kuanperion.KuanperionClient.class;
+        var prefix=client.getDeclaredMethod("hsbaPrefix");prefix.setAccessible(true);
+        var component=(net.minecraft.network.chat.Component)prefix.invoke(null);
+        if(!component.getString().equals("[Kuanperion] "))throw new AssertionError("chat prefix");
+        var chars=component.getSiblings();
+        if(chars.get(0).getStyle().isBold() || chars.get(0).getStyle().getColor().getValue()!=0x58B9EA || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xF3A3B5)throw new AssertionError("nonbold gradient endpoints");
+        var keys=dev.kuan.kuanperion.KuanperionClient.uiKeybinds();
+        if(keys.size()!=4 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault())throw new AssertionError("unbound sethome shortcut");
+        var jerry=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow();
+        var row=(dev.kuan.kuanperion.ui.settings.ToggleRowSetting)jerry.groups().get(0).getSettings().get(0);
+        if(row.choices().size()!=4 || row.choices().stream().anyMatch(t->!t.getName().endsWith(" Jerry")))throw new AssertionError("one four-color row");
+        var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest 通知")).findFirst().orElseThrow().groups().get(0).getSettings().get(0);
+        if(pest.getDescription().contains("Visitor"))throw new AssertionError("cross-feature threshold help");
+        var marker=jerry.groups().get(0).getSettings().stream().filter(t->t.getName().startsWith("光柱")).findFirst().orElseThrow();
+        String previous=((dev.kuan.kuanperion.ui.settings.TextSetting)marker).getValue();
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)marker).setValue("0");
+        if(!((dev.kuan.kuanperion.ui.settings.TextSetting)marker).getValue().equals("0"))throw new AssertionError("zero beam config");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)marker).setValue(previous);
+        var transition=MainGUI.class.getDeclaredField("transitionRenderer");transition.setAccessible(true);
+        var sync=MainGUITransitionRenderer.class.getDeclaredMethod("syncContentTransition");sync.setAccessible(true);
+        ui.activateSearchField();
+        for(String query:new String[]{"","a","ab","abc","通知"}) {
+            ui.setSearchQuery(query);ui.refreshContext();sync.invoke(transition.get(ui));
+            if(ui.context().transition.fromState!=null)throw new AssertionError("typing restarted content slide");
+        }
+        ui.setSearchQuery("");ui.setSearchMode(false);ui.refreshContext();
+        System.out.println("UI_SMOKE_13_FEATURES_PASS nonbold gradient / fourth shortcut / one Jerry row / zero beam / threshold help / stable search transition");
     }
 
     private void testPreferenceReload(Minecraft mc) throws Exception {

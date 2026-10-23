@@ -212,6 +212,11 @@ public final class KuanperionClient implements ClientModInitializer {
     private static KeyMapping settingsKey;
     private static KeyMapping toggleMiningKey;
     private static KeyMapping toggleFarmingKey;
+    private static KeyMapping sethomeKey;
+    private static final HotkeyChord.Edge sethomeHotkeyEdge = new HotkeyChord.Edge();
+    private static int sethomeModifiers=0;
+    private static boolean jerryAutoSethomeEnabled=false;
+    private static String farmingRecoveryOrigin="";
 
     @Override
     public void onInitializeClient() {
@@ -219,12 +224,13 @@ public final class KuanperionClient implements ClientModInitializer {
         catch (java.io.IOException error) { LOGGER.warn("Kuanperion configuration migration failed; original file retained",error); }
         loadConfig();
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
-        JerryFarmingMarkerRenderer.register(() -> JERRY_FARMING_MARKERS.isEmpty() ? List.of()
+        JerryFarmingMarkerRenderer.register(() -> jerryMarkerMaxSeconds.signum()==0 || JERRY_FARMING_MARKERS.isEmpty() ? List.of()
                 : JERRY_FARMING_MARKERS.inScope(jerryFarmingMarkerScope(Minecraft.getInstance())));
         KeyMapping.Category category = KeyMapping.Category.register(id("keys"));
         settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.settings", InputConstants.Type.KEYSYM, InputConstants.KEY_APOSTROPHE, category));
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
+        sethomeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.sethome", InputConstants.Type.KEYSYM, -1, category));
         try {
             var oldKeys=LegacyConfigMigration.legacyKeyOverrides(new File(Minecraft.getInstance().gameDirectory,"options.txt").toPath());
             var bindings=Map.of("settings",settingsKey,"toggle_mining",toggleMiningKey,"toggle_farming",toggleFarmingKey);
@@ -300,6 +306,7 @@ public final class KuanperionClient implements ClientModInitializer {
             && GLFW.glfwGetWindowAttrib(mc.getWindow().handle(),GLFW.GLFW_FOCUSED)==GLFW.GLFW_TRUE;
         if(miningHotkeyEdge.press(hotkeyDown(toggleMiningKey),HotkeyChord.matches(miningModifiers,modifiers),allowed))toggleMining(mc);
         if(farmingHotkeyEdge.press(hotkeyDown(toggleFarmingKey),HotkeyChord.matches(farmingModifiers,modifiers),allowed))toggleFarming(mc);
+        if(sethomeHotkeyEdge.press(hotkeyDown(sethomeKey),HotkeyChord.matches(sethomeModifiers,modifiers),allowed))sendCommand(mc,"sethome");
     }
 
     public static int currentHotkeyModifiers() {
@@ -354,6 +361,7 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static void stopFarming(Minecraft mc, boolean announce) {
+        farmingRecoveryOrigin="";
         farmingManualStartPending = false;
         FARMING_STALL_GUARD.reset();
         farmingWorldChanged = false;
@@ -595,7 +603,10 @@ public final class KuanperionClient implements ClientModInitializer {
     private static boolean finishFarmingRecoveryOnArrival(Minecraft mc) {
         if (!farmingAutoRecovering || detectFarmingLocation(mc) != FarmingLocation.GARDEN) return false;
         traceFarmingLocation(mc, FarmingLocation.GARDEN);
+        String origin=farmingRecoveryOrigin;
         stopFarming(mc, false);
+        if(abnormalHandlingEnabled && !origin.isBlank() && !pestWebhookUrl.isBlank())
+            sendDiscordNotification("剛剛被傳送到 "+origin+"，現在已回到 Garden 等待操作。");
         say(mc, feature("Farming"), success(" 已返回 "), locationName("Garden"), plain("，Farming 維持關閉"));
         saveConfig();
         return true;
@@ -607,6 +618,7 @@ public final class KuanperionClient implements ClientModInitializer {
         farmingWorldChanged = false;
         FARMING_TOOL_GUARD.reset(null);
         farmingAutoRecovering = true;
+        farmingRecoveryOrigin=location.label;
         farmingEnabled = false;
         farmingRecoveryScanTicks = 0;
         FARMING_COMMAND_QUEUE.clear();
@@ -2059,22 +2071,23 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static MutableComponent hsbaPrefix() {
         String text = "[Kuanperion]";
-        int start = 0x55FFFF;
-        int end = 0x2F80FF;
         MutableComponent out = Component.empty();
         for (int i = 0; i < text.length(); i++) {
-            double t = text.length() <= 1 ? 0.0 : i / (double)(text.length() - 1);
+            double progress=i/(double)(text.length()-1);
+            int start=progress<=.5?0x58B9EA:0xFFFFFF;
+            int end=progress<=.5?0xFFFFFF:0xF3A3B5;
+            double t=progress<=.5?progress*2:(progress-.5)*2;
             int r = (int)(((start >> 16) & 0xFF) * (1.0 - t) + ((end >> 16) & 0xFF) * t);
             int g = (int)(((start >> 8) & 0xFF) * (1.0 - t) + ((end >> 8) & 0xFF) * t);
             int b = (int)((start & 0xFF) * (1.0 - t) + (end & 0xFF) * t);
             int color = (r << 16) | (g << 8) | b;
-            out.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(color).withBold(true)));
+            out.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(color).withBold(false)));
         }
         return out.append(Component.literal(" "));
     }
 
     private static Component plain(String text) { return Component.literal(text).withColor(COLOR_PLAIN); }
-    private static Component feature(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_FEATURE).withBold(true)); }
+    private static Component feature(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_FEATURE).withBold(false)); }
     private static Component success(String text) { return Component.literal(text).withColor(COLOR_SUCCESS); }
     private static Component error(String text) { return Component.literal(text).withColor(COLOR_ERROR); }
     private static Component warning(String text) { return Component.literal(text).withColor(COLOR_WARNING); }
@@ -2083,7 +2096,7 @@ public final class KuanperionClient implements ClientModInitializer {
         return Component.literal(display == null ? "" : display).withColor(COLOR_BLOCK);
     }
     private static Component locationName(String text) { return Component.literal(text).withColor(COLOR_LOCATION); }
-    private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(true)); }
+    private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(false)); }
 
     private static void sayAutoState(Minecraft mc, String featureName, boolean enabled) {
         say(mc, feature(featureName), plain(" "), enabled ? success("開啟") : error("關閉"));
@@ -2130,6 +2143,7 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static void markJerryFarmingPause(Minecraft mc) {
+        if(jerryMarkerMaxSeconds.signum()==0)return;
         String scope = jerryFarmingMarkerScope(mc);
         if (scope != null) JERRY_FARMING_MARKERS.add(scope, mc.player.getX(), mc.player.getY(), mc.player.getZ());
     }
@@ -2142,6 +2156,7 @@ public final class KuanperionClient implements ClientModInitializer {
     private static boolean handleJerryMessage(Minecraft mc, String text) {
         JerryColor color = JerryMessageMatcher.matchingColor(text, jerryColors);
         if (color == null) return false;
+        if(jerryAutoSethomeEnabled)sendCommand(mc,"sethome");
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             boolean stoppedFarming = farmingEnabled;
@@ -2353,6 +2368,8 @@ public final class KuanperionClient implements ClientModInitializer {
     private static void loadConfig() {
         Properties p = new Properties();
         try (FileInputStream in = new FileInputStream(configFile())) { p.load(in); } catch (Throwable ignored) {}
+        sethomeModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.sethome.modifiers"),0);
+        jerryAutoSethomeEnabled=Boolean.parseBoolean(p.getProperty("jerryAutoSethomeEnabled","false"));
         settingsModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.settings.modifiers"),0);
         miningModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.mining.modifiers"),1);
         farmingModifiers=HotkeyChord.parseModifiers(p.getProperty("hotkey.farming.modifiers"),1);
@@ -2402,6 +2419,8 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void saveConfig() {
         Properties p = new Properties();
+        p.setProperty("hotkey.sethome.modifiers",Integer.toString(sethomeModifiers));
+        p.setProperty("jerryAutoSethomeEnabled",Boolean.toString(jerryAutoSethomeEnabled));
         p.setProperty("hotkey.settings.modifiers",Integer.toString(settingsModifiers));
         p.setProperty("hotkey.mining.modifiers",Integer.toString(miningModifiers));
         p.setProperty("hotkey.farming.modifiers",Integer.toString(farmingModifiers));
@@ -2708,19 +2727,22 @@ public final class KuanperionClient implements ClientModInitializer {
         var visitorTab=new ModulesTab.SubTab("Visitor 通知", "訪客達門檻時通知",()->visitorNotificationEnabled,
             v->setUiNotificationEnabled(NotificationType.VISITORS,v),List.of(uiNotificationGroup(NotificationType.VISITORS)));
         var jerry=SettingGroup.alwaysOn("Jerry 偵測", "分別選擇顏色、停止動作與 Farming 光柱期限");
-        for(JerryColor color:JerryColor.values()) jerry.add(new ToggleSetting(color.label,()->jerryColors.contains(color),v->{
+        var jerryChoices=new ArrayList<ToggleSetting>();
+        for(JerryColor color:JerryColor.values()) jerryChoices.add(new ToggleSetting(color.label+" Jerry",()->jerryColors.contains(color),v->{
             EnumSet<JerryColor> colors=EnumSet.noneOf(JerryColor.class);colors.addAll(jerryColors);if(v)colors.add(color);else colors.remove(color);jerryColors=Set.copyOf(colors);saveConfig();}));
+        jerry.add(new dev.kuan.kuanperion.ui.settings.ToggleRowSetting("Jerry 顏色",jerryChoices));
+        jerry.add(new ToggleSetting("出現 Jerry 後自動 sethome",()->jerryAutoSethomeEnabled,v->{jerryAutoSethomeEnabled=v;saveConfig();}));
         jerry.add(new ToggleSetting("出現 Jerry 是否停下動作",()->jerryStopActionsEnabled,v->{jerryStopActionsEnabled=v;saveConfig();}));
-        jerry.add(new TextSetting("光柱最久存在時間（秒）", "正小數，預設 300，不設上限",()->jerryMarkerMaxSeconds.toPlainString(),text->{
+        jerry.add(new TextSetting("光柱最久存在時間（秒）", "0 為不顯示光柱，預設 300",()->jerryMarkerMaxSeconds.toPlainString(),text->{
             BigDecimal parsed=JerryFarmingPauseMarkers.parseMaxSeconds(text);
-            if(parsed!=null){jerryMarkerMaxSeconds=parsed;saveConfig();}else uiInputError("請輸入大於 0 的秒數");}));
+            if(parsed!=null){jerryMarkerMaxSeconds=parsed;saveConfig();}else uiInputError("請輸入大於或等於 0 的秒數");}).numeric());
         var jerryTab=new ModulesTab.SubTab("Jerry 偵測", "四色篩選、通知與停止動作",List.of(jerry,uiNotificationGroup(NotificationType.JERRY)));
         var webhook=SettingGroup.alwaysOn("共用 Webhook", "只用於你啟用的 Discord 通知；不會匯出到設定檔")
             .add(new TextSetting("Webhook 網址", "http(s)://…",()->pestWebhookUrl,text->{
                 String value=text.trim();
                 try { URI uri=URI.create(value); if(!value.isEmpty()&&((!"https".equalsIgnoreCase(uri.getScheme())&&!"http".equalsIgnoreCase(uri.getScheme()))||uri.getHost()==null||uri.getUserInfo()!=null))throw new IllegalArgumentException();
                     pestWebhookUrl=value;saveConfig();
-                }catch(IllegalArgumentException ex){uiInputError("Webhook 網址無效，原值未變更");}}));
+                }catch(IllegalArgumentException ex){uiInputError("Webhook 網址無效，原值未變更");}}).withFieldWidth(390));
         var webhookTab=new ModulesTab.SubTab("Discord Webhook", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
         return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,visitorTab)),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
@@ -2732,7 +2754,7 @@ public final class KuanperionClient implements ClientModInitializer {
         if(type!=NotificationType.JERRY) group.add(new SliderSetting("通知門檻",1,type==NotificationType.PESTS?8:5,
             ()->(float)(type==NotificationType.PESTS?pestNotificationThreshold:visitorNotificationThreshold),v->{
                 if(type==NotificationType.PESTS){pestNotificationThreshold=Math.round(v);TAB_NOTIFICATIONS.resetPests();}
-                else{visitorNotificationThreshold=Math.round(v);TAB_NOTIFICATIONS.resetVisitors();}saveConfig();}).withDecimals(0));
+                else{visitorNotificationThreshold=Math.round(v);TAB_NOTIFICATIONS.resetVisitors();}saveConfig();}) { @Override public String getDescription(){return type==NotificationType.PESTS?"Pest 數量達到此門檻才通知；範圍 1～8。":"Visitor 數量達到此門檻才通知；範圍 1～5。";} }.withDecimals(0));
         group.add(new ToggleSetting("Discord 訊息通知",()->notificationChannels(type).discord(),v->{
             if(v&&pestWebhookUrl.isBlank()){uiInputError("請先在 Discord 通知設定 Webhook 網址");return;}
             var old=notificationChannels(type);setUiChannels(type,new NotificationChannels(v,old.chat(),old.screen(),old.screenSeconds()));}));
@@ -2782,20 +2804,21 @@ public final class KuanperionClient implements ClientModInitializer {
     public static List<Setting> uiKeybinds() {
         return List.of(new KeybindSetting("開啟設定",settingsKey,0,()->settingsModifiers,(key,mods)->setUiKeybinding(settingsKey,key,mods)),
             new KeybindSetting("Mining",toggleMiningKey,1,()->miningModifiers,(key,mods)->setUiKeybinding(toggleMiningKey,key,mods)),
-            new KeybindSetting("Farming",toggleFarmingKey,1,()->farmingModifiers,(key,mods)->setUiKeybinding(toggleFarmingKey,key,mods)));
+            new KeybindSetting("Farming",toggleFarmingKey,1,()->farmingModifiers,(key,mods)->setUiKeybinding(toggleFarmingKey,key,mods)),
+            new KeybindSetting("/sethome",sethomeKey,0,()->sethomeModifiers,(key,mods)->setUiKeybinding(sethomeKey,key,mods)));
     }
 
     private static boolean setUiKeybinding(KeyMapping mapping,InputConstants.Key key,int modifiers) {
         modifiers &= HotkeyChord.MASK;
-        for(var other:List.of(settingsKey,toggleMiningKey,toggleFarmingKey)) {
-            int otherModifiers=other==settingsKey?settingsModifiers:other==toggleMiningKey?miningModifiers:farmingModifiers;
+        for(var other:List.of(settingsKey,toggleMiningKey,toggleFarmingKey,sethomeKey)) {
+            int otherModifiers=other==settingsKey?settingsModifiers:other==toggleMiningKey?miningModifiers:other==toggleFarmingKey?farmingModifiers:sethomeModifiers;
             if(other!=mapping && !key.equals(InputConstants.UNKNOWN) && other.matches(key) && otherModifiers==modifiers) {
                 uiInputError("這個按鍵組合已被其他功能使用");return false;
             }
         }
         mapping.setKey(key);KeyMapping.resetMapping();
         if(mapping==settingsKey)settingsModifiers=modifiers;
-        else if(mapping==toggleMiningKey)miningModifiers=modifiers;else farmingModifiers=modifiers;
+        else if(mapping==toggleMiningKey)miningModifiers=modifiers;else if(mapping==toggleFarmingKey)farmingModifiers=modifiers;else sethomeModifiers=modifiers;
         saveConfig();return true;
     }
 

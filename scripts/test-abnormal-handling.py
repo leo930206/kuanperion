@@ -56,7 +56,9 @@ public final class AbnormalHandlingTest {
     static boolean farmingEnabled, farmingEnabledThisSession, abnormalHandlingEnabled;
     static boolean farmingAutoRecovering, farmingWasInGarden, pestNotificationEnabled;
     static int farmingRecoveryScanTicks, limboChatSeenTick, lastPestMessageTick, stops;
-    static String pestWebhookUrl = "", lastPestMessage = "";
+    static String pestWebhookUrl = "", lastPestMessage = "", farmingRecoveryOrigin="";
+    static final List<String> notices=new ArrayList<>();
+    static void sendDiscordNotification(String text){notices.add(text);}
     static final Pattern PEST_MESSAGE_PATTERN = Pattern.compile("a^ ");
     static final Deque<QueuedCommand> FARMING_COMMAND_QUEUE = new ArrayDeque<>();
     static final List<String> sentCommands = new ArrayList<>();
@@ -144,6 +146,7 @@ public final class AbnormalHandlingTest {
     static void sendPestDiscordNotification(String plot, String text) {}
     static void reset() {
         FARMING_STALL_GUARD.reset();
+        notices.clear();farmingRecoveryOrigin="";pestWebhookUrl="";
         farmingWorldChanged = false;
         sentCommands.clear();
         SKYBLOCK_LOCATION_BRIDGE.island = null;
@@ -165,6 +168,15 @@ public final class AbnormalHandlingTest {
     }
     public static void main(String[] args) {
         Minecraft mc = Minecraft.getInstance();
+        reset();pestWebhookUrl="https://example.invalid/test";location=FarmingLocation.HUB;farmingWorldChanged=true;
+        startFarmingAutoRecovery(mc,location);
+        check(notices.isEmpty(),"no arrival notice while away");
+        location=FarmingLocation.GARDEN;finishFarmingRecoveryOnArrival(mc);finishFarmingRecoveryOnArrival(mc);
+        check(notices.equals(List.of("剛剛被傳送到 HUB，現在已回到 Garden 等待操作。")),"single notice names original destination after arrival");
+        reset();location=FarmingLocation.HUB;farmingWorldChanged=true;startFarmingAutoRecovery(mc,location);
+        location=FarmingLocation.GARDEN;finishFarmingRecoveryOnArrival(mc);check(notices.isEmpty(),"no webhook means no arrival notice");
+        reset();pestWebhookUrl="https://example.invalid/test";location=FarmingLocation.HUB;farmingWorldChanged=true;startFarmingAutoRecovery(mc,location);
+        abnormalHandlingEnabled=false;location=FarmingLocation.GARDEN;finishFarmingRecoveryOnArrival(mc);check(notices.isEmpty(),"disabled handler suppresses notice");
         for (FarmingLocation target : List.of(FarmingLocation.ISLAND, FarmingLocation.HUB, FarmingLocation.LOBBY, FarmingLocation.LIMBO)) {
             reset();
             location = target;

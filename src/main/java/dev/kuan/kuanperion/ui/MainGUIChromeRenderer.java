@@ -98,8 +98,8 @@ final class MainGUIChromeRenderer {
         nvg.roundedRect(searchX, searchY, searchW, searchH, 7.0f, searchBg);
         nvg.rectOutlineSolid(searchX, searchY, searchW, searchH, 7.0f, 1.0f, searchOutline);
         nvg.renderSVG("/assets/kuanperion/icons/search.svg", searchX + 8.0f, searchY + (searchH - 14.0f) / 2.0f, 14.0f, 14.0f, context.navigation.searchMode ? Theme.ACCENT_PRIMARY : Theme.TEXT_MUTED);
-        if (context.navigation.searchQuery.isEmpty()) {
-            nvg.text("Inter-Regular", UiLang.localize("Search settings..."), searchX + 30.0f, searchY + (searchH - 11.0f) / 2.0f, 11.0f, context.navigation.searchMode ? Theme.TEXT_SECONDARY : Theme.TEXT_MUTED);
+        if (context.navigation.searchQuery.isEmpty() && !this.owner.isSearchEditorActiveState()) {
+            nvg.text("Inter-Regular", "Search", searchX + 30.0f, searchY + (searchH - 11.0f) / 2.0f, 11.0f, context.navigation.searchMode ? Theme.TEXT_SECONDARY : Theme.TEXT_MUTED);
         } else {
             String display = this.owner.isSearchEditorActiveState() ? this.owner.currentTextBuffer() : context.navigation.searchQuery;
             float textPad = 6.0f;
@@ -116,14 +116,14 @@ final class MainGUIChromeRenderer {
                 nvg.roundedRect(selX, searchY + 4.0f, Math.max(1.0f, selW), searchH - 8.0f, 3.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.28f));
             }
             nvg.text("Inter-Regular", display, drawX, searchY + (searchH - fontSize) / 2.0f, fontSize, Theme.TEXT_PRIMARY);
-            if (this.owner.isSearchEditorActiveState() && System.currentTimeMillis() / 530L % 2L == 0L) {
+            if (this.owner.isSearchEditorActiveState()) {
                 float caretX = drawX + nvg.textWidth("Inter-Regular", this.owner.safeTextSlice(display, 0, this.owner.currentTextCursor()), fontSize);
                 nvg.rect(caretX, searchY + (searchH - 14.0f) / 2.0f, 1.0f, 14.0f, Theme.TEXT_PRIMARY);
             }
             nvg.popScissor();
         }
         this.owner.addClickArea(searchX, searchY, searchW, searchH, this.owner::activateSearchField);
-        this.owner.offerHoverHelp("search", UiLang.localize("Search settings..."), UiLang.localize("Search all Kuanperion settings by name and jump directly to matching controls."), searchX, searchY, searchW, searchH, mx, my);
+        this.owner.offerHoverHelp("search", "Search", UiLang.localize("Search all Kuanperion settings by name and jump directly to matching controls."), searchX, searchY, searchW, searchH, mx, my);
         nvg.rect(context.layout.contX, context.layout.contY + 53.0f, context.layout.contW, 1.0f, Theme.SEPARATOR);
     }
 
@@ -154,12 +154,13 @@ final class MainGUIChromeRenderer {
     void renderSettingsNavigation(NVGRenderer nvg, float mx, float my) {
         MainGUIContext context = this.owner.context();
         float y = context.layout.contY + 54, x = context.layout.contX + 20;
-        String[] labels = {"顏色", "設定檔", "快捷鍵", "介面設定"};
+        String[] labels = {"設定檔", "介面", "顏色", "快捷鍵"};
+        int[] pages = {2,4,1,3};
         for (int i = 0; i < labels.length; i++) {
-            int page = i + 1;
+            int page = pages[i];
             float w = nvg.textWidth("Inter-Regular", labels[i], 12) + 28;
             boolean selected = context.navigation.activeMain == page;
-            nvg.text("Inter-Regular", labels[i], x + 14, y + 12, 12, selected ? Theme.ACCENT_PRIMARY : Theme.TEXT_MUTED);
+            nvg.text("Inter-Regular", labels[i], x + 14, y + 12, 12, selected || mx>=x && mx<x+w && my>=y && my<y+36 ? Theme.ACCENT_PRIMARY : Theme.TEXT_MUTED);
             if (selected) nvg.roundedRect(x + 14, y + 35, w - 28, 2, 1, Theme.ACCENT_PRIMARY);
             this.owner.addClickArea(x, y, w, 36, () -> this.owner.selectSettingsPage(page));
             x += w;
@@ -168,6 +169,7 @@ final class MainGUIChromeRenderer {
     }
 
     void renderFilterBar(NVGRenderer nvg, float mx, float my) {
+        if(!MainGUI.hasTopFilterBar(this.owner.getActiveMainTab()))return;
         MainGUIContext context = this.owner.context();
         String[] options = this.owner.currentTabFilters();
         int selectedIndex = Math.max(0, Math.min(context.navigation.activeFilter, options.length - 1));

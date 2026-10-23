@@ -11,7 +11,7 @@ final class ColorPresetRow {
  static float buttonX(float x,float width){return x+width-120;}
  static void render(NVGRenderer nvg,ColorPresetSetting setting,float x,float y,float width,float rowHeight){
   float h=rowHeight-UiLayoutMetrics.ROW_GAP,buttonX=buttonX(x,width),buttonY=y+(h-28)/2;
-  nvg.text("Inter-Bold",setting.getName(),x,y+9,13.5f,Theme.TEXT_LABEL);
+  nvg.text("Inter-Regular",setting.getName(),x,y+9,13.5f,Theme.TEXT_LABEL);
   nvg.text("Inter-Regular",setting.getValue(),x,y+UiLayoutMetrics.descriptionTop(13.5f*MainGUI.uiTextScale),10.5f,Theme.TEXT_MUTED);
   nvg.roundedRect(buttonX,buttonY,120,28,5,Theme.ACTION_BTN_BG);
   nvg.rectOutline(buttonX,buttonY,120,28,5,1,Theme.BORDER_DEFAULT);

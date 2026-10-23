@@ -295,71 +295,13 @@ extends NVGScreen {
     static final float SB_BOT_PAD = 8.0f;
 
     void offerHoverHelp(String key, String title, String description, float x, float y, float w, float h, float mx, float my) {
-        if (key == null || title == null || description == null || description.isBlank()) {
-            return;
+        // No tooltip overlays anywhere. A subtle outline is the common hover feedback.
+        if (mx >= x && mx <= x+w && my >= y && my <= y+h && NanoVGManager.isInitialized()) {
+            NanoVGManager.getRenderer().rectOutlineSolid(x,y,w,h,6,.9f,Theme.withAlpha(Theme.ACCENT_PRIMARY,.42f));
         }
-        if (mx < x || mx > x + w || my < y || my > y + h) {
-            return;
-        }
-        this.hoverHelpCandidateKey = key;
-        this.hoverHelpCandidateTitle = title;
-        this.hoverHelpCandidateDescription = description;
     }
 
-    private void renderHoverHelp(NVGRenderer nvg, float mx, float my) {
-        if (this.hoverHelpCandidateKey == null || this.openDd != null || this.activeColor != null || this.activeSliderField != null || this.activeText != null || this.activeList != null || this.activePosField != null) {
-            this.hoverHelpLastKey = null;
-            this.hoverHelpStartedAt = 0L;
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (!this.hoverHelpCandidateKey.equals(this.hoverHelpLastKey)) {
-            this.hoverHelpLastKey = this.hoverHelpCandidateKey;
-            this.hoverHelpStartedAt = now;
-            return;
-        }
-        if (now - this.hoverHelpStartedAt < 260L) {
-            return;
-        }
-        float maxTextW = Math.min(330.0f, Math.max(220.0f, this.pw * 0.36f));
-        float titleSize = 12.5f;
-        float bodySize = 11.0f;
-        float padX = 12.0f;
-        float padY = 10.0f;
-        float titleGap = UiLayoutMetrics.descriptionGap();
-        float bodyStep = 14.0f;
-        List<String> bodyLines = this.wrapTextForWidth(nvg, this.hoverHelpCandidateDescription, "Inter-Regular", bodySize, maxTextW);
-        if (bodyLines.isEmpty()) {
-            return;
-        }
-        float titleW = nvg.textWidth("Inter-Bold", this.hoverHelpCandidateTitle, titleSize);
-        float bodyW = 0.0f;
-        for (String line : bodyLines) {
-            bodyW = Math.max(bodyW, nvg.textWidth("Inter-Regular", line, bodySize));
-        }
-        float tooltipW = Math.min(maxTextW + padX * 2.0f, Math.max(190.0f, Math.max(titleW, bodyW) + padX * 2.0f));
-        float tooltipH = padY * 2.0f + titleSize + titleGap + (float)bodyLines.size() * bodyStep;
-        float tx = mx + 16.0f;
-        float ty = my + 16.0f;
-        float panelRight = this.px + this.pw - 8.0f;
-        float panelBottom = this.py + this.ph - 8.0f;
-        if (tx + tooltipW > panelRight) {
-            tx = mx - tooltipW - 16.0f;
-        }
-        if (ty + tooltipH > panelBottom) {
-            ty = my - tooltipH - 16.0f;
-        }
-        tx = Math.max(this.px + 8.0f, Math.min(tx, panelRight - tooltipW));
-        ty = Math.max(this.py + 8.0f, Math.min(ty, panelBottom - tooltipH));
-        nvg.shadow(tx, ty, tooltipW, tooltipH, 7.0f, 12.0f, Theme.withAlpha(-16777216, 0.55f));
-        nvg.roundedRect(tx, ty, tooltipW, tooltipH, 7.0f, Theme.BG_SECONDARY);
-        nvg.rectOutlineSolid(tx, ty, tooltipW, tooltipH, 7.0f, 1.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.42f));
-        nvg.text("Inter-Bold", this.hoverHelpCandidateTitle, tx + padX, ty + padY, titleSize, Theme.TEXT_PRIMARY);
-        float bodyY = ty + padY + titleSize + titleGap;
-        for (int i = 0; i < bodyLines.size(); ++i) {
-            nvg.text("Inter-Regular", bodyLines.get(i), tx + padX, bodyY + (float)i * bodyStep, bodySize, Theme.TEXT_SECONDARY);
-        }
-    }
+    private void renderHoverHelp(NVGRenderer nvg, float mx, float my) { /* Deliberately disabled globally. */ }
 
     public MainGUI() {
         this((LaunchTarget)null);
@@ -420,7 +362,7 @@ extends NVGScreen {
     }
 
     static boolean hasTopFilterBar(int mainTab) {
-        return mainTab == 1 || mainTab == 2;
+        return false;
     }
 
     private boolean hasTopFilterBar() {
@@ -515,37 +457,11 @@ extends NVGScreen {
     }
 
     private List<ModulesTab.SubTab> flatSubtabsForFilter() {
-        List<ModulesTab.SubTab> subs = this.subtabs();
-        if (this.activeMain != 1) {
-            return subs;
-        }
-        int filterIndex = this.normalizedActiveFilterIndex();
-        return switch (filterIndex) {
-            case 1 -> {
-                if (subs.size() > 0) {
-                    yield List.of(subs.get(0));
-                }
-                yield List.of();
-            }
-            case 2 -> {
-                if (subs.size() > 1) {
-                    yield List.of(subs.get(1));
-                }
-                yield List.of();
-            }
-            default -> subs;
-        };
+        return this.subtabs();
     }
 
-    boolean showConfigProfiles() {
-        int filterIndex = this.normalizedActiveFilterIndex();
-        return filterIndex == 0 || filterIndex == 1;
-    }
-
-    boolean showThemeProfiles() {
-        int filterIndex = this.normalizedActiveFilterIndex();
-        return filterIndex == 0 || filterIndex == 2;
-    }
+    boolean showConfigProfiles() { return true; }
+    boolean showThemeProfiles() { return true; }
 
     boolean isProfileNameFocused(boolean isConfig) {
         return this.profileNameFocus && this.profileNameTarget == (isConfig ? 0 : 1);
@@ -1048,7 +964,7 @@ extends NVGScreen {
         nvg.rectOutline(x, y, w, 46.0f, 6.0f, 0.8f, Theme.blend(Theme.SEPARATOR, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.22f), lerp));
         int titleColor = interactive ? Theme.TEXT_PRIMARY : Theme.withAlpha(Theme.TEXT_DIM, 210);
         int descColor = interactive ? Theme.TEXT_SECONDARY : Theme.withAlpha(Theme.TEXT_DIM, 170);
-        nvg.text("Inter-Bold", UiLang.localize(group.getName()), x + 12.0f, y + UiLayoutMetrics.TITLE_TOP, 13.5f, titleColor);
+        nvg.text("Inter-Regular", UiLang.localize(group.getName()), x + 12.0f, y + UiLayoutMetrics.TITLE_TOP, 13.5f, titleColor);
         nvg.text("Inter-Regular", UiLang.localize(group.getDescription()), x + 12.0f, y + UiLayoutMetrics.descriptionTop(13.5f), UiLayoutMetrics.DESCRIPTION_FONT, descColor);
         this.offerHoverHelp("group:" + group.getRawName(), group.getName(), group.getDescription(), x, y, w, 46.0f, mx, my);
         if (this.isPetTrackerGroup(group)) {
@@ -2242,26 +2158,8 @@ extends NVGScreen {
         this.ph = frameLayout.ph;
         this.physW = frameLayout.physW;
         this.physH = frameLayout.physH;
-        if (forceCenter || oldPw <= 0.0f || oldPh <= 0.0f || prevPhysW <= 0.0f || prevPhysH <= 0.0f) {
-            this.px = frameLayout.px;
-            this.py = frameLayout.py;
-        } else {
-            boolean wasCentered;
-            float oldCanvasW = prevPhysW / uiScale;
-            float oldCanvasH = prevPhysH / uiScale;
-            float centeredX = (oldCanvasW - oldPw) / 2.0f;
-            float centeredY = (oldCanvasH - oldPh) / 2.0f;
-            boolean bl = wasCentered = Math.abs(oldPx - centeredX) <= 0.5f && Math.abs(oldPy - centeredY) <= 0.5f;
-            if (wasCentered) {
-                this.px = frameLayout.px;
-                this.py = frameLayout.py;
-            } else {
-                float canvasW = this.physW / uiScale;
-                float canvasH = this.physH / uiScale;
-                this.px = Math.max(0.0f, Math.min(canvasW - this.pw, oldPx));
-                this.py = Math.max(0.0f, Math.min(canvasH - this.ph, oldPy));
-            }
-        }
+        this.px = frameLayout.px;
+        this.py = frameLayout.py;
         this.contX = this.px + 60.0f;
         this.contY = this.py;
         this.contW = this.pw - 60.0f;
@@ -2621,13 +2519,7 @@ extends NVGScreen {
     }
 
     boolean tryBeginPanelDrag(float mx, float my) {
-        if (my >= this.py && my <= this.py + 56.0f && mx >= this.px && mx <= this.px + 60.0f) {
-            this.panelDragging = true;
-            this.dragPanelOffX = mx - this.px;
-            this.dragPanelOffY = my - this.py;
-            return true;
-        }
-        return false;
+        return false; // The settings panel is always anchored to the window center.
     }
 
     void setLoginButtonBounds(float x, float y, float w, float h) {

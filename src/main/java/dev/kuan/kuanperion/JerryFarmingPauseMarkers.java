@@ -23,12 +23,13 @@ final class JerryFarmingPauseMarkers {
         if (value == null || !value.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?")) return null;
         try {
             BigDecimal seconds = new BigDecimal(value);
-            return seconds.signum() > 0 ? seconds.stripTrailingZeros() : null;
+            return seconds.signum() >= 0 ? seconds.stripTrailingZeros() : null;
         } catch (NumberFormatException ignored) { return null; }
     }
 
     boolean expire(BigDecimal maxSeconds) {
-        if (maxSeconds == null || maxSeconds.signum() <= 0) return false;
+        if (maxSeconds == null || maxSeconds.signum() < 0) return false;
+        if(maxSeconds.signum()==0){boolean changed=!markers.isEmpty();markers.clear();return changed;}
         BigDecimal now = BigDecimal.valueOf(clock.getAsLong());
         BigDecimal lifetimeMillis = maxSeconds.movePointRight(3);
         return markers.removeIf(marker -> now.subtract(BigDecimal.valueOf(marker.createdAtMillis()))

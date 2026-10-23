@@ -40,10 +40,26 @@ final class MainGUISettingRowRenderer {
         float cardH = h - 5.0f;
         this.owner.offerHoverHelp("setting:" + setting.getRawName(), setting.getName(), setting.getDescription(), x, y, w, cardH, mx, my);
         nvg.roundedRect(x, y, w, cardH, 7.0f, Theme.CARD_BG);
-        nvg.rectOutlineSolid(x, y, w, cardH, 7.0f, 1.0f, Theme.subtleBorder());
-        float innerPad = 16.0f;
+        nvg.rectOutlineSolid(x, y, w, cardH, 7.0f, 1.0f, mx>=x && mx<=x+w && my>=y && my<=y+cardH ? Theme.ACCENT_PRIMARY : Theme.subtleBorder());
+        float innerPad = 12.0f;
         float innerX = x + innerPad;
         float innerW = w - innerPad * 2.0f;
+        if(setting instanceof ToggleRowSetting choices) {
+            float cellW=innerW/choices.choices().size();
+            float maxLabelWidth=1;
+            for(var choice:choices.choices())maxLabelWidth=Math.max(maxLabelWidth,nvg.textWidth("Inter-Regular",choice.getName(),13.5f));
+            float choiceFont=Math.min(13.5f,13.5f*Math.max(20,cellW-36)/maxLabelWidth);
+            for(int i=0;i<choices.choices().size();i++){
+                var choice=choices.choices().get(i);float cx=innerX+i*cellW;
+                float font=choiceFont;
+                float labelW=nvg.textWidth("Inter-Regular",choice.getName(),font);
+                float start=cx+(cellW-labelW-28)/2;
+                if(mx>=cx && mx<cx+cellW && my>=y && my<y+cardH)nvg.roundedRect(cx,y,cellW,cardH,6,Theme.withAlpha(Theme.ACCENT_PRIMARY,.06f));
+                nvg.text("Inter-Regular",choice.getName(),start,y+(cardH-font)/2,font,Theme.TEXT_LABEL);
+                this.owner.renderPillControl(nvg,start+labelW-2,UiLayoutMetrics.checkboxTop(y,h),choice.getValue(),choice);
+            }
+            return;
+        }
         float descriptionH=this.owner.settingDescriptionHeight(setting,w);
         cardH-=descriptionH;
         float midY = y + (h - UiLayoutMetrics.ROW_GAP) / 2.0f;
@@ -269,7 +285,7 @@ final class MainGUISettingRowRenderer {
         for (int i = 0; i < labelLines.size(); ++i) {
             nvg.text("Inter-Regular", labelLines.get(i), x, textY + (float)i * labelLineStep, labelFontSize, Theme.TEXT_LABEL);
         }
-        float fieldW = this.owner.textInlineFieldWidthForRow(w);
+        float fieldW = setting.fieldWidth(w);
         float fieldX = x + w - fieldW;
         float fieldH = UiLayoutMetrics.inputHeight();
         float fieldY = UiLayoutMetrics.inputTop(y,rowHeight);
@@ -283,7 +299,7 @@ final class MainGUISettingRowRenderer {
         String display = active ? this.owner.currentTextBuffer() : setting.getValue();
         float visibleTextW = fieldW - textPad * 2.0f;
         float textOffset = active ? this.owner.inlineTextScrollOffsetFor(nvg, "Inter-Regular", display, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;
-        float drawX = fieldX + textPad - textOffset;
+        float drawX = setting.centered() && nvg.textWidth("Inter-Regular",display,fieldTextSize)<=visibleTextW ? fieldX+(fieldW-nvg.textWidth("Inter-Regular",display,fieldTextSize))/2 : fieldX + textPad - textOffset;
         boolean clipped = this.owner.pushContentLocalScissor(nvg, fieldX + textPad, fieldY + 1.0f, visibleTextW, fieldH - 2.0f);
         if (active && this.owner.textHasSelection()) {
             int selStart = this.owner.currentTextSelectionStart();

@@ -53,7 +53,7 @@ public final class JerryFarmingPauseMarkersTest {
         BigDecimal huge = new BigDecimal("999999999999999999999999999999999999999999999999999999999999999");
         check(JerryFarmingPauseMarkers.parseMaxSeconds(huge.toPlainString()).compareTo(huge) == 0, "no configured maximum, even beyond long seconds");
         check(JerryFarmingPauseMarkers.parseMaxSeconds("0.125").compareTo(new BigDecimal("0.125")) == 0, "fractional seconds supported");
-        for (String invalid : new String[]{"", "0", "-1", "NaN", "Infinity", "1..5", "1e9", " 5", "5 "})
+        for (String invalid : new String[]{"", "-1", "NaN", "Infinity", "1..5", "1e9", " 5", "5 "})
             check(JerryFarmingPauseMarkers.parseMaxSeconds(invalid) == null, "invalid duration rejected: " + invalid);
         check(JerryFarmingPauseMarkers.parseMaxSeconds(null) == null, "missing duration uses default");
         timed.add(garden, 0, 70, 0);now[0] += 124;
@@ -80,6 +80,8 @@ public final class JerryFarmingPauseMarkersTest {
         now[0] = 1000;timed.add(garden, 0, 0, 0);now[0] = 500;
         check(!timed.expire(BigDecimal.ONE), "backward wall clock does not prematurely expire marker");
         now[0] = 2000;check(timed.expire(BigDecimal.ONE), "original creation time remains the timeout origin");
+        check(JerryFarmingPauseMarkers.parseMaxSeconds("0").signum()==0,"zero disables beams");
+        timed.add(garden,0,70,0);now[0]-=1000;check(timed.expire(BigDecimal.ZERO)&&timed.isEmpty(),"zero clears existing beams");
         System.out.println("JerryFarmingPauseMarkersTest: PASS (manual-only acknowledgement, 10-block boundary, world isolation, multiple markers, persistence, unbounded timeout, fractional boundaries, offline expiry, safe malformed input)");
     }
 }

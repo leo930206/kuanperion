@@ -6,8 +6,8 @@ import dev.kuan.kuanperion.ui.MainGUIContext;
 
 final class MainGUILayout {
     private static final float PANEL_MARGIN = 40.0f;
-    private static final float MAX_PANEL_W = 1060.0f;
-    private static final float MAX_PANEL_H = 660.0f;
+    private static final float MAX_PANEL_W = 980.0f;
+    private static final float MAX_PANEL_H = 610.0f;
 
     MainGUILayout() {
     }
@@ -19,8 +19,8 @@ final class MainGUILayout {
         layout.physH = (float)height * pixelRatio;
         float canvasW = layout.physW / uiScale;
         float canvasH = layout.physH / uiScale;
-        layout.pw = Math.min(1060.0f, canvasW - 40.0f);
-        layout.ph = Math.min(660.0f, canvasH - 40.0f);
+        layout.pw = Math.min(980.0f, (canvasW - 40.0f) * .94f);
+        layout.ph = Math.min(610.0f, (canvasH - 40.0f) * .94f);
         layout.px = (canvasW - layout.pw) / 2.0f;
         layout.py = (canvasH - layout.ph) / 2.0f;
         layout.contX = layout.px + sidebarWidth;

@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.9`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.10`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.9.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.10.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -19,9 +19,24 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 左側功能分成 **Farming**（Farming、Pest 通知、Visitor 通知）、**Mining**（Mining）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
 
-單一齒輪 **Setting** 內含「顏色／設定檔／快捷鍵／介面設定」頁籤；顏色與設定檔仍有原分類及五組配色收藏，不刪設定、不重設既有偏好。下文「顏色」「設定檔」「快捷鍵」「介面設定」皆位於 Setting 內。
+單一齒輪 **Setting** 頁籤順序為「設定檔／介面／顏色／快捷鍵」。顏色、設定檔不再有第二排分類；保留內容小標題，配色收藏在選單顏色之前。五組配色與既有設定均保留。
 
-左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.9`，展開時為 `Mod Version 2.0.9`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
+左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.10`，展開時為 `Mod Version 2.0.10`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
+
+## 2.0.10 介面與操作調整
+
+- 面板稍微縮小，仍動態適應視窗；縮小／放大與 DPI 改變後重新置中，不再拖動離開中央。
+- Search 輸入即時更新、不重播切頁動畫；空白聚焦亦有輸入游標。
+- 全介面取消懸停說明框，改為描邊／文字亮度等回饋；說明直接留在設定列。
+- 設定列共用 12px 左邊距與標題樣式；開啟功能卡片僅顯示勾選，不改背景深淺。
+- 通知時間與 Jerry 光柱時間使用 66px 置中數字框，與通知門檻一致；Webhook 輸入目標寬度 390px（小視窗會縮限與換行）。
+- Jerry 四色在同一列，個別開關；全部關閉即不偵測。光柱時間可設 0，關閉光柱但不影響其他 Jerry 處理。
+- Jerry 新增「出現 Jerry 後自動 sethome」，預設關閉；只在勾選顏色的出現訊號觸發，與通知／停止動作獨立。
+- 新增 `/sethome` 快捷鍵，預設未綁定，支援組合鍵；只在遊戲世界、無選單且視窗聚焦時觸發，一次按下只發一次。
+- 啟用異常狀況處理並已設定 Webhook 時，自動回到 Garden 後通知原本被傳送到的地點；只發一次，Farming 仍保持關閉等待操作。
+- 所有本模組本機聊天訊息統一 `[Kuanperion]` 天空藍→白→粉紅漸層，不使用粗體。
+
+專案目前位於 `/Users/kuan/projects/kuanperion`；GitHub：[leo930206/kuanperion](https://github.com/leo930206/kuanperion)。大型自動化移植尚未開始。
 
 ## 快捷鍵
 
@@ -126,6 +141,6 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.9.md](docs/verification-2.0.9.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.10.md](docs/verification-2.0.10.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。

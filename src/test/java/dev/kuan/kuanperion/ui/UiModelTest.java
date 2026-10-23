@@ -59,13 +59,13 @@ public final class UiModelTest {
         }finally{try(var paths=java.nio.file.Files.walk(paletteDir)){for(var path:paths.sorted(java.util.Comparator.reverseOrder()).toList())java.nio.file.Files.delete(path);}}
         boolean[] notify={false};String[] seconds={""};
         var combined=new InlineToggleSetting("螢幕通知","顯示時間",()->seconds[0],v->seconds[0]=v,()->notify[0],v->notify[0]=v);
-        require(metrics.descriptionWidth(combined,600)+12+50+metrics.textInlineFieldWidth(600-32-50)<=600-32,"description reserves full centered input column");
+        require(metrics.descriptionWidth(combined,600)+12+50+combined.fieldWidth(600-24-50)<=600-24,"description reserves full centered input column");
         require(combined.getValue().isEmpty() && combined.getPlaceholder().equals("顯示時間"),"blank duration placeholder");
         combined.setValue("2.5");require(seconds[0].equals("2.5")&&!notify[0],"duration editing does not toggle");
         combined.toggle();require(notify[0]&&seconds[0].equals("2.5"),"toggle does not edit duration");
         int[] count={2},starts={0};
         var selection=new SelectionActionSetting("選擇種類數量",()->(float)count[0],v->count[0]=Math.round(v),()->starts[0]++);
-        for(float width:new float[]{400,600,1000})require(16+metrics.descriptionWidth(selection,width)<=InlineRowLayout.countFieldX(16,width-32)-16,"selection description stays left of count/action controls");
+        for(float width:new float[]{400,600,1000})require(12+metrics.descriptionWidth(selection,width)<=InlineRowLayout.countFieldX(12,width-24)-12,"selection description stays left of count/action controls");
         selection.setValue(9);require(count[0]==5&&starts[0]==0,"count clamps without starting selection");selection.start();require(starts[0]==1,"paired action callback");
         var hidden=new BlockTargetSetting("優先序 1",()->"minecraft:stone",()->"石頭",()->{},()->{},()->{},()->false,()->false).visibleWhen(()->false);
         require(!hidden.isVisible(),"unselected target has no phantom row");
@@ -90,10 +90,19 @@ public final class UiModelTest {
         var editable=MainGUI.class.getDeclaredMethod("isConfigurationEditable",ModulesTab.SubTab.class);editable.setAccessible(true);
         require((Boolean)editable.invoke(null,offModule),"can configure a stopped feature");
         var layout=new MainGUILayout().computeFrameLayout(960,640,2,1.5f,60);
-        require(layout.pw==1060&&layout.ph==660&&layout.contW==1000,"reference panel geometry");
+        require(layout.pw==980&&layout.ph==610&&layout.contW==920,"reference panel geometry");
         require(UiScalePolicy.effective(320,240,3)<=.5f,"small-window fit");
         require(UiScalePolicy.effective(1920,1280,1.5f)==1.5f,"normal scale retained");
         require(Float.isFinite(UiScalePolicy.effective(1920,1280,Float.NaN)),"malformed scale");
+        require(!MainGUI.hasTopFilterBar(1)&&!MainGUI.hasTopFilterBar(2),"no color/profile subfilter strips");
+        var numberField=new TextSetting("number","",()->"300",v->{}).numeric();
+        require(numberField.fieldWidth(600)==66&&numberField.centered(),"numeric field matches threshold width and alignment");
+        require(new TextSetting("webhook","",()->"",v->{}).withFieldWidth(390).fieldWidth(600)==390,"wide webhook field");
+        for(int[] size:new int[][]{{320,240},{1100,760},{1920,1080},{640,480},{1920,1080}}){
+            float scale=UiScalePolicy.effective(size[0],size[1],1.5f);
+            var frame=new MainGUILayout().computeFrameLayout(size[0],size[1],1,scale,60);
+            require(Math.abs(frame.px+frame.pw/2-frame.physW/scale/2)<.01f && Math.abs(frame.py+frame.ph/2-frame.physH/scale/2)<.01f,"resize roundtrip always centers");
+        }
         System.out.println("UiModelTest: PASS (live bindings, bounds, Chinese text, word navigation, original spring animation, geometry, adaptive scale)");
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}

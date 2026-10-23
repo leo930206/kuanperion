@@ -41,7 +41,7 @@ final class MainGUIContentRenderer {
             return;
         }
         if (context.navigation.activeMain == 1) {
-            this.chromeRenderer.renderFilterBar(nvg, mx, my);
+
             this.owner.renderFlatContentPanel(nvg, mx, my);
             if (this.owner.hasOpenDropdown()) {
                 this.owner.renderDropdownOverlayPanel(nvg, mx, my);
@@ -52,7 +52,7 @@ final class MainGUIContentRenderer {
             return;
         }
         if (context.navigation.activeMain == 2) {
-            this.chromeRenderer.renderFilterBar(nvg, mx, my);
+
             this.owner.renderProfileContentPanel(nvg, mx, my);
             return;
         }

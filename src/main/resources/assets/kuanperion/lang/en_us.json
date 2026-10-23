@@ -3,5 +3,6 @@
   "key.kuanperion.toggle_mining": "Shift+M Toggle Auto Mining",
   "key.kuanperion.toggle_farming": "Shift+F Toggle Auto Farming",
   "key.category.kuanperion.keys": "Kuanperion",
-  "category.kuanperion.keys": "Kuanperion"
+  "category.kuanperion.keys": "Kuanperion",
+  "key.kuanperion.sethome": "Set Home (/sethome)"
 }

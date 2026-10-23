@@ -39,18 +39,18 @@ public final class MainGUIRegistry {
         for(int slot=1;slot<=dev.kuan.kuanperion.ui.theme.ColorPresetStore.LIMIT;slot++){
             savedColors.add(new ColorPresetSetting(slot,store,()->com.google.gson.JsonParser.parseString(Theme.exportJson()).getAsJsonObject(),palette->{Theme.importJson(palette.toString());Theme.saveTheme();}));
         }
-        COLORS_SUBTABS.add(new ModulesTab.SubTab("配色收藏","五個本機配色儲存槽",List.of(savedColors)));
+        COLORS_SUBTABS.add(0,new ModulesTab.SubTab("配色收藏","五個本機配色儲存槽",List.of(savedColors)));
         var keys=SettingGroup.alwaysOn("快捷鍵","點擊後按下單鍵或組合鍵，例如 F、Ctrl + F、Ctrl + Shift + F；Esc 取消");
         for(var setting:KuanperionClient.uiKeybinds())keys.add(setting);
         KEYBINDS_SUBTABS.add(new ModulesTab.SubTab("快捷鍵","與 Minecraft 控制設定同步",List.of(keys)));
-        var settings=SettingGroup.alwaysOn("介面設定","只調整本機 UI，不影響 Mining／Farming 行為")
+        var settings=SettingGroup.alwaysOn("介面","只調整本機 UI，不影響 Mining／Farming 行為")
             .add(new SliderSetting("介面大小",Theme.UI_SCALE_MIN,Theme.UI_SCALE_MAX,()->Theme.UI_SCALE,v->{Theme.UI_SCALE=v;Theme.saveTheme();}).withDecimals(2))
             .add(new SliderSetting("文字大小",Theme.TEXT_SCALE_MIN,Theme.TEXT_SCALE_MAX,()->Theme.TEXT_SCALE,v->{Theme.TEXT_SCALE=v;Theme.saveTheme();}).withDecimals(2))
             .add(new SliderSetting("動畫時間",Theme.ANIM_TIME_MIN_MS,Theme.ANIM_TIME_MAX_MS,()->Theme.ANIM_TIME_MS,v->{Theme.ANIM_TIME_MS=v;Theme.saveTheme();}).withDecimals(0).withSuffix(" ms"))
             .add(new SliderSetting("說明間距",6,12,()->UiLayoutMetrics.descriptionGap(),v->{UiLayoutMetrics.setDescriptionGap(v);Theme.saveTheme();}).withDecimals(0))
             .add(new SliderSetting("輸入框高度",14,24,()->UiLayoutMetrics.inputHeight(),v->{UiLayoutMetrics.setInputHeight(v);Theme.saveTheme();}).withDecimals(0))
             .add(new ActionSetting("重設介面",()->{Theme.resetToDefaults();Theme.saveTheme();}))
-            .add(new InfoSetting("Kuanperion",()->"2.0.9 · Minecraft 26.2 · 僅本機介面"));
+            .add(new InfoSetting("Kuanperion",()->"2.0.10 · Minecraft 26.2 · 僅本機介面"));
         SETTINGS_SUBTABS.add(new ModulesTab.SubTab("介面設定","比例、動畫與版本",List.of(settings)));
         var about=SettingGroup.alwaysOn("Kuanperion","本機 Fabric 客戶端模組")
             .add(new InfoSetting("Mod Version",MainGUIRegistry::modVersion))

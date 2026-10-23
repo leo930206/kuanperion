@@ -19,15 +19,17 @@ public final class SettingDescriptionCatalog {
   Map.entry("Discord 訊息通知","將此功能通知送到你設定的共用 Webhook；不提供遠端控制。"),
   Map.entry("遊戲內聊天室通知","只在遊戲聊天室顯示此功能通知，不改變其他通知通道。"),
   Map.entry("遊戲內螢幕通知","在畫面中央顯示通知；時間單位為秒，可填正小數，留空使用 3 秒。"),
+  Map.entry("出現 Jerry 後自動 sethome","偵測到已勾選顏色的 Jerry 時，立即發送 /sethome；不受通知通道或停止動作開關影響。"),
   Map.entry("出現 Jerry 是否停下動作","偵測到已勾選顏色的 Jerry 時，停止目前 Mining／Farming；不自動追蹤或擊殺。"),
-  Map.entry("光柱最久存在時間（秒）","Jerry 造成 Farming 停機後的光柱期限；正小數、預設 300 秒，離線也計時。"),
-  Map.entry("Webhook 網址","三種通知共用，僅在你啟用通道時使用；勿將網址公開或拍進截圖。"),
+  Map.entry("光柱最久存在時間（秒）","Jerry 造成 Farming 停機後的光柱期限；0 秒不顯示光柱；預設 300 秒，離線也計時。"),
+  Map.entry("Webhook 網址","所有 Discord 通知共用，僅在啟用時使用。"),
   Map.entry("藍粉漸層背景","開啟左下淡藍、右上淡粉的柔和漸層；關閉後保留主面板底色。")
  );
  public static String describe(Setting setting){
+  if(setting instanceof ToggleRowSetting)return setting.getName();
   if(setting instanceof BlockTargetSetting)return "已選取方塊；排列即挖礦優先序，可移動或移除，不會新增空白項目。";
   if(setting.getType()==SettingType.KEYBIND)return "先按住所需 Ctrl／Shift／Alt／Command，再按主鍵；也可直接按單鍵。Esc 取消，Delete／Backspace 清除。";
   return HELP.getOrDefault(setting.getRawName(),setting.getName());
  }
- public static boolean inlineHelp(Setting setting){return !describe(setting).equals(setting.getName())&&(setting.getType()==SettingType.TOGGLE||setting.getType()==SettingType.SLIDER||setting.getType()==SettingType.TEXT);}
+ public static boolean inlineHelp(Setting setting){return !setting.getDescription().equals(setting.getName())&&(setting.getType()==SettingType.TOGGLE||setting.getType()==SettingType.SLIDER||setting.getType()==SettingType.TEXT);}
 }

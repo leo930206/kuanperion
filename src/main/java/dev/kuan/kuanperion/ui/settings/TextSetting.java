@@ -16,6 +16,13 @@ implements Setting {
     private final Supplier<String> getter;
     private final Consumer<String> setter;
     private boolean multiline = false;
+    private float fieldWidth = 130;
+    private boolean centered;
+    public TextSetting withFieldWidth(float width) { fieldWidth=width;return this; }
+    public TextSetting numeric() { fieldWidth=66;centered=true;return this; }
+    public float fieldWidth(float available) { return Math.min(fieldWidth,Math.max(40,available-(fieldWidth>130?160:100))); }
+    public boolean centered() { return centered; }
+
     private int visibleLines = 4;
     private Supplier<Boolean> visibility = () -> true;
 

@@ -177,7 +177,7 @@ final class MainGUISettingInteractionController {
         if (setting.getType() != SettingType.COLOR) {
             this.owner.commitColor();
         }
-        float ip = 16.0f;
+        float ip = 12.0f;
         float ix = x + ip;
         float iw = w - ip * 2.0f;
         float fullCardH=h-UiLayoutMetrics.ROW_GAP;
@@ -185,6 +185,10 @@ final class MainGUISettingInteractionController {
         // Checkboxes belong to the entire card, not just the title/control region.
         if(my<y || my>y+h-UiLayoutMetrics.ROW_GAP)return;
         if(setting instanceof ColorPresetSetting preset){ColorPresetRow.click(preset,mx,my,ix,y,iw,h);return;}
+        if(setting instanceof ToggleRowSetting choices) {
+            if(mx>=ix && mx<ix+iw)choices.choices().get(Math.min(choices.choices().size()-1,(int)((mx-ix)/(iw/choices.choices().size())))).toggle();
+            return;
+        }
         if(setting instanceof ToggleSetting toggle){toggle.toggle();return;}
         if(setting instanceof InlineToggleSetting combined && mx>=ix+iw-38){
             this.owner.commitText();combined.toggle();return;
@@ -344,7 +348,7 @@ final class MainGUISettingInteractionController {
             this.owner.commitText();
             this.owner.activateTextSettingEditor(setting);
         }
-        float fieldW = this.owner.textInlineFieldWidthForRow(iw);
+        float fieldW = setting.fieldWidth(iw);
         float fieldX = ix + iw - fieldW;
         float fieldH=UiLayoutMetrics.inputHeight();
         float fieldY = y + (cardH - fieldH) / 2.0f;
@@ -353,7 +357,7 @@ final class MainGUISettingInteractionController {
         String value = this.owner.currentTextBuffer();
         float visibleTextW = fieldW - textPad * 2.0f;
         float textOffset = sameActive ? this.owner.inlineTextScrollOffsetApproxFor(value, this.owner.currentTextCursor(), fieldTextSize, visibleTextW) : 0.0f;
-        float startX = fieldX + textPad - textOffset;
+        float startX = setting.centered() && value.length()*fieldTextSize*.55f<=visibleTextW ? fieldX+(fieldW-value.length()*fieldTextSize*.55f)/2 : fieldX + textPad - textOffset;
         this.owner.beginInlineFieldCaretPress(fieldX, fieldY, fieldW, fieldH, value, fieldTextSize, startX, mx, my);
     }
 

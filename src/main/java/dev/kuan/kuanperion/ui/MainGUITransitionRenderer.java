@@ -23,6 +23,12 @@ final class MainGUITransitionRenderer {
             transition.toState = current;
             return;
         }
+        if (!transition.toState.searchQuery().equals(current.searchQuery())) {
+            // Typing updates results in-place; it is not page navigation.
+            transition.fromState = null;
+            transition.toState = current;
+            return;
+        }
         if (!transition.toState.equals((Object)current)) {
             transition.fromState = transition.toState;
             transition.toState = current;

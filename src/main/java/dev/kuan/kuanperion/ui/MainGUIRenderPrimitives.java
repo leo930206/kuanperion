@@ -42,24 +42,16 @@ final class MainGUIRenderPrimitives {
             nvg.shadow(x, y, w, height, 7.0f, 14.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, hover * 0.18f));
         }
         nvg.roundedRect(x, y, w, height, 7.0f, Theme.CARD_BG);
-        if (enabled) {
-            nvg.roundedRect(x, y, w, height, 7.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.12f));
-            nvg.rectOutlineSolid(x, y, w, height, 7.0f, 1.0f, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.4f));
-        } else {
-            int border = hover > 0.01f ? Theme.blend(Theme.SEPARATOR, Theme.BORDER_HOVER, hover) : Theme.SEPARATOR;
-            nvg.rectOutlineSolid(x, y, w, height, 7.0f, 1.0f, border);
-            if (hover > 0.01f) {
-                nvg.roundedRect(x, y, w, height, 7.0f, Theme.withAlpha(-1, hover * 0.04f));
-            }
-        }
+        int border = hover > .01f ? Theme.blend(Theme.SEPARATOR,Theme.BORDER_HOVER,hover) : Theme.SEPARATOR;
+        nvg.rectOutlineSolid(x,y,w,height,7,1,border);
         float pillX = x + w - 52.0f;
         float pillY = y + (height - 21.0f) / 2.0f;
         if (subTab.hasToggle()) {
             this.renderPill(nvg, pillX, pillY, enabled, (Object)subTab);
         }
         float textX = x + 16.0f;
-        int nameColor = enabled ? Theme.TEXT_PRIMARY : Theme.TEXT_VALUE;
-        int descriptionColor = enabled ? Theme.TEXT_SECONDARY : Theme.TEXT_MUTED;
+        int nameColor = Theme.TEXT_VALUE;
+        int descriptionColor = Theme.TEXT_MUTED;
         float textMaxW = Math.max(80.0f, w - 32.0f - (subTab.hasToggle() ? 62.0f : 0.0f));
         List<String> nameLines = this.textLayout.wrapTextToWidth(nvg, UiLang.localize(subTab.name()), "Inter-Bold", 13.0f, textMaxW);
         List<String> descriptionLines = this.textLayout.wrapTextToWidth(nvg, UiLang.localize(subTab.description()), "Inter-Regular", 10.0f, textMaxW);

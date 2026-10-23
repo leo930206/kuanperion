@@ -257,9 +257,10 @@ public class NotificationSettingsTest {
         click(jerry,"光柱最久存在時間：");Screen lifetimeDialog=mc.shown;
         check(lifetimeDialog instanceof ScreenDurationScreen && input(lifetimeDialog).getValue().equals("300"),"lifetime dialog prefilled with 300-second default");
         check(input(lifetimeDialog).maxLength==Integer.MAX_VALUE,"no input digit ceiling for beam lifetime");
-        for(String invalid:List.of("", "0", "-1", "1..5", "NaN", "Infinity")) {
+        for(String invalid:List.of("", "-1", "1..5", "NaN", "Infinity")) {
             input(lifetimeDialog).setValue(invalid);check(!button(lifetimeDialog,"確認").active,"reject invalid beam seconds");
         }
+        input(lifetimeDialog).setValue("0");check(button(lifetimeDialog,"確認").active,"zero disables beam");
         String hugeSeconds="999999999999999999999999999999999999999999999999999999999999999";
         input(lifetimeDialog).setValue(hugeSeconds);check(button(lifetimeDialog,"確認").active,"large lifetime accepted without upper cap");
         click(lifetimeDialog,"確認");check(mc.shown==jerry && jerryMarkerMaxSeconds.toPlainString().equals(hugeSeconds),"confirm saves full unbounded lifetime and returns to Jerry settings");
