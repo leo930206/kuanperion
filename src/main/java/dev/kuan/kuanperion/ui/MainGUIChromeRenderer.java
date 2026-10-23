@@ -214,7 +214,7 @@ final class MainGUIChromeRenderer {
         nvg.save();
         nvg.globalAlpha(context.animation.sidebarAnim);
         nvg.text("Inter-Bold", "Kuanperion", textX, pillY + 5, 11, Theme.TEXT_PRIMARY);
-        nvg.text("Inter-Regular", "2.0.2 · Minecraft 26.2", textX, pillY + 21, 8, Theme.TEXT_MUTED);
+        nvg.text("Inter-Regular", net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString()+" · Minecraft 26.2", textX, pillY + 21, 8, Theme.TEXT_MUTED);
         nvg.restore();
     }
 

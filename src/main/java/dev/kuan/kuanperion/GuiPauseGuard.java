@@ -6,6 +6,9 @@ final class GuiPauseGuard {
     private boolean buffering;
     private long closedAtNanos;
 
+    boolean shouldPause(boolean enabled, boolean screenOpen, boolean ownSettings, long nowNanos) {
+        return shouldPause(enabled,screenOpen && !ownSettings,nowNanos);
+    }
     boolean shouldPause(boolean enabled, boolean screenOpen, long nowNanos) {
         if (!enabled) {
             reset();

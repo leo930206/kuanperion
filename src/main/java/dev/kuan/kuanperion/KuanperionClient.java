@@ -181,6 +181,7 @@ public final class KuanperionClient implements ClientModInitializer {
     private static FlowerState flowerState = FlowerState.INACTIVE;
     private static boolean flowerMarkerCleared = false;
     private static int flowerTransitionTicks = 0;
+    private static boolean farmingSettingsWasOpen;
     private static boolean farmingDesiredForward = false;
     private static boolean farmingDesiredBack = false;
     private static boolean farmingDesiredLeft = false;
@@ -288,6 +289,7 @@ public final class KuanperionClient implements ClientModInitializer {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
             tickFarming(mc);
         }
+        tickFarmingSettingsAttack(mc);
         tickFarmingStallNotification(mc, System.nanoTime());
     }
 
@@ -514,11 +516,33 @@ public final class KuanperionClient implements ClientModInitializer {
         }
     }
 
+    /** MainGUI owns mouse/keyboard; continue only the already-running Farming block action. */
+    private static void tickFarmingSettingsAttack(Minecraft mc) {
+        if(!farmingEnabled || miningEnabled || farmingAutoRecovering || mc==null || mc.player==null
+                || mc.level==null || mc.options==null || mc.gameMode==null || !mc.player.isAlive() || mc.isPaused() || mc.gui.overlay()!=null){
+            if(farmingSettingsWasOpen && !miningEnabled && mc!=null && mc.player!=null && mc.level!=null && mc.gameMode!=null)mc.gameMode.stopDestroyBlock();
+            farmingSettingsWasOpen=false;return;
+        }
+        var access=(dev.kuan.kuanperion.mixin.MinecraftAttackAccess)mc;
+        if(mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI){
+            //26.2 assigns missTime=10000 each GUI tick; otherwise even a held harvest is blocked.
+            access.kuanperion$setMissTime(0);
+            access.kuanperion$continueAttack(mc.options.keyAttack.isDown());
+            farmingSettingsWasOpen=true;
+        }else{
+            if(farmingSettingsWasOpen){
+                if(mc.gui.screen()==null)access.kuanperion$setMissTime(0);
+                else mc.gameMode.stopDestroyBlock();
+            }
+            farmingSettingsWasOpen=false;
+        }
+    }
+
     private static void tickFarmingStallNotification(Minecraft mc, long now) {
         if (!abnormalHandlingEnabled || !farmingEnabled || !farmingEnabledThisSession
                 || !farmingCropDetected || farmingAutoRecovering || mc == null
                 || mc.player == null || mc.level == null || mc.options == null
-                || !mc.player.isAlive() || mc.isPaused() || mc.gui.screen() != null
+                || !mc.player.isAlive() || mc.isPaused() || (mc.gui.screen() != null && !(mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI))
                 || isFarmingPauseScreen(null) || isFarmingIntentionalWait() || pestWebhookUrl.isBlank()) {
             FARMING_STALL_GUARD.reset();
             return;
@@ -1687,11 +1711,11 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static boolean isFarmingPauseScreen(Screen screen) {
-        return FARMING_GUI_PAUSE_GUARD.shouldPause(farmingMenuPauseEnabled, screen != null, System.nanoTime());
+        return FARMING_GUI_PAUSE_GUARD.shouldPause(farmingMenuPauseEnabled, screen != null, screen instanceof dev.kuan.kuanperion.ui.MainGUI, System.nanoTime());
     }
 
     private static boolean isMiningPauseScreen(Screen screen) {
-        return MINING_GUI_PAUSE_GUARD.shouldPause(miningMenuPauseEnabled, screen != null, System.nanoTime());
+        return MINING_GUI_PAUSE_GUARD.shouldPause(miningMenuPauseEnabled, screen != null, screen instanceof dev.kuan.kuanperion.ui.MainGUI, System.nanoTime());
     }
 
     private static void pauseMining(Minecraft mc) {
@@ -1811,6 +1835,7 @@ public final class KuanperionClient implements ClientModInitializer {
             return;
         }
         boolean down = GLFW.glfwGetMouseButton(mc.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        if (mc.gui.screen() != null) { rightWasDown = down; return; }
         if (down && !rightWasDown && mc.hitResult instanceof BlockHitResult bhr) {
             BlockState state = mc.level.getBlockState(bhr.getBlockPos());
             String name = blockId(state);

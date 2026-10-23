@@ -2,6 +2,13 @@ package dev.kuan.kuanperion;
 
 public final class GuiPauseGuardTest {
     public static void main(String[] args) {
+        GuiPauseGuard own = new GuiPauseGuard();
+        check(!own.shouldPause(true,true,true,0),"own settings never pause automation");
+        check(!own.shouldPause(true,true,true,10_000_000_000L),"own settings can remain open");
+        check(!own.shouldPause(true,false,false,10_050_000_000L),"closing only own settings adds no buffer");
+        check(own.shouldPause(true,true,false,11_000_000_000L),"other screens still pause");
+        check(own.shouldPause(true,true,true,11_050_000_000L),"other screen to settings retains normal close buffer");
+        check(!own.shouldPause(true,true,true,11_550_000_000L),"resume inside settings after other-screen buffer");
         GuiPauseGuard guard = new GuiPauseGuard();
         check(!guard.shouldPause(true, false, 0), "no GUI means no initial delay");
         check(guard.shouldPause(true, true, 0), "GUI pauses immediately");

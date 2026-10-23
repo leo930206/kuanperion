@@ -93,6 +93,8 @@ public class FarmingStallIntegrationTest {
             excluded(m->rowCropState=state,"row crop planned wait "+state);
         for(CactusState state:List.of(CactusState.WAIT_BEFORE_HARVEST_LEFT,CactusState.WAIT_BEFORE_HARVEST_RIGHT))
             excluded(m->{farmingCrop=FarmingCrop.CACTUS;cactusState=state;},"cactus planned wait "+state);
+        mc=reset();mc.gui.current=new dev.kuan.kuanperion.ui.MainGUI();sample(mc,0);sample(mc,5*SECOND);
+        check(discord.size()==1,"own settings no longer suppress active farming stall monitor");
         mc=reset();sample(mc,0);sample(mc,4*SECOND);mc.gui.current=new Object();sample(mc,5*SECOND);sample(mc,100*SECOND);
         mc.gui.current=null;sample(mc,101*SECOND);sample(mc,106*SECOND-1);check(discord.isEmpty(),"GUI time cannot accumulate into stall");
         sample(mc,106*SECOND);check(discord.size()==1,"fresh five seconds after GUI resumes");
@@ -121,6 +123,7 @@ public class FarmingStallIntegrationTest {
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'FarmingStallIntegrationTest.java';path.write_text(harness)
     java=Path(sys.argv[1])/'bin'
-    deps=[base/(name+'.java') for name in ['FarmingStallGuard','FarmingToolGuard']]
+    stub=Path(tmp)/"MainGUI.java";stub.write_text("package dev.kuan.kuanperion.ui; public class MainGUI {}")
+    deps=[stub]+[base/(name+'.java') for name in ['FarmingStallGuard','FarmingToolGuard']]
     subprocess.run([str(java/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,deps),str(path)],check=True)
     subprocess.run([str(java/'java'),'-cp',tmp,'dev.kuan.kuanperion.FarmingStallIntegrationTest'],check=True)

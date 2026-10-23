@@ -24,3 +24,6 @@ See docs/spec-2.0.4.md. Implement/test input geometry, implement/test bounded co
 
 ## 2.0.5 avatar and overlap defense
 See docs/spec-2.0.5.md: exact bundled avatar, one texture/context and reserved/clipped explanations; model/runtime tests, standard release.
+
+## 2.0.6 own settings continues automation
+See docs/spec-2.0.6.md. Pause-policy tests, narrow vanilla held-attack/miss blocker bridge, close cleanup/input isolation, monitoring integration, client checks/release, fresh manual26.2 UI window.

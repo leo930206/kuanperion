@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.6 — 2026-10-23
+
+- Farming／Mining 的智慧暫停排除 Kuanperion 自身設定選單；開啟／關閉 `'` 選單不新增暫停或 0.5 秒緩衝。其他 GUI 仍沿用原有保護及關閉緩衝。
+- Farming 在自身選單中以原版 held-block attack 延續採收；狹義 Mixin 存取26.2的 GUI missTime blocker，僅在 active Farming／自身選單時清除，關閉時清除一次殘留。保留原版物品使用保護，不開放 GUI 操作穿透；停用／離開到其他 GUI 會收尾舊採收，不干擾新 Mining 動作。
+- 移動、轉向、Mining 目標／冷卻及通知照常；Farming 停滯監控不再排除自身選單。死亡、真正暫停、載入 overlay、錯工具、計畫等待、異常回復、Jerry 停止等保護保留。
+- 目標方塊右鍵選取只在世界畫面處理；GUI 內點擊或按住右鍵關閉 GUI 不會誤選背後方塊。
+- 更新智慧暫停說明；側欄版本資訊改讀取模組 metadata，避免舊版字串。補上自身／其他 GUI 轉換、原版 miss blocker／採收續行與關閉清理、停滯監控及 Mixin 套用回歸。
+
 ## 2.0.5 — 2026-10-23
 
 - 左上角 K 改為現有模組 icon（Minecraft 大頭貼），沿用相同 PNG 原色，不染成主題色、不連網抓 skin；底部 K 保持不變。

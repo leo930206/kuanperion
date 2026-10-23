@@ -5,6 +5,7 @@
   "client": [
     "EntityTurnMixin",
     "MinecraftAttackMixin",
+    "MinecraftAttackAccess",
     "UiRenderMixin"
   ],
   "injectors": {

@@ -35,3 +35,9 @@
 - [x] Test-first avatar metadata/PNG assertion; implement cached original-color PNG and context cleanup.
 - [x] Retain reserved description columns, add bounded clip and Mining selection width regressions.
 - [x] Runtime avatar/cache/screenshots and overlap verification, regressions/build and release preparation; publication recorded by commit/tag.
+
+## 2.0.6 own settings continues automation
+- [x] Test-first own-GUI pause policy and production continuation harness; inspect installed26.2 bytecode.
+- [x] Own-menu exception, vanilla held-block bridge with miss cleanup, selection input isolation, stall integration and help text.
+- [x] Full regressions/build/actual client Mixin/UI verification and release preparation; publication recorded by commit/tag.
+- [x] Prepare separate latest-version manual26.2 launcher; actual launch/ready is recorded by its session log.

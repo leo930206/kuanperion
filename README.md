@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.5`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.6`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.5.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.6.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -45,6 +45,12 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 左上角使用模組現有的 Minecraft 大頭貼 icon，保留原色、像素縮放並本機快取；不連線抓取帳號或 skin。底部 K 不變。設定說明只在左側預留文字欄換行，避免與右側輸入框及按鈕重疊。
 
+### 開選單時的執行行為
+
+Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動、轉向與採收／挖掘；關閉自身選單也不新增智慧暫停緩衝。GUI 的打字與滑鼠操作不會穿透到遊戲，功能快捷鍵仍不在 GUI 編輯中觸發。目標方塊右鍵選取須回到世界畫面。
+
+背包、聊天室、其他模組選單仍受原「智慧暫停」控制，關閉後保留 0.5 秒緩衝；從其他 GUI 轉入自身設定，也保留這段既有緩衝。工具偵測、Jerry 停止與異常回復等保護不取消。只有自身設定介面被排除，不是全域關閉暫停保護。
+
 ## 新版設定介面
 
 - 可展開側欄、三欄功能卡片、分類與設定詳情、滑順捲動、搜尋、hover 提示。
@@ -56,7 +62,7 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 - 「顏色」即時預覽；「設定檔」保存／載入本機功能與主題 Profiles，另有 晴空藍粉、Slate、Sage、Matcha、Dusk、Ember 預設色彩。
 - 「介面設定」調整 UI／文字比例與動畫時間。較小視窗會暫時縮放至可容納尺寸，不覆蓋偏好。
 - Ctrl 或 macOS Command 支援複製／貼上／全選；Esc 優先結束編輯或返回，再關閉畫面。
-- 本輪只換設定介面；未接管 Minecraft 主選單或更換遊戲 HUD，未引入第三方帳號、遙測、IRC、遠控、更新器。
+- 未接管 Minecraft 主選單或更換遊戲 HUD，未引入第三方帳號、遙測、IRC、遠控、更新器。
 
 ## Mining
 
@@ -74,8 +80,8 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 - 黃色染色玻璃：換列；淺藍色：起點；粉紅色：終點。
 - 保留各作物、南瓜／西瓜啟動方向、農場列標記與返回流程。
 - 工具偵測、智慧暫停、異常狀況處理仍獨立開關。
-- Farming 非預期停滯滿 5 秒，開啟異常處理且有共用 Webhook 時通知 Discord；正常等待／GUI／拿錯工具不算停滯。
-- 開設定不會強制關掉巨集，但仍遵守各自「智慧暫停」的既有規則。
+- Farming 非預期停滯滿 5 秒，開啟異常處理且有共用 Webhook 時通知 Discord；正常等待／其他 GUI／拿錯工具不算停滯；Kuanperion 自身設定選單內則繼續監控。
+- 開啟 Kuanperion 自身設定不會暫停 Farming／Mining；其他畫面仍遵守各自「智慧暫停」。
 
 ## 通知與 Jerry
 
@@ -102,6 +108,6 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.5.md](docs/verification-2.0.5.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.6.md](docs/verification-2.0.6.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。

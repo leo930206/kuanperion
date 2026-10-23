@@ -21,7 +21,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
+            if(phase==0) { testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==9) testSettingsShortcut(mc);
             if(phase==10) testInlineDuration();
@@ -52,6 +52,22 @@ public final class UiSmoke implements ClientModInitializer {
     @SuppressWarnings("unchecked")
     private java.util.List<String> selected() throws Exception {
         var f=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("TARGET_BLOCKS");f.setAccessible(true);return (java.util.List<String>)f.get(null);
+    }
+    private void testSettingsAutomation(Minecraft mc) throws Exception {
+        if(ui.isPauseScreen())throw new AssertionError("settings must not pause singleplayer world");
+        if(!(mc instanceof dev.kuan.kuanperion.mixin.MinecraftAttackAccess))throw new AssertionError("26.2 held attack bridge Mixin missing");
+        ((dev.kuan.kuanperion.mixin.MinecraftAttackAccess)mc).kuanperion$setMissTime(0);
+        Class<?> client=dev.kuan.kuanperion.KuanperionClient.class;
+        var other=new net.minecraft.client.gui.screens.TitleScreen();
+        for(String name:new String[]{"isFarmingPauseScreen","isMiningPauseScreen"}){
+            var method=client.getDeclaredMethod(name,net.minecraft.client.gui.screens.Screen.class);method.setAccessible(true);
+            if((Boolean)method.invoke(null,ui) || (Boolean)method.invoke(null,new Object[]{null}))throw new AssertionError("own settings opened/closed creates smart-pause buffer: "+name);
+            if(!(Boolean)method.invoke(null,other))throw new AssertionError("other GUI protection removed: "+name);
+        }
+        for(String name:new String[]{"FARMING_GUI_PAUSE_GUARD","MINING_GUI_PAUSE_GUARD"}){
+            var field=client.getDeclaredField(name);field.setAccessible(true);var guard=field.get(null);var reset=guard.getClass().getDeclaredMethod("reset");reset.setAccessible(true);reset.invoke(guard);
+        }
+        System.out.println("UI_SMOKE_SETTINGS_AUTOMATION_PASS non-pausing UI / applied26.2 Mixin accessor / real Farming+Mining wrappers / other GUI guard");
     }
     private void testModIcon() throws Exception {
         dev.kuan.kuanperion.renderer.NanoVGManager.beginFrame(ui.width,ui.height);
