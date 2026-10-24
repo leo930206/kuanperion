@@ -553,7 +553,7 @@ extends NVGScreen {
     }
 
     void applyContentState(MainGUIContentViewState state) {
-        this.activeMain = state.activeMain();
+        this.activeMain = MainGUISettingsPages.normalize(state.activeMain());
         this.activeSubtab = state.activeSubtab();
         this.activeFilter = state.activeFilter();
         this.activeFilter = this.normalizedActiveFilterIndex();
@@ -1675,7 +1675,7 @@ extends NVGScreen {
     }
 
     void setActiveMainTab(int mainTab) {
-        this.activeMain = mainTab;
+        this.activeMain = MainGUISettingsPages.normalize(mainTab);
     }
 
     void setActiveSubtabIndex(int subtabIndex) {
@@ -1786,7 +1786,7 @@ extends NVGScreen {
             return;
         }
         this.launchTargetApplied = true;
-        this.activeMain = Math.max(0, this.launchTarget.mainTab());
+        this.activeMain = MainGUISettingsPages.normalize(Math.max(0, this.launchTarget.mainTab()));
         this.activeFilter = this.activeMain == 0 ? 1 : 0;
         this.activeSubtab = 0;
         if (!this.launchTarget.openModuleDetail() || this.launchTarget.moduleName() == null || this.activeMain != 0) {

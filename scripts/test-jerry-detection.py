@@ -45,7 +45,12 @@ public class JerryDetectionIntegrationTest {
     static boolean jerryAutoSethomeEnabled;
     static String farmingRecoveryOrigin="";
     static final List<String> commands=new ArrayList<>();
-    static void sendCommand(Minecraft mc,String command){commands.add(command);}
+    static boolean commandAccepted=true;
+    static boolean sendHomeCommand(Minecraft mc,String command,boolean announce){commands.add(command);return commandAccepted;}
+    static NotificationChannels notificationChannels(NotificationType type){return NOTIFICATION_CHANNELS.getOrDefault(type,NotificationChannels.NONE);}
+    static final List<String> chat=new ArrayList<>();
+    static String plain(String s){return s;}static void say(Minecraft mc,String text){chat.add(text);}
+    static void sendNotification(NotificationType type,String content,String title,String chatContent){sendNotification(type,content,title);if(notificationChannels(type).chat())chat.add(chatContent);}
     static Object activeTarget;
     static int limboChatSeenTick, saves, releases;
     static final List<String> FARMING_COMMAND_QUEUE = new ArrayList<>();
@@ -84,7 +89,7 @@ public class JerryDetectionIntegrationTest {
                 "You located a hidden %s Jerry!");
     static final String APPEARED="§b ☺ §eA §aGreen Jerry§e appeared!";
     static void reset() {
-        farmingMarkersCreated=0;
+        farmingMarkersCreated=0;commandAccepted=true;jerryAutoSethomeEnabled=false;commands.clear();chat.clear();
         FARMING_STALL_GUARD.reset();
         jerryColors=Set.of(JerryColor.values());
         NOTIFICATION_CHANNELS.clear();NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,false,false));jerryStopActionsEnabled=true;
@@ -179,6 +184,14 @@ public class JerryDetectionIntegrationTest {
         reset();pestWebhookUrl="";NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
         handleReceivedMessage(Component.literal(APPEARED));
         check(sent.size()==1,"local-only Jerry notifications work with no master or Webhook");
+        reset();jerryAutoSethomeEnabled=true;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
+        handleReceivedMessage(Component.literal(APPEARED));
+        check(commands.equals(List.of("sethome"))&&chat.size()==1&&chat.get(0).contains("Green Jerry")&&chat.get(0).contains("已發送 /sethome"),"Jerry and auto sethome share exactly one chat line");
+        reset();jerryAutoSethomeEnabled=true;NOTIFICATION_CHANNELS.clear();
+        handleReceivedMessage(Component.literal(APPEARED));check(commands.size()==1&&chat.size()==1&&chat.get(0).contains("已發送 /sethome"),"auto sethome reports even when Jerry chat is disabled");
+        reset();jerryAutoSethomeEnabled=true;jerryColors=Set.of();handleReceivedMessage(Component.literal(APPEARED));check(commands.isEmpty()&&chat.isEmpty(),"unselected Jerry never sends command or feedback");
+        reset();jerryAutoSethomeEnabled=true;commandAccepted=false;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
+        handleReceivedMessage(Component.literal(APPEARED));check(chat.size()==1&&chat.get(0).contains("Green Jerry")&&chat.get(0).contains("發送失敗"),"failed auto sethome also joins detection on one chat line");
         System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/four colors/all 16 color switch combinations/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
     }
     // METHODS

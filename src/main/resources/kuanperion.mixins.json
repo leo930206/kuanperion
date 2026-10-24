@@ -6,7 +6,8 @@
     "EntityTurnMixin",
     "MinecraftAttackMixin",
     "MinecraftAttackAccess",
-    "UiRenderMixin"
+    "UiRenderMixin",
+    "AutomationSoundMixin"
   ],
   "injectors": {
     "defaultRequire": 1

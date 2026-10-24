@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.12`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.13`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.12.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.13.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -19,9 +19,9 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 左側功能分成 **Farming**（Farming、Pest 通知、Visitor 通知）、**Mining**（Mining）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
 
-單一齒輪 **Setting** 頁籤順序為「設定檔／介面／顏色／快捷鍵」。顏色、設定檔不再有第二排分類；保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
+單一齒輪 **Setting** 頁籤順序為「介面／顏色／快捷鍵」，移除手動設定檔頁面。設定變更一律自動保存至遊戲資料夾：功能偏好在 `config/kuanperion.properties`、外觀在 `config/kuanperion-theme.json`、快捷鍵主鍵在 Minecraft `options.txt`（修飾鍵另存 properties），都不在 JAR 內。換 JAR 自動沿用；不需手動快照／載入，舊快照檔不會被刪除或自動套用。顏色頁保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
 
-左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.12`，展開時為 `Mod Version 2.0.12`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
+左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.13`，展開時為 `Mod Version 2.0.13`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
 
 ## 介面與操作
 
@@ -34,9 +34,12 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 - 通知時間與 Jerry 光柱時間使用 66px 置中數字框，與通知門檻一致；Webhook 輸入目標寬度 390px（小視窗會縮限與換行）。
 - Jerry 四色在同一列，個別開關；全部關閉即不偵測。光柱時間可設 0，關閉光柱但不影響其他 Jerry 處理。
 - Jerry 新增「出現 Jerry 後自動 sethome」，預設關閉；只在勾選顏色的出現訊號觸發，與通知／停止動作獨立。
+- 五個快捷鍵右側都有「清空／重設」；清空保存為 `Not Bound` 並移除修飾鍵，重設恢復各自預設值。
+- Farming／Mining 各有獨立、預設關閉的執行中靜音開關；只過濾執行時聲音增益，不改 Minecraft 音量偏好，停止或離開世界恢復原設定（含原本的靜音）。
+- Farming「一段時間都沒動偵測」獨立於異常狀況處理，預設五秒，可輸入正小數。持續非預期停滯到時先關閉 Farming，再發一次 Discord 通知；未設定 Webhook 仍會停止，不會自動重啟。正常選單暫停、錯誤工具與預定等待不累積計時。
 - `/sethome` 與 `/home` 快捷鍵都預設未綁定，支援組合鍵；只在遊戲世界、無選單且視窗聚焦時觸發，一次按下只發一次。
 - 啟用異常狀況處理並已設定 Webhook 時，自動回到 Garden 後通知原本被傳送到的地點；只發一次，Farming 仍保持關閉等待操作。
-- 所有本模組本機聊天訊息統一 `[Kuanperion]` 天空藍→白→粉紅漸層，不使用粗體。
+- 聊天前綴括號為灰色，名稱改為較鮮明的天空藍→白→粉紅漸層，皆不加粗。快捷鍵送出 `/sethome`、`/home` 後會回報「已發送」；Jerry 自動 `/sethome` 與 Jerry 聊天室通知合併同一行，未開聊天室通知則獨立回報。
 
 專案目前位於 `/Users/kuan/projects/kuanperion`；GitHub：[leo930206/kuanperion](https://github.com/leo930206/kuanperion)。大型自動化移植尚未開始。
 
@@ -145,6 +148,8 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.12.md](docs/verification-2.0.12.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.13.md](docs/verification-2.0.13.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。
+
+配色收藏的預覽最多一行：依介面寬度顯示放得下的色塊，其餘僅隱藏預覽；完整配色仍照常儲存、載入，右側儲存／刪除按鈕保留。

@@ -34,6 +34,7 @@ implements Setting {
     }
 
     public String getBoundKeyName() {
+        if(keyMapping.isUnbound())return "Not Bound";
         var key=InputConstants.getKey(keyMapping.saveString());
         String name=keyMapping.getTranslatedKeyMessage().getString();
         if(key.getType()==InputConstants.Type.KEYSYM)name=dev.kuan.kuanperion.HotkeyChord.keyName(key.getValue(),name);

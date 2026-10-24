@@ -116,7 +116,7 @@ final class MainGUITextLayout {
             case SettingType.MULTI_DROPDOWN -> Math.max(80.0f, innerWidth - 16.0f);
             case SettingType.COLOR -> Math.max(80.0f, innerWidth - 96.0f);
             case SettingType.POSITION -> Math.max(80.0f, innerWidth - (320.0f + this.positionActionStripWidth((PositionSetting)setting)));
-            case SettingType.KEYBIND -> Math.max(80.0f, innerWidth - InlineRowLayout.keybindWidth(innerWidth) - 80);
+            case SettingType.KEYBIND -> Math.max(80.0f, innerWidth - InlineRowLayout.keybindWidth(innerWidth) - 140);
             default -> Math.max(80.0f, innerWidth - 16.0f);
         };
     }

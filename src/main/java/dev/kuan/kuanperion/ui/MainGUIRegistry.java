@@ -12,7 +12,7 @@ public final class MainGUIRegistry {
     public static final List<ModulesTab.SubTab> COLORS_SUBTABS=new ArrayList<>();
     public static final List<ModulesTab.SubTab> KEYBINDS_SUBTABS=new ArrayList<>();
     public static final List<ModulesTab.SubTab> SETTINGS_SUBTABS=new ArrayList<>();
-    public static final List<ModulesTab.SubTab> PROFILES_SUBTABS=List.of(new ModulesTab.SubTab("Config","本機功能設定檔",List.of()),new ModulesTab.SubTab("Themes","本機介面主題",List.of()));
+    public static final List<ModulesTab.SubTab> PROFILES_SUBTABS=List.of();
     public static final List<ModulesTab.SubTab> ABOUT_SUBTABS=new ArrayList<>();
     public static String modVersion() {
         return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("kuanperion").orElseThrow().getMetadata().getVersion().getFriendlyString();

@@ -9,19 +9,17 @@ final class ColorPresetRow {
  private ColorPresetRow(){}
  static float deleteX(float x,float width){return x+width-BUTTON_W;}
  static float saveX(float x,float width){return deleteX(x,width)-BUTTON_GAP-BUTTON_W;}
- static int columns(float width){return Math.max(1,(int)((width-2*BUTTON_W-BUTTON_GAP-16+SWATCH_GAP)/(SWATCH+SWATCH_GAP)));}
- static float height(ColorPresetSetting setting,float rowWidth){
-  int cols=columns(rowWidth-24),rows=Math.max(1,(setting.previewColors().size()+cols-1)/cols);
-  return Math.max(50,18+rows*SWATCH+(rows-1)*SWATCH_GAP+UiLayoutMetrics.ROW_GAP);
- }
+ static int columns(float width){return Math.max(0,(int)Math.floor((width-2*BUTTON_W-BUTTON_GAP-16+SWATCH_GAP)/(SWATCH+SWATCH_GAP)));}
+ static int visibleCount(ColorPresetSetting setting,float width){return Math.min(setting.previewColors().size(),columns(width));}
+ static float height(ColorPresetSetting setting,float rowWidth){return 50;}
  static void render(NVGRenderer nvg,ColorPresetSetting setting,float x,float y,float width,float rowHeight,float mx,float my){
   float h=rowHeight-UiLayoutMetrics.ROW_GAP,buttonY=y+(h-28)/2;
-  var colors=setting.previewColors();int cols=columns(width),rows=Math.max(1,(colors.size()+cols-1)/cols);
-  float gridH=rows*SWATCH+(rows-1)*SWATCH_GAP,top=y+(h-gridH)/2;
-  for(int i=0;i<colors.size();i++){
-   float sx=x+(i%cols)*(SWATCH+SWATCH_GAP),sy=top+(i/cols)*(SWATCH+SWATCH_GAP);
-   nvg.roundedRect(sx,sy,SWATCH,SWATCH,4,colors.get(i)|0xFF000000);
-   nvg.rectOutline(sx,sy,SWATCH,SWATCH,4,1,Theme.BORDER_DEFAULT);
+  var colors=setting.previewColors();int count=visibleCount(setting,width);
+  float top=y+(h-SWATCH)/2;
+  for(int i=0;i<count;i++){
+   float sx=x+i*(SWATCH+SWATCH_GAP);
+   nvg.roundedRect(sx,top,SWATCH,SWATCH,4,colors.get(i)|0xFF000000);
+   nvg.rectOutline(sx,top,SWATCH,SWATCH,4,1,Theme.BORDER_DEFAULT);
   }
   button(nvg,saveX(x,width),buttonY,setting.saveLabel(System.currentTimeMillis()),mx,my);
   button(nvg,deleteX(x,width),buttonY,"刪除",mx,my);

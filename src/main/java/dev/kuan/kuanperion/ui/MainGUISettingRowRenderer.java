@@ -126,7 +126,7 @@ final class MainGUISettingRowRenderer {
                 break;
             }
             case KEYBIND: {
-                this.renderKeybind(nvg, (KeybindSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH);
+                this.renderKeybind(nvg, (KeybindSetting)setting, innerX, innerW, y, cardH, labelLines, labelFontSize, labelLineStep, labelBlockH,mx,my);
             }
         }
         if(descriptionH>0){
@@ -629,7 +629,7 @@ final class MainGUISettingRowRenderer {
         }
     }
 
-    private void renderKeybind(NVGRenderer nvg, KeybindSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH) {
+    private void renderKeybind(NVGRenderer nvg, KeybindSetting setting, float x, float w, float y, float cardH, List<String> labelLines, float labelFontSize, float labelLineStep, float labelBlockH,float mx,float my) {
         float textY = y + (cardH - labelBlockH) / 2.0f;
         for (int i = 0; i < labelLines.size(); ++i) {
             nvg.text("Inter-Regular", labelLines.get(i), x, textY + (float)i * labelLineStep, labelFontSize, Theme.TEXT_LABEL);
@@ -640,7 +640,8 @@ final class MainGUISettingRowRenderer {
         float bindW = InlineRowLayout.keybindWidth(w);
         float gap = 8.0f;
         float resetX = x + w - resetW;
-        float bindX = resetX - gap - bindW;
+        float clearX = InlineRowLayout.keybindClearX(x,w);
+        float bindX = InlineRowLayout.keybindBindX(x,w);
         boolean listening = this.owner.isAwaitingKeybindCapture(setting);
         int bindBg = listening ? Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.16f) : Theme.BG_FIELD;
         int bindBorder = listening ? Theme.ACCENT_PRIMARY : Theme.BORDER_DEFAULT;
@@ -653,6 +654,10 @@ final class MainGUISettingRowRenderer {
         float bindFont=Math.min(12,Math.max(8,12*(bindW-textPad*2)/Math.max(1,nvg.textWidth("Inter-Regular",bindTextValue,12))));
         nvg.textCentered("Inter-Regular", bindTextValue, bindX + textPad, buttonY, bindW - textPad * 2.0f, buttonH, bindFont, bindText);
         this.owner.popContentLocalScissor(nvg, clipped);
+        boolean clearHover=mx>=clearX&&mx<clearX+52&&my>=buttonY&&my<buttonY+buttonH;
+        nvg.roundedRect(clearX,buttonY,52,buttonH,7,clearHover?Theme.BG_HOVER:Theme.ELEMENT_BG);
+        nvg.rectOutline(clearX,buttonY,52,buttonH,7,1,clearHover?Theme.ACCENT_PRIMARY:Theme.BORDER_DEFAULT);
+        nvg.textCentered("Inter-Regular","清空",clearX,buttonY,52,buttonH,12,Theme.TEXT_VALUE);
         int resetBg = Theme.ELEMENT_BG;
         int resetBorder = setting.isDefault() ? Theme.BORDER_DEFAULT : Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.28f);
         int resetText = setting.isDefault() ? Theme.TEXT_MUTED : Theme.TEXT_VALUE;

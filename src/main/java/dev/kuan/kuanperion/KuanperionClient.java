@@ -115,6 +115,10 @@ public final class KuanperionClient implements ClientModInitializer {
     private static boolean miningMenuPauseEnabled = true;
     private static boolean farmingToolDetectionEnabled = false;
     private static boolean abnormalHandlingEnabled = true;
+    private static boolean farmingMuteSoundEnabled=false,miningMuteSoundEnabled=false;
+    private static boolean farmingStallDetectionEnabled=true;
+    private static BigDecimal farmingStallSeconds=BigDecimal.valueOf(5);
+    private static boolean automationSoundWasMuted;
     private static String pestWebhookUrl = "";
     private static boolean farmingReverseLane = false;
     private static int farmingStateTicks = 0;
@@ -301,6 +305,7 @@ public final class KuanperionClient implements ClientModInitializer {
         }
         tickFarmingSettingsAttack(mc);
         tickFarmingStallNotification(mc, System.nanoTime());
+        syncAutomationSound(mc);
     }
 
     private static void handleShiftHotkeys(Minecraft mc) {
@@ -310,8 +315,8 @@ public final class KuanperionClient implements ClientModInitializer {
             && GLFW.glfwGetWindowAttrib(mc.getWindow().handle(),GLFW.GLFW_FOCUSED)==GLFW.GLFW_TRUE;
         if(miningHotkeyEdge.press(hotkeyDown(toggleMiningKey),HotkeyChord.matches(miningModifiers,modifiers),allowed))toggleMining(mc);
         if(farmingHotkeyEdge.press(hotkeyDown(toggleFarmingKey),HotkeyChord.matches(farmingModifiers,modifiers),allowed))toggleFarming(mc);
-        if(sethomeHotkeyEdge.press(hotkeyDown(sethomeKey),HotkeyChord.matches(sethomeModifiers,modifiers),allowed))sendCommand(mc,"sethome");
-        if(homeHotkeyEdge.press(hotkeyDown(homeKey),HotkeyChord.matches(homeModifiers,modifiers),allowed))sendCommand(mc,"home");
+        if(sethomeHotkeyEdge.press(hotkeyDown(sethomeKey),HotkeyChord.matches(sethomeModifiers,modifiers),allowed))sendHomeCommand(mc,"sethome",true);
+        if(homeHotkeyEdge.press(hotkeyDown(homeKey),HotkeyChord.matches(homeModifiers,modifiers),allowed))sendHomeCommand(mc,"home",true);
     }
 
     public static int currentHotkeyModifiers() {
@@ -552,19 +557,22 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static void tickFarmingStallNotification(Minecraft mc, long now) {
-        if (!abnormalHandlingEnabled || !farmingEnabled || !farmingEnabledThisSession
+        if (!farmingStallDetectionEnabled || !farmingEnabled || !farmingEnabledThisSession
                 || !farmingCropDetected || farmingAutoRecovering || mc == null
                 || mc.player == null || mc.level == null || mc.options == null
                 || !mc.player.isAlive() || mc.isPaused() || (mc.gui.screen() != null && !(mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI))
-                || isFarmingPauseScreen(null) || isFarmingIntentionalWait() || pestWebhookUrl.isBlank()) {
+                || isFarmingPauseScreen(null) || isFarmingIntentionalWait()) {
             FARMING_STALL_GUARD.reset();
             return;
         }
         // A deliberately changed tool is not an unexpected stall, even with tool detection disabled.
         String heldTool = StringUtil.stripColor(mc.player.getMainHandItem().getHoverName().getString());
         boolean correctTool = FARMING_TOOL_GUARD.matches(heldTool);
-        if (FARMING_STALL_GUARD.update(correctTool, mc.player.getX(), mc.player.getZ(), now)) {
-            sendDiscordNotification("Farming 異常通知：已連續 5 秒沒有移動，請檢查遊戲狀況。");
+        if (FARMING_STALL_GUARD.update(correctTool, mc.player.getX(), mc.player.getZ(), now,NotificationChannels.durationNanos(farmingStallSeconds))) {
+            String message="Farming 停滯通知：已連續 "+farmingStallSeconds.toPlainString()+" 秒沒有移動，已自動關閉 Farming，等待操作。";
+            stopFarming(mc,false);saveConfig();
+            say(mc,warning(message));
+            if(!pestWebhookUrl.isBlank())sendDiscordNotification(message);
         }
     }
 
@@ -686,6 +694,27 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void enqueueFarmingCommand(String command, int delayTicks) {
         FARMING_COMMAND_QUEUE.addLast(new QueuedCommand(command, Math.max(1, delayTicks)));
+    }
+
+    private static boolean sendHomeCommand(Minecraft mc,String command,boolean announce) {
+        if(mc==null||mc.player==null)return false;
+        try {
+            mc.player.connection.sendCommand(command);
+            if(announce)say(mc,plain("已發送 /"+command+"。"));
+            return true;
+        }catch(RuntimeException error){if(announce)say(mc,warning("無法發送 /"+command+"，請檢查連線。"));return false;}
+    }
+
+    public static boolean shouldMuteAutomationSound() {
+        Minecraft mc=Minecraft.getInstance();
+        return AutomationSoundPolicy.muted(farmingEnabled,farmingMuteSoundEnabled,miningEnabled,miningMuteSoundEnabled,mc!=null&&mc.player!=null&&mc.level!=null);
+    }
+    private static void syncAutomationSound(Minecraft mc) {
+        boolean muted=shouldMuteAutomationSound();
+        if(muted!=automationSoundWasMuted){
+            automationSoundWasMuted=muted;
+            mc.getSoundManager().refreshCategoryVolume(net.minecraft.sounds.SoundSource.MASTER);
+        }
     }
 
     private static void sendCommand(Minecraft mc, String command) {
@@ -2075,20 +2104,13 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static MutableComponent hsbaPrefix() {
-        String text = "[Kuanperion]";
-        MutableComponent out = Component.empty();
-        for (int i = 0; i < text.length(); i++) {
-            double progress=i/(double)(text.length()-1);
-            int start=progress<=.5?0x58B9EA:0xFFFFFF;
-            int end=progress<=.5?0xFFFFFF:0xF3A3B5;
-            double t=progress<=.5?progress*2:(progress-.5)*2;
-            int r = (int)(((start >> 16) & 0xFF) * (1.0 - t) + ((end >> 16) & 0xFF) * t);
-            int g = (int)(((start >> 8) & 0xFF) * (1.0 - t) + ((end >> 8) & 0xFF) * t);
-            int b = (int)((start & 0xFF) * (1.0 - t) + (end & 0xFF) * t);
-            int color = (r << 16) | (g << 8) | b;
-            out.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(style -> style.withColor(color).withBold(false)));
+        String name="Kuanperion";
+        MutableComponent out=Component.empty().append(Component.literal("[").withStyle(style->style.withColor(ChatPrefixPalette.BRACKET).withBold(false)));
+        for(int i=0;i<name.length();i++){
+            final int color=ChatPrefixPalette.colorAt(i,name.length());
+            out.append(Component.literal(String.valueOf(name.charAt(i))).withStyle(style->style.withColor(color).withBold(false)));
         }
-        return out.append(Component.literal(" "));
+        return out.append(Component.literal("]").withStyle(style->style.withColor(ChatPrefixPalette.BRACKET).withBold(false))).append(Component.literal(" ").withStyle(style->style.withBold(false)));
     }
 
     private static Component plain(String text) { return Component.literal(text).withColor(COLOR_PLAIN); }
@@ -2161,7 +2183,7 @@ public final class KuanperionClient implements ClientModInitializer {
     private static boolean handleJerryMessage(Minecraft mc, String text) {
         JerryColor color = JerryMessageMatcher.matchingColor(text, jerryColors);
         if (color == null) return false;
-        if(jerryAutoSethomeEnabled)sendCommand(mc,"sethome");
+        boolean autoSethomeSent=jerryAutoSethomeEnabled&&sendHomeCommand(mc,"sethome",false);
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             boolean stoppedFarming = farmingEnabled;
@@ -2173,7 +2195,10 @@ public final class KuanperionClient implements ClientModInitializer {
             saveConfig();
         }
         String announcement = "發現 " + color.label + " Jerry！";
-        sendNotification(NotificationType.JERRY, "Jerry 通知：" + announcement, announcement);
+        String content="Jerry 通知："+announcement;
+        String homeFeedback=jerryAutoSethomeEnabled?(autoSethomeSent?"已發送 /sethome。":"/sethome 發送失敗，請檢查連線。"):"";
+        sendNotification(NotificationType.JERRY,content,announcement,content+(homeFeedback.isEmpty()?"":" "+homeFeedback));
+        if(!homeFeedback.isEmpty()&&!notificationChannels(NotificationType.JERRY).chat())say(mc,plain("Jerry 自動 /sethome："+homeFeedback));
         return true;
     }
 
@@ -2204,11 +2229,14 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static void sendNotification(NotificationType type, String content, String screenText) {
+        sendNotification(type,content,screenText,content);
+    }
+    private static void sendNotification(NotificationType type,String content,String screenText,String chatContent) {
         NotificationChannels channels = notificationChannels(type);
         if (channels.discord() && !pestWebhookUrl.isBlank()) sendDiscordNotification(content);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
-        if (channels.chat()) say(mc, plain(content));
+        if (channels.chat()) say(mc, plain(chatContent));
         if (channels.screen()) SCREEN_NOTIFICATIONS.add(type, screenText, channels.screenSeconds(), System.nanoTime());
     }
 
@@ -2400,6 +2428,12 @@ public final class KuanperionClient implements ClientModInitializer {
                 || Boolean.parseBoolean(p.getProperty("limboReturnEnabled", "true"));
         abnormalHandlingEnabled = Boolean.parseBoolean(p.getProperty("abnormalHandlingEnabled",
                 Boolean.toString(legacyAbnormalHandling)));
+        farmingMuteSoundEnabled=Boolean.parseBoolean(p.getProperty("farmingMuteSoundEnabled","false"));
+        miningMuteSoundEnabled=Boolean.parseBoolean(p.getProperty("miningMuteSoundEnabled","false"));
+        farmingStallDetectionEnabled=Boolean.parseBoolean(p.getProperty("farmingStallDetectionEnabled",Boolean.toString(abnormalHandlingEnabled)));
+        BigDecimal stall=NotificationChannels.parseScreenSeconds(p.getProperty("farmingStallSeconds","5"));
+        farmingStallSeconds=stall==null?BigDecimal.valueOf(5):stall;
+        FARMING_STALL_GUARD.reset();
         loadNotificationConfig(p);
         for(var type:NotificationType.values()){if(Boolean.parseBoolean(p.getProperty(type.configKey+"ScreenDurationAuto","false")))defaultDurationInputs.add(type);else defaultDurationInputs.remove(type);}
         JERRY_FARMING_MARKERS.load(p);
@@ -2443,6 +2477,10 @@ public final class KuanperionClient implements ClientModInitializer {
         p.setProperty("miningMenuPauseEnabled", Boolean.toString(miningMenuPauseEnabled));
         p.setProperty("farmingToolDetectionEnabled", Boolean.toString(farmingToolDetectionEnabled));
         p.setProperty("abnormalHandlingEnabled", Boolean.toString(abnormalHandlingEnabled));
+        p.setProperty("farmingMuteSoundEnabled",Boolean.toString(farmingMuteSoundEnabled));
+        p.setProperty("miningMuteSoundEnabled",Boolean.toString(miningMuteSoundEnabled));
+        p.setProperty("farmingStallDetectionEnabled",Boolean.toString(farmingStallDetectionEnabled));
+        p.setProperty("farmingStallSeconds",farmingStallSeconds.toPlainString());
         saveNotificationConfig(p);
         for(var type:NotificationType.values())p.setProperty(type.configKey+"ScreenDurationAuto",Boolean.toString(defaultDurationInputs.contains(type)));
         JERRY_FARMING_MARKERS.save(p);
@@ -2709,10 +2747,17 @@ public final class KuanperionClient implements ClientModInitializer {
         var farming = SettingGroup.alwaysOn("農耕設定", "保留原本農場標記與作物辨識，不改變農耕流程")
             .add(new ToggleSetting("工具偵測", () -> farmingToolDetectionEnabled, v -> { farmingToolDetectionEnabled=v; saveConfig(); }))
             .add(new ToggleSetting("智慧暫停", () -> farmingMenuPauseEnabled, v -> { farmingMenuPauseEnabled=v; saveConfig(); }))
-            .add(new ToggleSetting("異常狀況處理", () -> abnormalHandlingEnabled, v -> { abnormalHandlingEnabled=v; farmingWorldChanged=false; saveConfig(); }));
+            .add(new ToggleSetting("異常狀況處理", () -> abnormalHandlingEnabled, v -> { abnormalHandlingEnabled=v; farmingWorldChanged=false; saveConfig(); }))
+            .add(new ToggleSetting("開啟 Farming 後關閉遊戲音量",()->farmingMuteSoundEnabled,v->{farmingMuteSoundEnabled=v;syncAutomationSound(Minecraft.getInstance());saveConfig();}))
+            .add(new InlineToggleSetting("一段時間都沒動偵測","5",()->farmingStallSeconds.toPlainString(),text->{
+                BigDecimal seconds=NotificationChannels.parseScreenSeconds(text.trim());
+                if(seconds==null){uiInputError("請輸入大於 0 的有效秒數");return;}
+                farmingStallSeconds=seconds;FARMING_STALL_GUARD.reset();saveConfig();
+            },()->farmingStallDetectionEnabled,v->{farmingStallDetectionEnabled=v;FARMING_STALL_GUARD.reset();saveConfig();}));
         var farmTab = new ModulesTab.SubTab("Farming", "沿用現有農場路線", () -> farmingEnabled,
             v -> { if (v!=farmingEnabled) toggleFarming(Minecraft.getInstance()); }, List.of(farming));
         var mining = SettingGroup.alwaysOn("挖礦設定", "目標種類優先序、偵測範圍與操作節奏")
+            .add(new ToggleSetting("開啟 Mining 後關閉遊戲音量",()->miningMuteSoundEnabled,v->{miningMuteSoundEnabled=v;syncAutomationSound(Minecraft.getInstance());saveConfig();}))
             .add(new ToggleSetting("智慧暫停", () -> miningMenuPauseEnabled, v -> { miningMenuPauseEnabled=v; saveConfig(); }))
             .add(new SliderSetting("偵測半徑",1,8,()->(float)scanRadius,v->{scanRadius=Math.round(v);saveConfig();}).withDecimals(0))
             .add(new SliderSetting("轉動速度",1,40,()->(float)rotationStepDegrees,v->{rotationStepDegrees=Math.round(v);saveConfig();}).withDecimals(0).withSuffix("°"))

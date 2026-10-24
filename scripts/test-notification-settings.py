@@ -9,13 +9,14 @@ root=Path(__file__).resolve().parent.parent
 base=root/'src/main/java/dev/kuan/kuanperion'
 source=(base/'KuanperionClient.java').read_text()
 def method(name):
-    m=re.search(r'    private static [^\n]+ '+name+r'\(',source)
+    pattern=r'    private static void sendNotification\(NotificationType type,String content,String screenText,String chatContent\)' if name=='sendNotificationChat' else r'    private static [^\n]+ '+name+r'\('
+    m=re.search(pattern,source)
     assert m, f'Missing production method {name}'
     start=m.start();opening=source.index('{',start);depth=1;end=opening+1
     while depth:
         depth+=(source[end]=='{')-(source[end]=='}');end+=1
     return source[start:end]
-methods='\n'.join(method(n) for n in ['notificationChannels','hasNotificationChannel','sendNotification','loadNotificationConfig','saveNotificationConfig','toggleTabNotification','openNotificationSettings','renderNotificationOverlay'])
+methods='\n'.join(method(n) for n in ['notificationChannels','hasNotificationChannel','sendNotification','sendNotificationChat','loadNotificationConfig','saveNotificationConfig','toggleTabNotification','openNotificationSettings','renderNotificationOverlay'])
 classes=[]
 for name in ['NotificationSettingsScreen','WebhookSettingsScreen','PestThresholdScreen','VisitorThresholdScreen','ScreenDurationScreen']:
     s=(base/(name+'.java')).read_text()

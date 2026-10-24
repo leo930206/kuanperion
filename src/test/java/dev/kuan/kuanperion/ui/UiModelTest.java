@@ -3,6 +3,12 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(java.util.Arrays.equals(MainGUISettingsPages.IDS,new int[]{4,1,3}),"only Interface Colors Keybinds remain");
+        require(MainGUISettingsPages.normalize(2)==4,"old profile route goes to interface");
+        for(float width:new float[]{350,600,900}){
+            float bx=InlineRowLayout.keybindBindX(12,width),bw=InlineRowLayout.keybindWidth(width),cx=InlineRowLayout.keybindClearX(12,width);
+            require(bx+bw+8==cx&&cx+52+8==12+width-60,"bind / clear / reset have independent nonoverlapping hit regions");
+        }
         require(MainGUISidebar.contains(180,120,20,20,600,194,1),"expanded sidebar owns covered content");
         require(!MainGUISidebar.contains(214,120,20,20,600,194,1),"right edge belongs to content");
         require(!MainGUISidebar.contains(180,120,20,20,600,194,0),"collapsed sidebar leaves content interactive");
@@ -77,6 +83,12 @@ public final class UiModelTest {
             require(!preset.isVisible(),"empty palette collection has no numbered rows");
             require(preset.save(1000)==ColorPresetSetting.SaveResult.SAVED,"first save");
             require(preset.isVisible()&&!preset.previewColors().isEmpty(),"saved palette row has swatches");
+            for(float rowWidth:new float[]{220,350,600,1000}) {
+                require(ColorPresetRow.height(preset,rowWidth)==50,"saved palette stays one row at every width");
+                require(ColorPresetRow.visibleCount(preset,rowWidth-24)==Math.min(preset.previewColors().size(),ColorPresetRow.columns(rowWidth-24)),"only fitting colors are previewed");
+            }
+            require(ColorPresetRow.visibleCount(preset,300)<preset.previewColors().size(),"overflow swatches are hidden, never wrapped");
+            require(ColorPresetRow.columns(100)==0,"no forced swatch can overlap narrow control area");
             require(preset.load()&&applied[0]==1,"one-click load");
             require(preset.save(2000)==ColorPresetSetting.SaveResult.CONFIRM,"overwrite confirmation");
             require(preset.save(8000)==ColorPresetSetting.SaveResult.CONFIRM,"confirmation expires");

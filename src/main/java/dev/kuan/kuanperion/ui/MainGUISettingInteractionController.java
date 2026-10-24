@@ -552,11 +552,15 @@ final class MainGUISettingInteractionController {
         float bindW = InlineRowLayout.keybindWidth(iw);
         float gap = 8.0f;
         float resetX = ix + iw - resetW;
-        float bindX = resetX - gap - bindW;
+        float clearX=InlineRowLayout.keybindClearX(ix,iw);
+        float bindX = InlineRowLayout.keybindBindX(ix,iw);
         if (mx >= resetX && mx <= resetX + resetW && my >= buttonY && my <= buttonY + buttonH) {
             setting.resetToDefault();
             this.owner.clearKeybindCapture();
             return;
+        }
+        if(mx>=clearX&&mx<=clearX+52&&my>=buttonY&&my<=buttonY+buttonH){
+            setting.clearBinding();this.owner.clearKeybindCapture();return;
         }
         if (mx >= bindX && mx <= bindX + bindW && my >= buttonY && my <= buttonY + buttonH) {
             this.owner.beginKeybindCapture(setting);

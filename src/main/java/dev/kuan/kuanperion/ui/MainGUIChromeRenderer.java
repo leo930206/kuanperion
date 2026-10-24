@@ -154,8 +154,8 @@ final class MainGUIChromeRenderer {
     void renderSettingsNavigation(NVGRenderer nvg, float mx, float my) {
         MainGUIContext context = this.owner.context();
         float y = context.layout.contY + 54, x = context.layout.contX + 20;
-        String[] labels = {"設定檔", "介面", "顏色", "快捷鍵"};
-        int[] pages = {2,4,1,3};
+        String[] labels = MainGUISettingsPages.LABELS;
+        int[] pages = MainGUISettingsPages.IDS;
         for (int i = 0; i < labels.length; i++) {
             int page = pages[i];
             float w = nvg.textWidth("Inter-Regular", labels[i], 12) + 28;

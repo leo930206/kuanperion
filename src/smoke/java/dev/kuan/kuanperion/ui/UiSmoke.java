@@ -33,13 +33,14 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-profiles","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-profiles","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
             if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
+            if(phase==6)testKeybindClearButtons();
             if(phase==30) {
                 for(var section:ui.moduleSectionsForFilter())for(var sub:section.subtabs())if(ui.moduleCardHoverProgress(sub)>.01f)throw new AssertionError("hover pierced expanded sidebar");
                 float old=ui.targetScrollY;ui.handleMouseScroll(frame.px+120,frame.py+174,-1);
@@ -85,8 +86,9 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=13 && phase<=15) assertGroup(phase-13);
             if(phase==16 && ui.getActiveMainTab()!=4) throw new AssertionError("gear did not open interface settings");
             if(phase>=17 && phase<=20) {
-                clickSettingsPage(phase-16);
-                if(ui.getActiveMainTab()!=phase-16) throw new AssertionError("Setting subpage mouse route failed");
+                int page=MainGUISettingsPages.normalize(phase-16);
+                clickSettingsPage(page);
+                if(ui.getActiveMainTab()!=page) throw new AssertionError("Setting subpage mouse route failed");
             }
             if(phase==21) {
                 var layout=ui.context().layout;
@@ -122,7 +124,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 2-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow());
                 case 3-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Jerry 偵測")).findFirst().orElseThrow());
                 case 4-> switchTab(1);
-                case 5-> switchTab(2);
+                case 5-> switchTab(4);
                 case 6->{switchTab(3);testChordCapture();}
                 case 7->{((dev.kuan.kuanperion.ui.settings.KeybindSetting)dev.kuan.kuanperion.KuanperionClient.uiKeybinds().get(2)).resetToDefault();switchTab(4);}
                 case 8->{ui.activateSearchField();ui.setSearchQuery("通知");}
@@ -143,11 +145,11 @@ public final class UiSmoke implements ClientModInitializer {
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index);
     }
     private void clickSettingsPage(int page) {
-        String[] labels={"設定檔","介面","顏色","快捷鍵"};
-        int[] pages={2,4,1,3};
+        String[] labels=MainGUISettingsPages.LABELS;
+        int[] pages=MainGUISettingsPages.IDS;
         float x=ui.contentX()+20;
         var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
-        for(int i=0;i<java.util.stream.IntStream.range(0,4).filter(j->pages[j]==page).findFirst().orElseThrow();i++) x+=renderer.textWidth("Inter-Regular",labels[i],12)+28;
+        for(int i=0;i<java.util.stream.IntStream.range(0,pages.length).filter(j->pages[j]==page).findFirst().orElseThrow();i++) x+=renderer.textWidth("Inter-Regular",labels[i],12)+28;
         click(x+20,ui.contentY()+72);
     }
     private void testSidebarRouting() throws Exception {
@@ -166,7 +168,7 @@ public final class UiSmoke implements ClientModInitializer {
         }
         clickSidebar(3);
         if(ui.getActiveMainTab()!=4 || ui.getActiveModuleSubTab()!=null)throw new AssertionError("gear kept feature detail");
-        for(int page=1;page<=4;page++) {
+        for(int page:MainGUISettingsPages.IDS) {
             switchTab(page);
             if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=3 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
         }
@@ -281,7 +283,9 @@ public final class UiSmoke implements ClientModInitializer {
         int original=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY;
         addPalette(add);if(!first.isVisible())throw new AssertionError("add button missed");
         if(first.previewColors().size()!=dev.kuan.kuanperion.ui.theme.Theme.ENTRIES.size() || first.previewColors().get(0)!=original || first.previewColors().get(1)!=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_SECONDARY)throw new AssertionError("saved swatch order not menu order");
-        float[] row=paletteRow(first);float x=row[0]+12,w=row[2]-24,cy=UiLayoutMetrics.controlTop(row[1],row[3],28)+14;
+        float[] row=paletteRow(first);
+        if(row[3]!=50 || ColorPresetRow.visibleCount(first,row[2]-24)>=first.previewColors().size())throw new AssertionError("palette preview must be a single truncated row at this window width");
+        float x=row[0]+12,w=row[2]-24,cy=UiLayoutMetrics.controlTop(row[1],row[3],28)+14;
         float saveX=ColorPresetRow.saveX(x,w)+32,deleteX=ColorPresetRow.deleteX(x,w)+32;
         dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;
         click(saveX,cy);click(x+10,cy);
@@ -363,13 +367,38 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_BUILTINS_PASS six actual buttons/order/English names/layout retained/interface info removed");
     }
 
+    private void testKeybindClearButtons() {
+        float x=ui.contentX()+32,w=ui.contentW()-64,y=ui.contentScrollTop()+51;
+        for(var item:MainGUIRegistry.KEYBINDS_SUBTABS.get(0).groups().get(0).getSettings()){
+            var key=(dev.kuan.kuanperion.ui.settings.KeybindSetting)item;
+            float h=ui.settingHeightFor(key,w+24),cy=y+(h-5)/2;
+            click(InlineRowLayout.keybindClearX(x,w)+26,cy);
+            if(!key.getKeyMapping().isUnbound()||key.getModifiers()!=0||!key.getBoundKeyName().equals("Not Bound"))throw new AssertionError("clear did not unbind "+key.getName());
+            click(x+w-30,cy);if(!key.isDefault())throw new AssertionError("Reset after Clear failed "+key.getName());
+            y+=h;
+        }
+        System.out.println("UI_SMOKE_CLEAR_KEYS_PASS all five clear/reset buttons / modifiers zero / default restoration");
+    }
+
     private void testNewUiFeatures(Minecraft mc) throws Exception {
         var client=dev.kuan.kuanperion.KuanperionClient.class;
+        if(java.util.Arrays.stream(net.minecraft.client.sounds.SoundEngine.class.getDeclaredMethods()).noneMatch(m->m.getName().contains("automationVolume")))throw new AssertionError("26.2 sound gain Mixin not applied");
+        if(MainGUIRegistry.PROFILES_SUBTABS.size()!=0||java.util.Arrays.stream(MainGUISettingsPages.IDS).anyMatch(id->id==2))throw new AssertionError("profile page still exposed");
+        var farmSettings=MainGUIRegistry.MODULE_SUBTABS.get(0).groups().get(0).getSettings();
+        var mineSettings=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow().groups().get(0).getSettings();
+        var farmMute=(dev.kuan.kuanperion.ui.settings.ToggleSetting)farmSettings.stream().filter(t->t.getName().equals("開啟 Farming 後關閉遊戲音量")).findFirst().orElseThrow();
+        var mineMute=(dev.kuan.kuanperion.ui.settings.ToggleSetting)mineSettings.stream().filter(t->t.getName().equals("開啟 Mining 後關閉遊戲音量")).findFirst().orElseThrow();
+        boolean oldFarm=farmMute.getValue(),oldMine=mineMute.getValue();
+        farmMute.setValue(true);mineMute.setValue(false);if(!farmMute.getValue()||mineMute.getValue())throw new AssertionError("independent mute switches");
+        farmMute.setValue(false);mineMute.setValue(true);if(farmMute.getValue()||!mineMute.getValue())throw new AssertionError("reverse independent mute switches");
+        farmMute.setValue(oldFarm);mineMute.setValue(oldMine);
+        var stall=(dev.kuan.kuanperion.ui.settings.InlineToggleSetting)farmSettings.stream().filter(t->t.getName().equals("一段時間都沒動偵測")).findFirst().orElseThrow();
+        String oldSeconds=stall.getValue();stall.setValue("8.25");if(!stall.getValue().equals("8.25")||stall.fieldWidth(500)!=66||!stall.centered())throw new AssertionError("custom centered compact stall input");stall.setValue(oldSeconds);
         var prefix=client.getDeclaredMethod("hsbaPrefix");prefix.setAccessible(true);
         var component=(net.minecraft.network.chat.Component)prefix.invoke(null);
         if(!component.getString().equals("[Kuanperion] "))throw new AssertionError("chat prefix");
         var chars=component.getSiblings();
-        if(chars.get(0).getStyle().isBold() || chars.get(0).getStyle().getColor().getValue()!=0x58B9EA || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xF3A3B5)throw new AssertionError("nonbold gradient endpoints");
+        if(chars.stream().anyMatch(c->c.getStyle().isBold()) || chars.get(0).getStyle().getColor().getValue()!=0xAAAAAA || chars.get(1).getStyle().getColor().getValue()!=0x23B6F5 || chars.get(chars.size()-3).getStyle().getColor().getValue()!=0xF06C93 || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xAAAAAA)throw new AssertionError("nonbold gradient endpoints");
         var keys=dev.kuan.kuanperion.KuanperionClient.uiKeybinds();
         if(keys.size()!=5 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault() || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4)).isDefault())throw new AssertionError("unbound home/sethome shortcuts");
         var home=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4);
@@ -414,6 +443,8 @@ public final class UiSmoke implements ClientModInitializer {
         prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");prefs.setProperty("hotkey.home.modifiers","7");
         prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore");
         prefs.setProperty("pestNotificationThreshold","4");
+        prefs.setProperty("farmingMuteSoundEnabled","true");prefs.setProperty("miningMuteSoundEnabled","false");
+        prefs.setProperty("farmingStallDetectionEnabled","false");prefs.setProperty("farmingStallSeconds","8.25");
         try {
             try(var out=java.nio.file.Files.newOutputStream(file)){prefs.store(out,"upgrade fixture");}
             byte[] before=java.nio.file.Files.readAllBytes(file);
@@ -421,7 +452,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(file)))throw new AssertionError("ordinary config load rewrites file");
             save.invoke(null);
             var after=new java.util.Properties();try(var in=java.nio.file.Files.newInputStream(file)){after.load(in);}
-            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","targets","pestNotificationThreshold"))
+            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","targets","pestNotificationThreshold","farmingMuteSoundEnabled","miningMuteSoundEnabled","farmingStallDetectionEnabled","farmingStallSeconds"))
                 if(!prefs.getProperty(key).equals(after.getProperty(key)))throw new AssertionError("preference lost on reload: "+key);
             if(!after.getProperty("miningEnabled").equals("false") || !after.getProperty("farmingEnabled").equals("false"))throw new AssertionError("unsafe automatic resume");
         } finally {java.nio.file.Files.write(file,original);load.invoke(null);}
