@@ -14,7 +14,7 @@ public final class UiSmoke implements ClientModInitializer {
         try{
             if(phase<0){
                 if(mc.gui.overlay()!=null||!(mc.gui.screen() instanceof TitleScreen))return;
-                ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;if(Boolean.getBoolean("kuanperion.smoke.hoverOnly")){ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());phase=29;}System.out.println("UI_SMOKE_OPEN");return;
+                ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;if(Boolean.getBoolean("kuanperion.smoke.hoverOnly")){ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());phase=29;}if(Boolean.getBoolean("kuanperion.smoke.capacityOnly")){setCapacityFixture(true);phase=32;}System.out.println("UI_SMOKE_OPEN");return;
             }
             boolean expanded = phase >= 13 && phase <= 16 || phase == 21 || phase==30;
             var frame = ui.context().layout;
@@ -33,7 +33,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
@@ -41,6 +41,25 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
             if(phase==6)testKeybindClearButtons();
+            if(phase==32 || phase==33) {
+                var targets=ui.getActiveModuleSubTab().groups().get(1);
+                var count=(dev.kuan.kuanperion.ui.settings.SelectionActionSetting)targets.getSettings().get(0);
+                int size=selected().size();
+                if(count.getMax()!=10-size || targets.getSettings().stream().filter(dev.kuan.kuanperion.ui.settings.Setting::isVisible).count()!=size+1)throw new AssertionError("capacity/ten target visibility");
+                var inputRow=rowFor(count);
+                if(inputRow[1]<ui.contentScrollTop() || inputRow[1]+inputRow[3]>ui.context().layout.py+ui.context().layout.ph-10)throw new AssertionError("capacity input is offscreen, click would not be real");
+                if(phase==32){
+                    if(count.canStart()||count.getValue()!=0)throw new AssertionError("full list must disable selection");
+                    var row=rowFor(count);float fieldX=InlineRowLayout.countFieldX(row[0]+12,row[2]-24);
+                    click(fieldX+30,UiLayoutMetrics.inputTop(row[1],row[3])+11);
+                    if(ui.activeSliderField==count)throw new AssertionError("full count field is still editable");
+                }else{
+                    float fieldX=InlineRowLayout.countFieldX(inputRow[0]+12,inputRow[2]-24);
+                    click(fieldX+30,UiLayoutMetrics.inputTop(inputRow[1],inputRow[3])+11);
+                    if(ui.activeSliderField!=count)throw new AssertionError("available count field not editable");
+                    ui.textBuf=new StringBuilder("99");ui.commitText();if(count.getValue()!=7 || !count.canStart() || !count.getDescription().contains("1～7"))throw new AssertionError("three saved allow seven additions only");}
+                System.out.println("UI_SMOKE_MINING_CAPACITY_PASS saved="+size+" available="+count.getMax());
+            }
             if(phase==30) {
                 for(var section:ui.moduleSectionsForFilter())for(var sub:section.subtabs())if(ui.moduleCardHoverProgress(sub)>.01f)throw new AssertionError("hover pierced expanded sidebar");
                 float old=ui.targetScrollY;ui.handleMouseScroll(frame.px+120,frame.py+174,-1);
@@ -115,6 +134,8 @@ public final class UiSmoke implements ClientModInitializer {
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
                 case 30 -> {clickSidebar(2);assertGroup(2);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
                 case 31 -> clickSidebar(0);
+                case 32 -> {setCapacityFixture(true);}
+                case 33 -> {setCapacityFixture(false);}
                 case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
                 case 14 -> clickSidebar(1);
@@ -456,6 +477,14 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_SETTINGS_COMMAND_PASS registered Fabric event / mixed case / deferred open / server command isolation");
     }
 
+    private void setCapacityFixture(boolean full) throws Exception {
+        selected().clear();selected().addAll(java.util.List.of("minecraft:stone","minecraft:diamond_ore","minecraft:coal_ore"));
+        if(full)selected().addAll(java.util.List.of("minecraft:iron_ore","minecraft:gold_ore","minecraft:cobblestone","minecraft:dirt","minecraft:sand","minecraft:gravel","minecraft:oak_log"));
+        ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());
+        ui.selectModuleCategory(2);
+        var count=(dev.kuan.kuanperion.ui.settings.SelectionActionSetting)ui.getActiveModuleSubTab().groups().get(1).getSettings().get(0);count.setValue(99);
+    }
+
     private void testPreferenceReload(Minecraft mc) throws Exception {
         var cls=dev.kuan.kuanperion.KuanperionClient.class;
         var save=cls.getDeclaredMethod("saveConfig");save.setAccessible(true);
@@ -469,7 +498,7 @@ public final class UiSmoke implements ClientModInitializer {
         prefs.setProperty("farmingCrop","CARROT");prefs.setProperty("farmingAutoSetHome","true");
         prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");prefs.setProperty("hotkey.home.modifiers","7");
         prefs.setProperty("hotkey.sethome.modifiers","0");prefs.setProperty("hotkey.barn.modifiers","4");
-        prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore");
+        prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore,minecraft:coal_ore,minecraft:iron_ore,minecraft:gold_ore,minecraft:cobblestone,minecraft:dirt,minecraft:sand,minecraft:gravel,minecraft:oak_log");prefs.setProperty("miningSelectionTargetCount","0");
         prefs.setProperty("pestNotificationThreshold","4");
         prefs.setProperty("farmingMuteSoundEnabled","true");prefs.setProperty("miningMuteSoundEnabled","false");
         prefs.setProperty("farmingStallDetectionEnabled","false");prefs.setProperty("farmingStallSeconds","8.25");
@@ -480,8 +509,9 @@ public final class UiSmoke implements ClientModInitializer {
             if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(file)))throw new AssertionError("ordinary config load rewrites file");
             save.invoke(null);
             var after=new java.util.Properties();try(var in=java.nio.file.Files.newInputStream(file)){after.load(in);}
-            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","hotkey.sethome.modifiers","hotkey.barn.modifiers","targets","pestNotificationThreshold","farmingMuteSoundEnabled","miningMuteSoundEnabled","farmingStallDetectionEnabled","farmingStallSeconds"))
+            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","hotkey.sethome.modifiers","hotkey.barn.modifiers","targets","miningSelectionTargetCount","pestNotificationThreshold","farmingMuteSoundEnabled","miningMuteSoundEnabled","farmingStallDetectionEnabled","farmingStallSeconds"))
                 if(!prefs.getProperty(key).equals(after.getProperty(key)))throw new AssertionError("preference lost on reload: "+key);
+            if(selected().size()!=10)throw new AssertionError("ten saved targets truncated on reload");
             if(!after.getProperty("miningEnabled").equals("false") || !after.getProperty("farmingEnabled").equals("false"))throw new AssertionError("unsafe automatic resume");
         } finally {java.nio.file.Files.write(file,original);load.invoke(null);}
         System.out.println("UI_SMOKE_PREFERENCES_PASS config load byte preservation / nondefault Farming Mining notifications modifiers / safe runtime state");

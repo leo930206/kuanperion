@@ -162,10 +162,11 @@ final class MainGUISettingRowRenderer {
             float caret=start+nvg.textWidth("Inter-Mono",this.owner.safeTextSlice(value,0,this.owner.currentTextCursor()),size);
             nvg.rect(Math.max(fieldX+4,Math.min(fieldX+56,caret)),fieldY+3,1,fieldH-6,Theme.TEXT_PRIMARY);
         }
+        int actionColor=setting.canStart()?Theme.ACCENT_PRIMARY:Theme.TEXT_MUTED;
         float buttonY=UiLayoutMetrics.controlTop(y,rowHeight,24),buttonX=fieldX+72,buttonW=InlineRowLayout.countButtonWidth(w);
-        nvg.roundedRect(buttonX,buttonY,buttonW,24,5,Theme.withAlpha(Theme.ACCENT_PRIMARY,.12f));
-        nvg.rectOutline(buttonX,buttonY,buttonW,24,5,1,Theme.ACCENT_PRIMARY);
-        nvg.textCentered("Inter-Regular","開始選擇目標方塊",buttonX,buttonY,buttonW,24,11.5f,Theme.ACCENT_PRIMARY);
+        nvg.roundedRect(buttonX,buttonY,buttonW,24,5,Theme.withAlpha(actionColor,.12f));
+        nvg.rectOutline(buttonX,buttonY,buttonW,24,5,1,actionColor);
+        nvg.textCentered("Inter-Regular",setting.canStart()?"開始選擇目標方塊":"已達 10 種上限",buttonX,buttonY,buttonW,24,11.5f,actionColor);
     }
 
     private void renderBlockTarget(NVGRenderer nvg,BlockTargetSetting setting,float x,float w,float y,float h,float mx,float my) {

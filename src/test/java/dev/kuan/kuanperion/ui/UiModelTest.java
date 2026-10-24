@@ -101,10 +101,15 @@ public final class UiModelTest {
         require(combined.getValue().isEmpty() && combined.getPlaceholder().equals("顯示時間"),"blank duration placeholder");
         combined.setValue("2.5");require(seconds[0].equals("2.5")&&!notify[0],"duration editing does not toggle");
         combined.toggle();require(notify[0]&&seconds[0].equals("2.5"),"toggle does not edit duration");
-        int[] count={2},starts={0};
-        var selection=new SelectionActionSetting("選擇種類數量",()->(float)count[0],v->count[0]=Math.round(v),()->starts[0]++);
+        int[] count={2},starts={0},slots={7};
+        var selection=new SelectionActionSetting("選擇種類數量",()->(float)count[0],v->count[0]=Math.round(v),()->starts[0]++,()->slots[0]);
         for(float width:new float[]{400,600,1000})require(12+metrics.descriptionWidth(selection,width)<=InlineRowLayout.countFieldX(12,width-24)-12,"selection description stays left of count/action controls");
-        selection.setValue(9);require(count[0]==5&&starts[0]==0,"count clamps without starting selection");selection.start();require(starts[0]==1,"paired action callback");
+        selection.setValue(9);require(count[0]==7&&selection.getMax()==7&&starts[0]==0,"count clamps without starting selection");selection.start();require(starts[0]==1,"paired action callback");
+        slots[0]=1;require(selection.getMax()==1&&selection.getValue()==1,"remaining slots update live");
+        slots[0]=0;require(selection.getMin()==0&&selection.getMax()==0&&selection.getValue()==0&&!selection.canStart(),"full list capacity zero");
+        selection.start();require(starts[0]==1,"full list start disabled");
+        slots[0]=10;selection.setValue(100);require(count[0]==10&&selection.getMax()==10,"empty allows ten");
+        selection.setValue(Float.NaN);require(count[0]==10,"ignore nonfinite");
         var hidden=new BlockTargetSetting("優先序 1",()->"minecraft:stone",()->"石頭",()->{},()->{},()->{},()->false,()->false).visibleWhen(()->false);
         require(!hidden.isVisible(),"unselected target has no phantom row");
         require(!SettingDescriptionCatalog.describe(new ToggleSetting("工具偵測",()->false,v->{})).equals("工具偵測"),"real help text not repeated label");

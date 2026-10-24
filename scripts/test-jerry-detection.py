@@ -49,7 +49,7 @@ public class JerryDetectionIntegrationTest {
     static boolean sendHomeCommand(Minecraft mc,String command,boolean announce){commands.add(command);return commandAccepted;}
     static NotificationChannels notificationChannels(NotificationType type){return NOTIFICATION_CHANNELS.getOrDefault(type,NotificationChannels.NONE);}
     static final List<String> chat=new ArrayList<>();
-    static String plain(String s){return s;}static void say(Minecraft mc,String text){chat.add(text);}
+    static String plain(String s){return s;}static String warning(String s){return s;}static void say(Minecraft mc,String text){chat.add(text);}
     static void sendNotification(NotificationType type,String content,String title,String chatContent){sendNotification(type,content,title);if(notificationChannels(type).chat())chat.add(chatContent);}
     static Object activeTarget;
     static int limboChatSeenTick, saves, releases;
@@ -186,12 +186,19 @@ public class JerryDetectionIntegrationTest {
         check(sent.size()==1,"local-only Jerry notifications work with no master or Webhook");
         reset();jerryAutoSethomeEnabled=true;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
         handleReceivedMessage(Component.literal(APPEARED));
-        check(commands.equals(List.of("sethome"))&&chat.size()==1&&chat.get(0).contains("Green Jerry")&&chat.get(0).contains("已發送 /sethome"),"Jerry and auto sethome share exactly one chat line");
+        check(commands.equals(List.of("sethome"))&&chat.size()==1&&chat.get(0).equals("發現 Green Jerry，且已發送 /sethome"),"Jerry and auto sethome share exactly one chat line");
         reset();jerryAutoSethomeEnabled=true;NOTIFICATION_CHANNELS.clear();
-        handleReceivedMessage(Component.literal(APPEARED));check(commands.size()==1&&chat.size()==1&&chat.get(0).contains("已發送 /sethome"),"auto sethome reports even when Jerry chat is disabled");
+        handleReceivedMessage(Component.literal(APPEARED));check(commands.size()==1&&chat.size()==1&&chat.get(0).equals("已發送 /sethome。"),"auto sethome reports even when Jerry chat is disabled");
         reset();jerryAutoSethomeEnabled=true;jerryColors=Set.of();handleReceivedMessage(Component.literal(APPEARED));check(commands.isEmpty()&&chat.isEmpty(),"unselected Jerry never sends command or feedback");
         reset();jerryAutoSethomeEnabled=true;commandAccepted=false;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,true,false));
         handleReceivedMessage(Component.literal(APPEARED));check(chat.size()==1&&chat.get(0).contains("Green Jerry")&&chat.get(0).contains("發送失敗"),"failed auto sethome also joins detection on one chat line");
+        reset();jerryAutoSethomeEnabled=true;commandAccepted=false;NOTIFICATION_CHANNELS.clear();
+        handleReceivedMessage(Component.literal(APPEARED));check(chat.equals(List.of("無法發送 /sethome，請檢查連線。")),"failure without Jerry chat matches manual warning");
+        for(JerryColor color:JerryColor.values())for(boolean enabled:new boolean[]{false,true}){
+            reset();jerryAutoSethomeEnabled=true;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,enabled,true));
+            handleReceivedMessage(Component.literal("You found a "+color.label+" Jerry!"));
+            check(chat.equals(List.of(enabled?"發現 "+color.label+" Jerry，且已發送 /sethome":"已發送 /sethome。")),"exact two success formats for each color");
+        }
         System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/four colors/all 16 color switch combinations/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
     }
     // METHODS

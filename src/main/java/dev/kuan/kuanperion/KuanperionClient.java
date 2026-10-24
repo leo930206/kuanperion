@@ -203,7 +203,9 @@ public final class KuanperionClient implements ClientModInitializer {
     private static final float ROTATION_DONE_EPSILON = 1.5f;
     private static int rotationStepDegrees = 13;
     private static int actionDelayTicks = 3;
+    private static final int MAX_MINING_TARGETS = 10;
     private static int miningSelectionTargetCount = 1;
+    private static int miningSelectionAddedCount;
     private static int miningTicks = 0;
     private static int cooldown = 0;
     private static boolean rightWasDown = false;
@@ -1906,6 +1908,7 @@ public final class KuanperionClient implements ClientModInitializer {
             rightWasDown = false;
             return;
         }
+        if (remainingMiningTargetSlots()==0) { selectMode=false;rightWasDown=false;return; }
         boolean down = GLFW.glfwGetMouseButton(mc.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
         if (mc.gui.screen() != null) { rightWasDown = down; return; }
         if (down && !rightWasDown && mc.hitResult instanceof BlockHitResult bhr) {
@@ -1913,11 +1916,12 @@ public final class KuanperionClient implements ClientModInitializer {
             String name = blockId(state);
             if (!state.isAir() && isAllowedTargetBlock(name)) {
                 if (!TARGET_BLOCKS.contains(name)) {
-                    TARGET_BLOCKS.add(name);
-                    boolean finished = TARGET_BLOCKS.size() >= miningSelectionTargetCount;
+                    TARGET_BLOCKS.add(0,name);
+                    miningSelectionAddedCount++;
+                    boolean finished = miningSelectionAddedCount >= miningSelectionTargetCount || remainingMiningTargetSlots()==0;
                     selectMode = !finished;
                     saveConfig();
-                    say(mc, feature("Mining"), plain(" 目標方塊已設定 " + TARGET_BLOCKS.size() + "/"
+                    say(mc, feature("Mining"), plain(" 新增目標方塊 " + miningSelectionAddedCount + "/"
                             + miningSelectionTargetCount + "："), blockName(name),
                             finished ? success("（選取結束）") : plain(""));
                 }
@@ -2222,9 +2226,10 @@ public final class KuanperionClient implements ClientModInitializer {
         }
         String announcement = "發現 " + color.label + " Jerry！";
         String content="Jerry 通知："+announcement;
-        String homeFeedback=jerryAutoSethomeEnabled?(autoSethomeSent?"已發送 /sethome。":"/sethome 發送失敗，請檢查連線。"):"";
-        sendNotification(NotificationType.JERRY,content,announcement,content+(homeFeedback.isEmpty()?"":" "+homeFeedback));
-        if(!homeFeedback.isEmpty()&&!notificationChannels(NotificationType.JERRY).chat())say(mc,plain("Jerry 自動 /sethome："+homeFeedback));
+        String homeFeedback=jerryAutoSethomeEnabled?(autoSethomeSent?"已發送 /sethome。":"無法發送 /sethome，請檢查連線。"):"";
+        String chatContent=jerryAutoSethomeEnabled?"發現 "+color.label+" Jerry"+(autoSethomeSent?"，且已發送 /sethome":"，但 /sethome 發送失敗，請檢查連線。"):content;
+        sendNotification(NotificationType.JERRY,content,announcement,chatContent);
+        if(!homeFeedback.isEmpty()&&!notificationChannels(NotificationType.JERRY).chat())say(mc,autoSethomeSent?plain(homeFeedback):warning(homeFeedback));
         return true;
     }
 
@@ -2472,11 +2477,12 @@ public final class KuanperionClient implements ClientModInitializer {
         String targets = p.getProperty("targets", "").trim();
         if (!targets.isEmpty()) for (String s : targets.split(",")) {
             String id = s.trim();
-            if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id) && TARGET_BLOCKS.size() < 5) {
+            if (!id.isBlank() && isAllowedTargetBlock(id) && !TARGET_BLOCKS.contains(id) && TARGET_BLOCKS.size() < MAX_MINING_TARGETS) {
                 TARGET_BLOCKS.add(id);
             }
         }
-        miningSelectionTargetCount=parseInt(p.getProperty("miningSelectionTargetCount"),Math.max(1,TARGET_BLOCKS.size()),1,5);
+        miningSelectionTargetCount=clampMiningSelectionCount(parseInt(p.getProperty("miningSelectionTargetCount"),1,0,MAX_MINING_TARGETS));
+        selectMode=false;miningSelectionAddedCount=0;rightWasDown=false;
         // Persist legacy marker timestamps once; never restart their timeout on the next launch.
         if (!JERRY_FARMING_MARKERS.isEmpty()) {
             JERRY_FARMING_MARKERS.expire(jerryMarkerMaxSeconds);
@@ -2515,7 +2521,7 @@ public final class KuanperionClient implements ClientModInitializer {
         p.setProperty("scanRadius", Integer.toString(scanRadius));
         p.setProperty("rotationStepDegrees", Integer.toString(rotationStepDegrees));
         p.setProperty("actionDelayTicks", Integer.toString(actionDelayTicks));
-        p.setProperty("miningSelectionTargetCount",Integer.toString(miningSelectionTargetCount));
+        p.setProperty("miningSelectionTargetCount",Integer.toString(clampMiningSelectionCount(miningSelectionTargetCount)));
         p.setProperty("targets", String.join(",", TARGET_BLOCKS));
         try (FileOutputStream out = new FileOutputStream(configFile())) { p.store(out, "Kuanperion"); } catch (Throwable ignored) {}
     }
@@ -2791,8 +2797,8 @@ public final class KuanperionClient implements ClientModInitializer {
             .add(new SliderSetting("轉動速度",1,40,()->(float)rotationStepDegrees,v->{rotationStepDegrees=Math.round(v);saveConfig();}).withDecimals(0).withSuffix("°"))
             .add(new SliderSetting("挖礦延遲",1,20,()->(float)actionDelayTicks,v->{actionDelayTicks=Math.round(v);saveConfig();}).withDecimals(0).withSuffix(" ticks"));
         var targets = SettingGroup.alwaysOn("目標方塊", "選取後才顯示圖示與優先序，可移動／刪除")
-            .add(new SelectionActionSetting("選擇種類數量",()->(float)miningSelectionTargetCount,v->{miningSelectionTargetCount=Math.round(v);saveConfig();},KuanperionClient::beginUiTargetSelection));
-        for(int i=0;i<5;i++) {
+            .add(new SelectionActionSetting("選擇種類數量",()->(float)miningSelectionTargetCount,v->{miningSelectionTargetCount=clampMiningSelectionCount(Math.round(v));saveConfig();},KuanperionClient::beginUiTargetSelection,KuanperionClient::remainingMiningTargetSlots));
+        for(int i=0;i<MAX_MINING_TARGETS;i++) {
             final int index=i;
             var target=new BlockTargetSetting("順位 "+(i+1),()->index<TARGET_BLOCKS.size()?TARGET_BLOCKS.get(index):"minecraft:air",
                 ()->index<TARGET_BLOCKS.size()?uiTargetName(TARGET_BLOCKS.get(index)):"",
@@ -2861,10 +2867,15 @@ public final class KuanperionClient implements ClientModInitializer {
         saveConfig();
     }
     private static void uiInputError(String message) { dev.kuan.kuanperion.notification.NotificationManager.error("設定未套用",message); }
+    private static int remainingMiningTargetSlots() { return Math.max(0,MAX_MINING_TARGETS-TARGET_BLOCKS.size()); }
+    private static int clampMiningSelectionCount(int count) {
+        int slots=remainingMiningTargetSlots();return slots==0?0:Math.max(1,Math.min(slots,count));
+    }
     private static void beginUiTargetSelection() {
         if(Minecraft.getInstance().player==null || Minecraft.getInstance().level==null){uiInputError("請先進入世界，再開始選擇目標方塊");return;}
-        miningSelectionTargetCount=Math.max(1,Math.min(5,miningSelectionTargetCount));
-        miningEnabled=false;clearActiveTarget(Minecraft.getInstance());TARGET_BLOCKS.clear();selectMode=true;saveConfig();
+        if(remainingMiningTargetSlots()==0){uiInputError("已達 10 種目標方塊上限，請先刪除不需要的種類");return;}
+        miningSelectionTargetCount=clampMiningSelectionCount(miningSelectionTargetCount);miningSelectionAddedCount=0;
+        miningEnabled=false;clearActiveTarget(Minecraft.getInstance());selectMode=true;saveConfig();
         Minecraft.getInstance().setScreenAndShow(null);
         say(Minecraft.getInstance(),feature("Mining"),plain(" 方塊選擇：請右鍵選擇 "),warning(Integer.toString(miningSelectionTargetCount)),plain(" 種目標方塊"));
     }
@@ -2921,30 +2932,24 @@ public final class KuanperionClient implements ClientModInitializer {
             y += 20;
             EditBox countBox = new EditBox(this.font, centerX - 50, y, 100, 20,
                     Component.literal("目標方塊數量"));
-            countBox.setMaxLength(1);
+            countBox.setMaxLength(2);
             countBox.setValue("");
             addRenderableWidget(countBox);
             y += 24;
             addRenderableWidget(new StringWidget(centerX - 120, y, 240, 12,
-                    Component.literal("留空代表 1，最少 1、最多 5，不可重複"), this.font));
+                    Component.literal("留空代表 1，最多新增 " + remainingMiningTargetSlots() + " 種，不可重複"), this.font));
             y += 20;
             Button confirm = Button.builder(Component.literal("確認"), b -> {
                 String value = countBox.getValue().trim();
-                miningSelectionTargetCount = value.isEmpty() ? 1 : parseInt(value, 1, 1, 5);
-                miningEnabled = false;
-                clearActiveTarget(Minecraft.getInstance());
-                TARGET_BLOCKS.clear();
-                selectMode = true;
-                saveConfig();
-                Minecraft.getInstance().setScreenAndShow(null);
-                say(Minecraft.getInstance(), feature("Mining"), plain(" 方塊選擇：請右鍵選擇 "),
-                        warning(Integer.toString(miningSelectionTargetCount)), plain(" 種目標方塊"));
+                miningSelectionTargetCount=clampMiningSelectionCount(value.isEmpty()?1:parseInt(value,1,1,MAX_MINING_TARGETS));
+                beginUiTargetSelection();
             }).bounds(centerX - 105, y, 100, 20).build();
+            confirm.active=remainingMiningTargetSlots()>0;
             addRenderableWidget(confirm);
             addRenderableWidget(Button.builder(Component.literal("取消"), b -> Minecraft.getInstance().setScreenAndShow(parent))
                     .bounds(centerX + 5, y, 100, 20).build());
             countBox.setResponder(value -> {
-                boolean valid = value.isEmpty() || value.matches("[1-5]");
+                boolean valid = remainingMiningTargetSlots()>0 && (value.isEmpty() || (value.matches("[0-9]{1,2}") && parseInt(value,0,0,99)>=1 && parseInt(value,0,0,99)<=remainingMiningTargetSlots()));
                 countBox.setTextColor(valid ? 0xFFE0E0E0 : 0xFFFF5555);
                 confirm.active = valid;
             });
@@ -2994,7 +2999,7 @@ public final class KuanperionClient implements ClientModInitializer {
             addRenderableWidget(Button.builder(Component.literal("挖礦延遲 +"), b -> { actionDelayTicks = Math.min(20, actionDelayTicks + 1); saveConfig(); rebuild(); }).bounds(x + 145, y, 130, 20).build());
             addRenderableWidget(new StringWidget(x + 290, y + 5, 130, 12, Component.literal("挖礦延遲: " + actionDelayTicks), this.font));
             y += 28;
-            int maxRows = Math.min(5, TARGET_BLOCKS.size());
+            int maxRows = Math.min(MAX_MINING_TARGETS, TARGET_BLOCKS.size());
             for (int i = 0; i < maxRows; i++) {
                 final int idx = i;
                 String name = TARGET_BLOCKS.get(i);

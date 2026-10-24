@@ -202,6 +202,7 @@ final class MainGUISettingInteractionController {
         }
         if(setting instanceof SelectionActionSetting selection){
             this.owner.commitText();
+            if(!selection.canStart())return;
             float fieldH=UiLayoutMetrics.inputHeight(),fieldX=InlineRowLayout.countFieldX(ix,iw),fieldY=UiLayoutMetrics.inputTop(y,h),buttonY=UiLayoutMetrics.controlTop(y,h,24);
             if(mx>=fieldX+72 && my>=buttonY && my<=buttonY+24)selection.start();
             else if(mx>=fieldX && mx<=fieldX+60 && my>=fieldY && my<=fieldY+fieldH){this.owner.focusSliderEditorField(selection);this.owner.setEditorBounds(fieldX,fieldY,60,fieldH);this.owner.selectAllText();}
