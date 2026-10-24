@@ -108,3 +108,15 @@ Junk 新世界授權補強後，完整 pure/UI/model/migration 均通過。最�
 Junk 最終診斷客戶端完整 38-state UI_SMOKE_PASS，含 UI_SMOKE_JUNK_PASS（實際 callbacks／獨立保存／離線拒絕／原生 slot 常數）與既有 fixtures／Mixin。人工檢視 35-trade、38-junk，入口與控制列無重疊。測試附加 trace 僅在獨立 ui-smoke.jar，不在 production JAR；這次沒有重現 phase1／舊 phase33 異常，不能宣稱已修復根因。Trace 中另觀察到兩次非 UiSmoke 呼叫的 KeyboardHandler 事件，但沒有證據能把前次失敗歸咎於它們。完整 pure/build/UI/migration PASS；專案端重建與 payload 比對後另補記。
 
 Junk 專案端 test/build/UI/migration 全數 PASS；重建 production JAR 與已通過 38-state 診斷客戶端的 production JAR 逐 entry 相等，未包含測試／trace class。正式安裝的 2.0.17 SHA-256 未變。這是 Junk 開發切片驗證，不是完整大升級或 live 伺服器驗收。
+
+
+## Book Combine 有界互動協定（沒有 runtime caller）
+
+- BookAnvilView／BookCombineTask 使用呼叫端明確宣告的選單角色，不內建當前 live layout。測試中的 20/24/13/22 slots 僅為 synthetic fixtures，絕不是伺服器實際欄位的聲稱。原生 `/av` 指令、選單 adapter、service／設定／Trade UI 尚未接入，Book Combine 的 implemented 仍為 false。
+- 一次只處理明確授權且 metadata 相符的一對書；第一次輸入需同時有 source 移除與 destination 原書回條，才可進行第二次。第二次之後，預覽與明確 0 XP 費用按鈕也都要有新伺服器回條，不信本機預測或沿用舊零費用。正費用／未知費用不確認。
+- 合併需雙輸入消耗回條，結果需伺服器同 metadata +1 等級且背包增量恰好 1；只計入有 fresh slot 回條的增減，不容許用另一疊未變書的回條替本機預測背書。支援已存在結果疊的權威 +1 增量。
+- 確定尚未合併時可在仍擁有的選單逐本取回原書，亦需來源與背包目的地證明。native outcome 不明、手動接管、換世界、未知容器或逾時不盲點、不重試／關掉使用者 GUI、不重啟 Farming；可能留書時標記需人工處理。原選單未能關閉亦不得回報成功／恢復 Farming。
+- TDD 真正紅燈案例：無效 canonical inventory key、無關未變書回條誤認結果、關閉失敗仍報成功、玩家背包 raw index 與 physical slot 錯配。均先重現再修正；另覆蓋 fresh preview/cost、同名 shadow container、錯世界、重複費用、取消／不確定／超時路徑。
+- 暫存版 focused runtime 與完整 test/build/UI/migration PASS。接著執行專案端重建與 payload 比對；不耗書、不連線、不發 `/av`，不更動已安裝 2.0.17。
+
+Book 協定專案端完整 test/build/UI/migration PASS；staging 與專案重建 JAR 逐 entry 相等，沒有測試／trace classes；92 個 UI class 與已通過完整 Junk38-state 的版本完全相同，因此本純協定、無 caller 的切片沒有宣稱額外實跑 live 或重跑完整 GUI。第一次 artifact 比對只在 THIRD_PARTY_NOTICES.md 不同（文件補註晚於 staging build），重新建置後比對通過，未隱藏該初次失敗。正式 2.0.17 checksum 未變。
