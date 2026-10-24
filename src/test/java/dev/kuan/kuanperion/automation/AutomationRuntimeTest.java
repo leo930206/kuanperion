@@ -9,7 +9,7 @@ public final class AutomationRuntimeTest {
  static void check(boolean ok,String text){if(!ok)throw new AssertionError(text);}
  static AutomationContext context(long world,AutomationContext.Blocker... blockers){return new AutomationContext(world,true,true,Set.of(blockers));}
  public static void main(String[] args)throws Exception {
-  ownership();stash();preferences();
+  ownership();stash();preferences();service();
   System.out.println("AutomationRuntimeTest: PASS (ownership/world/safety gates, bounded Stash, atomic off-by-default preferences)");
  }
  static void ownership(){
@@ -65,6 +65,28 @@ public final class AutomationRuntimeTest {
   check(StashTask.classify("Couldn't unstash your items!")==StashTask.Signal.BLOCKED,"source-known blocked signal");
   check(StashTask.classify("[VIP] Alex: Your items were stashed away!")==StashTask.Signal.NONE,"player-shaped message cannot start task");
   check(StashTask.classify("[Kuanperion] Your items were stashed away!")==StashTask.Signal.NONE,"no local feedback loop");
+ }
+ static void service()throws Exception {
+  Path dir=Files.createTempDirectory("stash-service-");
+  try{
+   var store=AutomationSettingsStore.load(dir.resolve("automation.json"));var notices=new ArrayList<StashService.Notice>();
+   AutomationContext[] observed={context(1)};StashService[] box=new StashService[1];var sent=new ArrayList<AutomationCommand>();
+   box[0]=new StashService(store,new AutomationCoordinator(),()->observed[0],command->{sent.add(command);box[0].onOutgoingCommand();return true;},notices::add);
+   var service=box[0];service.onSystemMessage("Your items were stashed away!",0);service.tick(0);check(sent.isEmpty(),"default off means no automatic command");
+   service.setEnabled(true);service.tick(0);check(sent.isEmpty(),"enabling alone does not trigger/replay stash");
+   service.onSystemMessage("Your items were stashed away!",SECOND);service.tick(SECOND);
+   check(sent.size()==1&&service.active(),"actual service boundary sends once; own command event doesn't self-cancel");
+   service.onOutgoingCommand();check(!service.active(),"manual outgoing command wins immediately");
+   int n=notices.size();for(int i=0;i<10;i++)service.tick(2*SECOND);check(notices.size()==n,"no repeated terminal notification");
+   service.setEnabled(false);service.onSystemMessage("Your items were stashed away!",3*SECOND);check(!service.active(),"disabled auto ignores fresh signals");
+   check(service.manualRequest(5*SECOND),"explicit manual run allowed with auto off");service.tick(5*SECOND);check(sent.size()==2,"manual run uses same guarded sender");
+   observed[0]=context(2);service.onSystemMessage("Your stash isn't holding any items or materials!",6*SECOND);check(!service.active(),"reply on different world cancels old task");
+   observed[0]=context(2,AutomationContext.Blocker.OUTSIDE_SKYBLOCK);check(!service.manualRequest(7*SECOND),"no outside-server request");
+   observed[0]=context(2);service.setEnabled(true);service.onSystemMessage("Your items were stashed away!",10*SECOND);service.tick(10*SECOND);
+   Files.writeString(dir.resolve("automation.json"),"{\"schemaVersion\":1,\"external\":true}");
+   try{service.setEnabled(false);throw new AssertionError("expected external edit protection");}catch(java.io.IOException expected){}
+   check(!service.active()&&!service.autoEnabled(),"disable is safe in-session even if preference save fails");
+  }finally{try(var stream=Files.walk(dir)){for(var path:stream.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(path);}}
  }
  static void preferences()throws Exception {
   Path dir=Files.createTempDirectory("kuanperion-automation-");

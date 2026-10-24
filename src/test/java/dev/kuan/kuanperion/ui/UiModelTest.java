@@ -32,25 +32,25 @@ public final class UiModelTest {
             require(ThemePresetRow.buttonIndex(10+buttonW/2,62,10,20,width)==-1,"vertical gap does not apply preset");
         }
 
-        require(MainGUISidebar.entries().stream().map(MainGUISidebar.Entry::label).toList().equals(List.of("Farming","Mining","Other","Setting")),"exactly four sidebar entries");
-        for(int i=0;i<3;i++) {
+        require(MainGUISidebar.entries().stream().map(MainGUISidebar.Entry::label).toList().equals(List.of("Farming","Mining","Trade","Other","Setting")),"Trade between Mining and Other");
+        for(int i=0;i<4;i++) {
             var entry=MainGUISidebar.entries().get(i);
             require(entry.mainTab()==0 && entry.moduleFilter()==i+1,"feature sidebar routes to matching module group");
             require(MainGUISidebar.selectedIndex(0,i+1)==i,"feature highlight matches group");
         }
-        for(int page=1;page<=4;page++) require(MainGUISidebar.selectedIndex(page,0)==3,"all settings pages share one gear");
+        for(int page=1;page<=4;page++) require(MainGUISidebar.selectedIndex(page,0)==4,"all settings pages share one gear");
         require(MainGUISidebar.selectedIndex(5,0)==-1,"About belongs to footer, not settings");
         require(MainGUISidebar.footerLines("2.0.8").equals(List.of("Mod Version 2.0.8")),"single bottom version line without duplicate name");
         require(MainGUISidebar.footerLines("9.1.0").get(0).equals("Mod Version 9.1.0"),"footer is not hardcoded");
         require(MainGUISidebar.footerY(20,660)==656,"footer is a compact bottom caption");
-        require(MainGUISidebar.rowY(3,20,660)+44<=MainGUISidebar.footerY(20,660),"Setting cannot overlap caption");
+        require(MainGUISidebar.rowY(4,20,660)+44<=MainGUISidebar.footerY(20,660),"Setting cannot overlap caption");
         require(MainGUISidebar.footerContains(160,667,20,20,660,194,1),"expanded version caption opens About across its text width");
         require(MainGUISidebar.footerContains(50,667,20,20,660,60,0),"visible collapsed version opens About");
         require(!MainGUISidebar.footerContains(50,650,20,20,660,194,1),"old footer icon area above caption is not clickable");
         require(!MainGUISidebar.footerContains(31,667,20,20,660,194,1),"caption left padding excluded");
         require(!MainGUISidebar.footerContains(203,667,20,20,660,194,1),"caption right padding excluded");
         require(MainGUISidebar.footerText("2.0.9",false).equals("2.0.9"),"collapsed shows only version");
-        require(MainGUISidebar.rowY(3,20,660)+44==MainGUISidebar.footerY(20,660),"Setting/footer spacing reduced by eight pixels");
+        require(MainGUISidebar.rowY(4,20,660)+44==MainGUISidebar.footerY(20,660),"Setting/footer spacing reduced by eight pixels");
         for(float width:new float[]{60,100,194}) require(MainGUISidebar.footerTextX(20,width,30)+15==20+width/2,"caption horizontally centered at every width");
         for(float rowHeight:new float[]{50,55,68,94}) {
             float top=UiLayoutMetrics.checkboxTop(100,rowHeight);

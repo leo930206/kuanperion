@@ -54,3 +54,7 @@ python3 "$ROOT/scripts/test-sethome-key.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-settings-command.py" "$JAVA_HOME"
 
 python3 "$ROOT/scripts/test-mining-selection.py" "$JAVA_HOME"
+
+"$ROOT/scripts/test-automation-runtime.sh"
+
+python3 "$ROOT/scripts/test-automation-client-bridge.py" "$JAVA_HOME"

@@ -23,7 +23,8 @@ final class MainGUIChromeRenderer {
         MainGUIContext context = this.owner.context();
         if (context.animation.computedSidebarExpanded < 1.0f) {
             float maxTW = 0.0f;
-            for (String name : new String[]{"Farming", "Mining", "Other", "Setting"}) {
+            for (var entry : MainGUISidebar.entries()) {
+                String name=entry.label();
                 maxTW = Math.max(maxTW, nvg.textWidth("Inter-Regular", name, 12.0f));
             }
             this.owner.setComputedSidebarExpanded(Math.max(194.0f, 72.0f + Math.max(maxTW, nvg.textWidth("Inter-Bold", "Kuanperion", 18.0f))));
@@ -60,7 +61,7 @@ final class MainGUIChromeRenderer {
             boolean hovered = mx >= context.layout.px && mx < context.layout.px + sbW && my >= tabY && my < tabY + 44;
             int color = selectedIndex == i ? Theme.ACCENT_PRIMARY : hovered ? Theme.TEXT_VALUE : Theme.TEXT_MUTED;
             if (hovered && selectedIndex != i) nvg.roundedRect(context.layout.px + 12, tabY + 4, 36, 36, 8, Theme.withAlpha(Theme.TEXT_MUTED, 51));
-            if (i == 3) nvg.rect(context.layout.px + 12, tabY - 8, sbW - 24, 1, Theme.SEPARATOR);
+            if (i == MainGUISidebar.settingsIndex()) nvg.rect(context.layout.px + 12, tabY - 8, sbW - 24, 1, Theme.SEPARATOR);
             nvg.renderSVG("/assets/kuanperion/icons/" + entry.icon() + ".svg", context.layout.px + 21, tabY + 13, 18, 18, color);
             if (context.animation.sidebarAnim > 0.01f) {
                 nvg.save();

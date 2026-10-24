@@ -20,7 +20,7 @@ public final class UiSmoke implements ClientModInitializer {
             var frame = ui.context().layout;
             double cursorX = expanded ? (frame.px+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth() : 1;
             double cursorY = expanded ? (frame.py+20)*MainGUI.uiScale/frame.pr * mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight() : 1;
-            if(phase==30){cursorX=(frame.px+(ticks<70?20:120))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(MainGUISidebar.rowY(2,frame.py,frame.ph)+22)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
+            if(phase==30){cursorX=(frame.px+(ticks<70?20:120))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(MainGUISidebar.rowY(3,frame.py,frame.ph)+22)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             if(phase==31){cursorX=(frame.contX+(ticks<15?300:60))*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+130)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             if(phase==29){cursorX=(frame.contX+220)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();cursorY=(frame.contY+150)*MainGUI.uiScale/frame.pr*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();}
             // Feed the vanilla cursor callback directly: background macOS windows may ignore GLFW cursor warps.
@@ -28,16 +28,18 @@ public final class UiSmoke implements ClientModInitializer {
             if(mouseMove==null){mouseMove=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);mouseMove.setAccessible(true);}
             mouseMove.invoke(mc.mouseHandler,mc.getWindow().handle(),cursorX,cursorY);
             if(expanded && Math.abs(ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))-(frame.px+(phase==30&&ticks>=70?120:20)))>1)throw new AssertionError("Retina hover coordinate conversion");
-            if(phase==30&&ticks%25==0)System.out.println("UI_HOVER_DIAG tick="+ticks+" main="+ui.getActiveMainTab()+" anim="+ui.context().animation.sidebarAnim+" pointer="+ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))+","+ui.scaleMouseY(mc.mouseHandler.getScaledYPos(mc.getWindow()))+" panel="+ui.panelX()+","+ui.panelY()+" hit="+ui.isSidebarExpandedOverContent(frame.px+120,frame.py+174));
+            if(phase==30&&ticks%25==0)System.out.println("UI_HOVER_DIAG tick="+ticks+" main="+ui.getActiveMainTab()+" anim="+ui.context().animation.sidebarAnim+" pointer="+ui.scaleMouseX(mc.mouseHandler.getScaledXPos(mc.getWindow()))+","+ui.scaleMouseY(mc.mouseHandler.getScaledYPos(mc.getWindow()))+" panel="+ui.panelX()+","+ui.panelY()+" hit="+ui.isSidebarExpandedOverContent(frame.px+120,MainGUISidebar.rowY(3,frame.py,frame.ph)+22));
             if(waiting||++ticks<35)return;
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==34)assertGroup(2);
+            if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
             if(phase==6)testKeybindClearButtons();
@@ -62,10 +64,10 @@ public final class UiSmoke implements ClientModInitializer {
             }
             if(phase==30) {
                 for(var section:ui.moduleSectionsForFilter())for(var sub:section.subtabs())if(ui.moduleCardHoverProgress(sub)>.01f)throw new AssertionError("hover pierced expanded sidebar");
-                float old=ui.targetScrollY;ui.handleMouseScroll(frame.px+120,frame.py+174,-1);
+                float old=ui.targetScrollY;ui.handleMouseScroll(frame.px+120,MainGUISidebar.rowY(3,frame.py,frame.ph)+22,-1);
                 if(old!=ui.targetScrollY)throw new AssertionError("wheel pierced sidebar");
-                click(frame.px+120,MainGUISidebar.rowY(2,frame.py,frame.ph)+22);
-                if(ui.getActiveModuleSubTab()!=null || ui.context().navigation.activeFilter!=3)throw new AssertionError("click pierced sidebar into Jerry card");
+                click(frame.px+120,MainGUISidebar.rowY(3,frame.py,frame.ph)+22);
+                if(ui.getActiveModuleSubTab()!=null || ui.context().navigation.activeFilter!=4)throw new AssertionError("click pierced sidebar into Jerry card");
                 System.out.println("UI_SMOKE_TOP_LAYER_PASS sidebar hover/click/wheel cannot reach covered card");
             }
             if(phase==31 && ui.moduleCardHoverProgress(MainGUIRegistry.MODULE_SUBTABS.get(0))<.5f)throw new AssertionError("uncovered module lost hover feedback");
@@ -102,7 +104,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase==11) testTargetRows();
             if(phase==12) testColorPresets();
             if(expanded && ui.context().animation.sidebarAnim < .95f) throw new AssertionError("sidebar did not expand under real mouse hover");
-            if(phase>=13 && phase<=15) assertGroup(phase-13);
+            if(phase>=13 && phase<=15) assertGroup(phase==15?3:phase-13);
             if(phase==16 && ui.getActiveMainTab()!=4) throw new AssertionError("gear did not open interface settings");
             if(phase>=17 && phase<=20) {
                 int page=MainGUISettingsPages.normalize(phase-16);
@@ -132,15 +134,17 @@ public final class UiSmoke implements ClientModInitializer {
                 case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
                 case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor 通知")).findFirst().orElseThrow());
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
-                case 30 -> {clickSidebar(2);assertGroup(2);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
+                case 30 -> {clickSidebar(3);assertGroup(3);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
                 case 31 -> clickSidebar(0);
                 case 32 -> {setCapacityFixture(true);}
                 case 33 -> {setCapacityFixture(false);}
+                case 34 -> clickSidebar(2);
+                case 35 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Stash")).findFirst().orElseThrow());
                 case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
                 case 14 -> clickSidebar(1);
-                case 15 -> clickSidebar(2);
-                case 16 -> clickSidebar(3);
+                case 15 -> clickSidebar(3);
+                case 16 -> clickSidebar(4);
                 case 1-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.get(0));
                 case 2-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow());
                 case 3-> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Jerry 偵測")).findFirst().orElseThrow());
@@ -150,7 +154,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 7->{((dev.kuan.kuanperion.ui.settings.KeybindSetting)dev.kuan.kuanperion.KuanperionClient.uiKeybinds().get(2)).resetToDefault();switchTab(4);}
                 case 8->{ui.activateSearchField();ui.setSearchQuery("通知");}
                 case 10->{var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Pest 通知")).findFirst().orElseThrow();var group=pest.groups().get(0);var setting=group.getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();ui.openSearchResult(0,pest,group,setting);}
-                case 12->{switchTab(1);ui.setActiveFilterIndex(0);ui.setActiveScroll(0,0);ui.refreshContext();}
+                case 12->{switchTab(1);ui.setActiveFilterIndex(0);ui.setActiveScroll(0,0);ui.refreshContext();if(ui.getActiveMainTab()!=1)throw new AssertionError("color transition did not select page immediately");System.out.println("UI_COLOR_TRANSITION main="+ui.getActiveMainTab());}
                 case 11->{var mining=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow();ui.openModuleDetailFromCard(mining);ui.selectModuleCategory(2);}
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
             }
@@ -161,7 +165,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Jerry 偵測","Discord Webhook"}};
+        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Stash"},{"Jerry 偵測","Discord Webhook"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index);
     }
@@ -174,7 +178,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(x+20,ui.contentY()+72);
     }
     private void testSidebarRouting() throws Exception {
-        for(int i=0;i<3;i++) {
+        for(int i=0;i<4;i++) {
             ui.setSearchQuery("stale-search");ui.setActiveScroll(50,60);clickSidebar(i);assertGroup(i);
             if(!ui.searchQuery.isEmpty() || ui.getActiveScrollY()!=0)throw new AssertionError("group navigation kept search/scroll");
             var subtab=ui.moduleSectionsForFilter().get(0).subtabs().get(0);
@@ -187,18 +191,40 @@ public final class UiSmoke implements ClientModInitializer {
             ui.openSearchResult(0,subtab,group,group.getSettings().isEmpty()?null:group.getSettings().get(0));
             if(ui.context().navigation.activeFilter!=MainGUIRegistry.moduleFilterFor(subtab))throw new AssertionError("cross-group search route wrong");
         }
-        clickSidebar(3);
+        clickSidebar(4);
         if(ui.getActiveMainTab()!=4 || ui.getActiveModuleSubTab()!=null)throw new AssertionError("gear kept feature detail");
         for(int page:MainGUISettingsPages.IDS) {
             switchTab(page);
-            if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=3 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
+            if(MainGUISidebar.selectedIndex(ui.getActiveMainTab(),0)!=4 || ui.settingsNavigationHeight()!=37 || !ui.currentTabName().equals("Setting"))throw new AssertionError("Setting page not grouped");
         }
         var layout=ui.context().layout;click(layout.px+30,MainGUISidebar.footerY(layout.py,layout.ph)+11);
         if(ui.getActiveMainTab()!=5)throw new AssertionError("visible collapsed version did not open About");
         var lines=MainGUISidebar.footerLines(MainGUIRegistry.modVersion());
         if(!lines.equals(java.util.List.of("Mod Version "+MainGUIRegistry.modVersion()+"")))throw new AssertionError("wrong footer metadata");
         clickSidebar(0);assertGroup(0);
-        System.out.println("UI_SMOKE_SIDEBAR_PASS four visible routes / group membership / detail-back / cross-group search / Setting pages / collapsed footer / metadata");
+        System.out.println("UI_SMOKE_SIDEBAR_PASS five visible routes / group membership / detail-back / cross-group search / Setting pages / collapsed footer / metadata");
+    }
+    private void testStashUi(Minecraft mc) throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);
+        var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var stash=bridge.stash();
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");
+        if(stash.autoEnabled()||stash.active()||java.nio.file.Files.exists(path))throw new AssertionError("fresh automation must be off and not save on startup");
+        var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Stash")).findFirst().orElseThrow();
+        ui.openModuleDetailFromCard(sub);var settings=sub.groups().get(0).getSettings();
+        var auto=(dev.kuan.kuanperion.ui.settings.ToggleSetting)settings.get(0);
+        auto.setValue(true);
+        if(!stash.autoEnabled()||stash.active())throw new AssertionError("enable must persist without starting any commands");
+        var delay=(dev.kuan.kuanperion.ui.settings.SliderSetting)settings.get(2);delay.setValue(7);
+        var reloaded=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!reloaded.enabled(dev.kuan.kuanperion.automation.AutomationFeature.STASH)||reloaded.stashPolicy().delaySeconds()!=7)throw new AssertionError("real UI changes not persisted");
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)settings.get(5)).execute();
+        if(stash.active())throw new AssertionError("offline client must refuse manual Stash without queueing");
+        if(settings.get(6).isVisible())throw new AssertionError("idle cancel should be hidden");
+        auto.setValue(false);delay.setValue(3);
+        reloaded=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(reloaded.enabled(dev.kuan.kuanperion.automation.AutomationFeature.STASH)||reloaded.stashPolicy().delaySeconds()!=3)throw new AssertionError("restored stash settings not persisted");
+        clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_STASH_PASS Trade/detail/settings persistence/default off/no offline command/no runtime auto-start");
     }
     @SuppressWarnings("unchecked")
     private java.util.List<String> selected() throws Exception {

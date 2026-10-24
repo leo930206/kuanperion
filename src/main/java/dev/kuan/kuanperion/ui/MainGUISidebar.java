@@ -8,15 +8,17 @@ final class MainGUISidebar {
     private static final List<Entry> ENTRIES = List.of(
         new Entry("Farming", "farming", "Farming、Pest 通知與 Visitor 通知", 0, 1),
         new Entry("Mining", "mining", "Mining 與目標方塊設定", 0, 2),
-        new Entry("Other", "modules", "Jerry 偵測與 Discord Webhook", 0, 3),
-        new Entry("Setting", "settings", "顏色、設定檔、快捷鍵與介面設定", 4, 0));
+        new Entry("Trade", "cash", "Stash；其他交易工作移植中", 0, 3),
+        new Entry("Other", "modules", "Jerry 偵測與 Discord Webhook", 0, 4),
+        new Entry("Setting", "settings", "介面、顏色與快捷鍵", 4, 0));
+    static int settingsIndex() { return ENTRIES.size()-1; }
     static List<Entry> entries() { return ENTRIES; }
     static int selectedIndex(int page, int filter) {
-        if (page == 0) return Math.max(0, Math.min(2, filter - 1));
-        return page >= 1 && page <= 4 ? 3 : -1;
+        if (page == 0) return Math.max(0, Math.min(settingsIndex()-1, filter - 1));
+        return page >= 1 && page <= 4 ? settingsIndex() : -1;
     }
     static float rowY(int index, float panelY, float panelHeight) {
-        return index < 3 ? panelY + 64 + index * 44 : footerY(panelY, panelHeight) - 44;
+        return index < settingsIndex() ? panelY + 64 + index * 44 : footerY(panelY, panelHeight) - 44;
     }
     static float footerY(float panelY, float panelHeight) { return panelY + panelHeight - 24; }
     static List<String> footerLines(String version) { return List.of(footerText(version,true)); }

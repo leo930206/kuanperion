@@ -9,8 +9,8 @@
 - [x] Pure feature IDs, capability/risk/resource ownership contract + tests.
 - [x] World/session/focus/Mining/recovery/menu guards; bounded lease and stale-token rejection.
 - [x] Atomic schema-aware preferences: defaults off, unknown keys retained, corrupt/future files not overwritten.
-- [ ] Stash vertical slice: system signals, bounded attempts/deadline, cancellation, guarded actual command and local feedback.
-- [ ] Trade navigation/Stash UI and real settings persistence, no no-op toggles for unfinished workflows.
+- [x] Stash vertical slice: system signals, bounded attempts/deadline, cancellation, guarded actual command and local feedback (offline contracts/UI verified; live server results not yet verified).
+- [x] Trade navigation/Stash UI and real settings persistence, no no-op toggles for unfinished workflows.
 - [ ] Guarded menu observations/actions and receipt contracts (no blind slot clicking).
 - [ ] Existing Farming hold/resume token and every stop/manual override invalidate path.
 

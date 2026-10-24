@@ -69,6 +69,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class KuanperionClient implements ClientModInitializer {
     private static final String MOD_ID = "kuanperion";
+    private static AutomationClientBridge automation;
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     private static final SkyBlockLocationBridge SKYBLOCK_LOCATION_BRIDGE = SkyBlockLocationBridge.discover();
     private static String lastFarmingLocationDiagnostic = "";
@@ -237,6 +238,9 @@ public final class KuanperionClient implements ClientModInitializer {
         try { LegacyConfigMigration.migrate(new File(Minecraft.getInstance().gameDirectory,"config").toPath()); }
         catch (java.io.IOException error) { LOGGER.warn("Kuanperion configuration migration failed; original file retained",error); }
         loadConfig();
+        automation=new AutomationClientBridge(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir(),
+                ()->new AutomationClientBridge.LegacyState(farmingEnabled&&farmingEnabledThisSession,miningEnabled,farmingAutoRecovering,selectMode,SKYBLOCK_LOCATION_BRIDGE.islandName()),
+                KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature("Trade"),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())));
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         JerryFarmingMarkerRenderer.register(() -> jerryMarkerMaxSeconds.signum()==0 || JERRY_FARMING_MARKERS.isEmpty() ? List.of()
                 : JERRY_FARMING_MARKERS.inScope(jerryFarmingMarkerScope(Minecraft.getInstance())));
@@ -256,13 +260,16 @@ public final class KuanperionClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> dev.kuan.kuanperion.renderer.NanoVGManager.destroy());
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> {
             SCREEN_NOTIFICATIONS.clear();
+            automation.worldChanged();
             onFarmingWorldChange();
         });
         HudElementRegistry.addLast(id("notifications"), (graphics, delta) -> renderNotificationOverlay(graphics));
         ClientTickEvents.START_CLIENT_TICK.register(KuanperionClient::enforceAutomationMovementLock);
         ClientTickEvents.END_CLIENT_TICK.register(KuanperionClient::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(client->automation.tick());
         ClientSendMessageEvents.ALLOW_COMMAND.register(KuanperionClient::allowOutgoingCommand);
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) handleReceivedMessage(message); });
+        ClientSendMessageEvents.COMMAND.register(command->automation.onOutgoingCommand());
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) { handleReceivedMessage(message);automation.onServerGameMessage(message.getString()); } });
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
 
@@ -2832,6 +2839,7 @@ public final class KuanperionClient implements ClientModInitializer {
         var webhookTab=new ModulesTab.SubTab("Discord Webhook", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
         return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,visitorTab)),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
+            new MainGUIRegistry.ModuleSection("trade","Trade",dev.kuan.kuanperion.ui.AutomationModuleSettings.trade(automation.stash())),
             new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab)));
     }
 

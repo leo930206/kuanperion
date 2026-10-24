@@ -2,11 +2,19 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.16`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**開發目標：`2.1.0`（尚未發佈）** · 上一穩定版：`2.0.16` · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
-## 安裝與更新
+## 2.1.0 開發狀態
+
+本分支是 `feature/2.1.0` 的分階段檢查點，不是完整大升級；正式遊戲仍保留 2.0.16，不安裝開發 JAR。完整需求／待辦見 [規格](docs/spec-2.1.0.md)、[進度](tasks/todo-2.1.0.md)，離線驗證與限制見 [驗證紀錄](docs/verification-2.1.0.md)。
+
+已接上安全任務底層、獨立外部設定與 Trade → Stash：自動開關預設關閉，收到可識別的伺服器待領訊息才排程；也可手動開始。領取有間隔／次數／逾時限制，背包滿、切換世界、Mining、回程、選取任務或手動指令會停止，其他選單／失焦時不發指令。不改動原 Farming／Mining 輸入或開關。只在可確認的 Hypixel SkyBlock 連線中允許 `/pickupstash`。
+
+Pest／Visitor 自動化、Greenhouse、Composter、其餘 Trade 功能、Supercraft 與 Farming 暫停接續仍待實作；不以空按鈕冒充完成。因此這個檢查點的 Pest／Visitor 仍保留原通知名稱與功能。新工作流程設定位於 `config/kuanperion/automation.json`；舊 properties、外觀、快捷鍵與收藏不改位置。新設定格式損壞／來自較新版時不覆寫原檔且停用自動化。
+
+## 穩定版安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
 2. 放入 `kuanperion-2.0.16.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
@@ -17,11 +25,11 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 ## 導覽
 
-左側功能分成 **Farming**（Farming、Pest 通知、Visitor 通知）、**Mining**（Mining）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
+左側功能分成 **Farming**（Farming、Pest 通知、Visitor 通知）、**Mining**（Mining）、**Trade**（目前僅 Stash）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
 
 單一齒輪 **Setting** 頁籤順序為「介面／顏色／快捷鍵」，移除手動設定檔頁面。設定變更一律自動保存至遊戲資料夾：功能偏好在 `config/kuanperion.properties`、外觀在 `config/kuanperion-theme.json`、快捷鍵主鍵在 Minecraft `options.txt`（修飾鍵另存 properties），都不在 JAR 內。換 JAR 自動沿用；不需手動快照／載入，舊快照檔不會被刪除或自動套用。顏色頁保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
 
-左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.16`，展開時為 `Mod Version 2.0.16`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
+左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 metadata 版本號，展開時為 `Mod Version <版本>`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
 
 ## 介面與操作
 
@@ -47,7 +55,7 @@ Mining 選取方塊只新增，不會清空舊清單；每個新種類插在順�
 - 啟用異常狀況處理並已設定 Webhook 時，自動回到 Garden 後通知原本被傳送到的地點；只發一次，Farming 仍保持關閉等待操作。
 - 聊天前綴括號為灰色，名稱改為較鮮明的天空藍→白→粉紅漸層，皆不加粗。快捷鍵送出 `/sethome`、`/home`、`/barn` 後會回報「已發送」；Jerry 自動 `/sethome` 與 Jerry 聊天室通知合併同一行，未開聊天室通知則獨立回報。
 
-專案目前位於 `/Users/kuan/projects/kuanperion`；GitHub：[leo930206/kuanperion](https://github.com/leo930206/kuanperion)。大型自動化移植尚未開始。
+專案目前位於 `/Users/kuan/projects/kuanperion`；GitHub：[leo930206/kuanperion](https://github.com/leo930206/kuanperion)。本分支已開始 2.1.0 分階段移植，尚未完成整版驗收。
 
 ## 快捷鍵
 
@@ -141,8 +149,8 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ## 設定與隱私
 
 - 主設定：`config/kuanperion.properties`；UI 主題：`config/kuanperion-theme.json`。
-- Profiles：`config/kuanperion/profiles`／`themes`，均為本機資料。
-- 功能 Profile／剪貼簿匯出排除 Webhook、光柱座標／世界與 runtime 啟停值及本機修飾鍵設定；載入 Profile 不會自動開啟巨集，也不覆寫本機 Webhook。
+- 舊 Profiles／themes 檔案只保留相容資料，沒有設定檔頁面，也不會啟動時自動載入快照。
+- 新自動化：`config/kuanperion/automation.json`；只存偏好，不儲存／重播執行中的任務。
 - 勿公開主 properties 檔或填有 Webhook 的畫面；它們可能含秘密。沒有把帳號與設定上傳作者的機制。
 
 ## 開發與驗證
