@@ -2117,14 +2117,14 @@ public final class KuanperionClient implements ClientModInitializer {
         return id == null ? "unknown" : id.toString();
     }
 
-    private static final int COLOR_FEATURE = 0xC084FC;
-    private static final int COLOR_PLAIN = 0xFFFFFF;
-    private static final int COLOR_SUCCESS = 0x55FF55;
-    private static final int COLOR_ERROR = 0xFF5555;
-    private static final int COLOR_WARNING = 0xFFAA00;
-    private static final int COLOR_BLOCK = 0xFFFF55;
-    private static final int COLOR_LOCATION = 0x55FFFF;
-    private static final int COLOR_CROP = 0xADFF2F;
+    private static final int COLOR_FEATURE = 0x0088D1;
+    private static final int COLOR_PLAIN = 0x00D8F5;
+    private static final int COLOR_SUCCESS = 0x0088D1;
+    private static final int COLOR_ERROR = 0x0088D1;
+    private static final int COLOR_WARNING = 0x0088D1;
+    private static final int COLOR_BLOCK = 0x0088D1;
+    private static final int COLOR_LOCATION = 0x0088D1;
+    private static final int COLOR_CROP = 0x0088D1;
 
     private static void say(Minecraft mc, Component... parts) {
         if (mc.player == null) return;
@@ -2135,7 +2135,7 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static MutableComponent hsbaPrefix() {
         String name="Kuanperion";
-        MutableComponent out=Component.empty().append(Component.literal("[").withStyle(style->style.withColor(ChatPrefixPalette.BRACKET).withBold(false)));
+        MutableComponent out=Component.empty().withStyle(style->style.withBold(false)).append(Component.literal("[").withStyle(style->style.withColor(ChatPrefixPalette.BRACKET).withBold(false)));
         for(int i=0;i<name.length();i++){
             final int color=ChatPrefixPalette.colorAt(i,name.length());
             out.append(Component.literal(String.valueOf(name.charAt(i))).withStyle(style->style.withColor(color).withBold(false)));
@@ -2143,16 +2143,16 @@ public final class KuanperionClient implements ClientModInitializer {
         return out.append(Component.literal("]").withStyle(style->style.withColor(ChatPrefixPalette.BRACKET).withBold(false))).append(Component.literal(" ").withStyle(style->style.withBold(false)));
     }
 
-    private static Component plain(String text) { return Component.literal(text).withColor(COLOR_PLAIN); }
+    private static Component plain(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_PLAIN).withBold(false)); }
     private static Component feature(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_FEATURE).withBold(false)); }
-    private static Component success(String text) { return Component.literal(text).withColor(COLOR_SUCCESS); }
-    private static Component error(String text) { return Component.literal(text).withColor(COLOR_ERROR); }
-    private static Component warning(String text) { return Component.literal(text).withColor(COLOR_WARNING); }
+    private static Component success(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_SUCCESS).withBold(false)); }
+    private static Component error(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_ERROR).withBold(false)); }
+    private static Component warning(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_WARNING).withBold(false)); }
     private static Component blockName(String text) {
         String display = text != null && text.startsWith("minecraft:") ? text.substring("minecraft:".length()) : text;
-        return Component.literal(display == null ? "" : display).withColor(COLOR_BLOCK);
+        return Component.literal(display == null ? "" : display).withStyle(style -> style.withColor(COLOR_BLOCK).withBold(false));
     }
-    private static Component locationName(String text) { return Component.literal(text).withColor(COLOR_LOCATION); }
+    private static Component locationName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_LOCATION).withBold(false)); }
     private static Component cropName(String text) { return Component.literal(text).withStyle(style -> style.withColor(COLOR_CROP).withBold(false)); }
 
     private static void sayAutoState(Minecraft mc, String featureName, boolean enabled) {

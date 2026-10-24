@@ -2,14 +2,14 @@
 
 Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通知功能。
 
-**版本：`2.0.15`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
+**版本：`2.0.16`** · Java **25** · Fabric Loader **0.19.5+** · Fabric API
 
 勾選框、單行輸入與數字控制依完整設定卡片高度垂直置中，無論是否有說明；螢幕通知時間輸入與開關維持獨立。輸入框預設高 22 logical px、內文字 12 px。
 
 ## 安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.15.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.16.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -21,9 +21,11 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 單一齒輪 **Setting** 頁籤順序為「介面／顏色／快捷鍵」，移除手動設定檔頁面。設定變更一律自動保存至遊戲資料夾：功能偏好在 `config/kuanperion.properties`、外觀在 `config/kuanperion-theme.json`、快捷鍵主鍵在 Minecraft `options.txt`（修飾鍵另存 properties），都不在 JAR 內。換 JAR 自動沿用；不需手動快照／載入，舊快照檔不會被刪除或自動套用。顏色頁保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
 
-左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.15`，展開時為 `Mod Version 2.0.15`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
+左上保留大頭貼與名稱；底部無 K、無 MC 版本與 Setting 下分隔線。版本文字在收合時為 `2.0.16`，展開時為 `Mod Version 2.0.16`（無冒號），依側欄寬度水平置中，版本讀取 metadata。Setting 與版本列間距縮短；兩種狀態均可點版本開啟「關於」。
 
 ## 介面與操作
+
+本機聊天室訊息的一般文字為 `#00D8F5`，功能名稱／狀態／警告／方塊／作物／地點等重點為 `#0088D1`；前綴灰色括號與藍白紅漸層維持原樣。整則訊息與所有文字片段均明確停用粗體，不繼承上層粗體。介面配色與 Discord／螢幕通知未更動。
 
 Mining 選取方塊只新增，不會清空舊清單；每個新種類插在順位 1，原有種類保持相對順序。最多保存 10 種，輸入數量上限即剩餘名額（已有 3 種最多再選 7 種）。重複／無效方塊不占名額，滿額時停用新增，刪除後恢復。Jerry 自動 sethome 成功時：開啟 Jerry 聊天室通知為「發現 color Jerry，且已發送 /sethome」，未開啟則與手動快捷鍵相同，顯示「已發送 /sethome。」；不重複發兩行。
 
@@ -152,7 +154,7 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ./scripts/test-ui.sh
 ```
 
-`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.15.md](docs/verification-2.0.15.md)。
+`test-ui.sh` 需要先 build，使用實際 26.2 classpath 做 UI 模型／文字／動畫／布局測試。遊戲畫面／輸入 smoke test 使用 `scripts/ui-smoke/prepare.py`、`scripts/ui-smoke/launch.py` 與 `src/smoke`；需先 build，只啟動隔離視窗，不隨正式 JAR 提供測試入口。測試使用虛構帳號、不進伺服器，原版自身帳號／Realms 請求出現 401 屬預期；不使用 Prism 的真實登入資料。驗證範圍與限制見 [docs/verification-2.0.16.md](docs/verification-2.0.16.md)。
 
 必要來源與授權見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 與 [LICENSE](LICENSE)，也包進 JAR。
 

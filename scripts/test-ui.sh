@@ -8,3 +8,5 @@ while IFS= read -r dep; do CP="$CP:$dep"; done < <(find "$PRISM/libraries" "$ROO
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/javac" --release 25 -encoding UTF-8 -cp "$CP" -d "$TMP" "$ROOT/src/test/java/dev/kuan/kuanperion/ui/UiModelTest.java"
 "$JDK/bin/java" -Djava.awt.headless=true -cp "$TMP:$CP" dev.kuan.kuanperion.ui.UiModelTest
+
+python3 "$ROOT/scripts/test-chat-style.py" "$JDK" "$CP"

@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSettingsCommand(mc); testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
             if(phase==6)testKeybindClearButtons();
@@ -460,6 +460,20 @@ public final class UiSmoke implements ClientModInitializer {
         }
         ui.setSearchQuery("");ui.setSearchMode(false);ui.refreshContext();
         System.out.println("UI_SMOKE_13_FEATURES_PASS nonbold gradient / fourth shortcut / one Jerry row / zero beam / threshold help / stable search transition");
+    }
+
+    private void testChatBodyStyles() throws Exception {
+        var cls=dev.kuan.kuanperion.KuanperionClient.class;
+        String[] names={"plain","feature","success","error","warning","blockName","locationName","cropName"};
+        for(String name:names){
+            var method=cls.getDeclaredMethod(name,String.class);method.setAccessible(true);
+            var component=(net.minecraft.network.chat.Component)method.invoke(null,"樣本 Sample");
+            final int expected=name.equals("plain")?0x00D8F5:0x0088D1;
+            component.visit((net.minecraft.network.chat.Style style,String text)->{if(style.isBold()||style.getColor()==null||style.getColor().getValue()!=expected)throw new AssertionError("chat role palette/no-bold: "+name);return java.util.Optional.empty();},net.minecraft.network.chat.Style.EMPTY.withBold(true));
+        }
+        var prefix=cls.getDeclaredMethod("hsbaPrefix");prefix.setAccessible(true);
+        ((net.minecraft.network.chat.Component)prefix.invoke(null)).visit((net.minecraft.network.chat.Style style,String text)->{if(style.isBold())throw new AssertionError("prefix inherits bold");return java.util.Optional.empty();},net.minecraft.network.chat.Style.EMPTY.withBold(true));
+        System.out.println("UI_SMOKE_CHAT_STYLE_PASS actual private factories/all eight roles/no inherited bold/prefix retained");
     }
 
     private void testSettingsCommand(Minecraft mc) throws Exception {
