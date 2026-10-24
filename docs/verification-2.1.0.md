@@ -120,3 +120,20 @@ Junk 專案端 test/build/UI/migration 全數 PASS；重建 production JAR 與�
 - 暫存版 focused runtime 與完整 test/build/UI/migration PASS。接著執行專案端重建與 payload 比對；不耗書、不連線、不發 `/av`，不更動已安裝 2.0.17。
 
 Book 協定專案端完整 test/build/UI/migration PASS；staging 與專案重建 JAR 逐 entry 相等，沒有測試／trace classes；92 個 UI class 與已通過完整 Junk38-state 的版本完全相同，因此本純協定、無 caller 的切片沒有宣稱額外實跑 live 或重跑完整 GUI。第一次 artifact 比對只在 THIRD_PARTY_NOTICES.md 不同（文件補註晚於 staging build），重新建置後比對通過，未隱藏該初次失敗。正式 2.0.17 checksum 未變。
+
+
+## Pest 唯讀觀察切片（尚非可用的 Pest 工作流程）
+
+- PestTabObservation 僅在 Pests 區塊解析 Alive／Plots／Cooldown／Bonus；裸 Alive、其他分區、衝突／超長／溢位／不合法數字皆不轉成有效動作。未知不當作 0／READY／active；MAX PESTS 不是虛構秒數。Plot 僅 1～24、無去字元猜編號、衝突未知。舊 Pest／Visitor 通知解析與狀態不變。
+- PestIdentity 只比對完整已知的 Minecraft texture URL path，限定 textures.minecraft.net 無 userinfo／port／query／fragment；不是在任意 base64 解碼內容找 hash 子字串。嚴格 UTF-8、JSON 深度／欄位／大小上限及重複 key 拒絕。只讀既有 profile partial property，不呼叫 resolveProfile、不下載／解析網域、不連 Aether。自訂名稱／多個 texture properties 不當作 Pest marker。
+- 檢查 Hypixel 官方公開 catalog <https://api.hypixel.net/v2/resources/skyblock/items> 的 category VACUUM 五個精確 ID，最小事實快照在 docs/data/pest-vacuum-catalog.json。TURBOMAX_VACUUM 沒有該 category，不因名字有 vacuum 就選用。API 沒提供吸取範圍，因此範圍仍須工具明確的 Vacuum ability lore；無範圍／未知／重複／改名能力不依 rarity 或工具名字猜。只觀察 hotbar0..8，不切換 slot、不使用工具。此查詢僅開發查核，不新增任何 runtime API caller。
+- 目標必須有已知頭像且隱形的 ArmorStand marker；普通 Bat／Silverfish、未知頭像旁的 mob 都不單獨授權。只配對 marker 兩格內最近的 mob，等距不猜；原 marker 作為觀察候選，不推定捕捉。UUID／entity ID 去重，原生掃描上限4096、候選上限256，不在 tick 無界掃描。
+- PestGameView 在 client thread、Garden／世界有效時按需讀取，快照含 world 與兩秒 read-time freshness；這不是 server kill receipt，也不能以實體消失或清單空白推定殺蟲。沒有 gameplay runtime caller、移動、飛行、攻擊、鍵盤、熱鍵／通知偏好更動，Pest implemented 仍為 false。
+- TDD 缺失 classes／native adapter 先紅；真實重現並修正「Ability: Vacuum Cleaner 前綴誤認」與候選上限未生效。Focused pure suite PASS。初次離線26.2初始化取得 PestGameViewTest PASS，含原生物品 NBT／lore、profile local property、不改原工具、錯誤／自訂／多重頭像與 read-time/world freshness；上限補強後將重建並再驗一次。
+- 原生實體／飛行／捕捉尚未連線驗證，不能拿離線 profile fixtures 當作當前 Pest 模型或完整 Pest 功能驗收。完整 test/build/UI/migration、最終 runtime、專案 payload 比對待補記。
+
+後續26.2 native code review 找到 skinPatch 會使 partial profile 不足以斷定頭像；先以真實 Static profile + 非空 Patch fixture 重現誤認紅燈，再拒絕非空 patch。第一次測試嘗試 subclass ResolvableProfile 因它是 sealed 而編譯失敗，改為僅測試使用 pinned private constructor 建立原生 fixture，沒有修改原版 registry。初次編譯未產生 launch-args，接續啟動因缺檔失敗，沒有把它視為執行或通過。
+
+新 `python3 scripts/test-native-observations.py` 在 build 後可用 pinned26.2 vanilla Bootstrap + Holder.direct fixtures 無視窗重跑完整 NBT／Book／Pest 資料投影，無 client／帳號／連線／GPU／遊戲設定／資源下載。此路徑不聲稱 Mixin 套用；原有獨立 client smoke 仍保留兩項原生 Mixin 斷言。skinPatch 案例 headless 真紅後綠，native fixtures、focused pure suite PASS。舊 GUI 初始化仍為前述已通過版本，最終 client/payload 證據另行標示，不混用。
+
+Pest 切片專案端完整 test/build/UI/migration 與新增 headless native fixtures 全數 PASS。專案重建與 frozen staging production JAR 逐 entry 相等，92 個 UI class 與 Junk38-state 通過版相同，沒有測試／trace 類別。最終 skinPatch 補強以無視窗真實26.2 fixtures 驗證，沒有把先前 client PASS 冒稱最後修改後已重新實跑完整 GUI；live Pest 捕捉及 phase7 runtime release matrix 仍待完成。正式2.0.17 checksum 未變。

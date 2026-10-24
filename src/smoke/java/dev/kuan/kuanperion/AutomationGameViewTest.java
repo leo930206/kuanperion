@@ -18,6 +18,9 @@ public final class AutomationGameViewTest {
   var components=DataComponentMap.builder().set(DataComponents.ITEM_NAME,Component.literal("Fixture")).set(DataComponents.MAX_STACK_SIZE,64).build();
   return new ItemStack(Holder.direct(item,components),count,DataComponentPatch.EMPTY);
  }
+ static net.minecraft.world.item.component.ResolvableProfile patchedProfile(com.mojang.authlib.GameProfile profile,net.minecraft.world.entity.player.PlayerSkin.Patch patch){
+  try{var ctor=Class.forName("net.minecraft.world.item.component.ResolvableProfile$Static").getDeclaredConstructor(com.mojang.datafixers.util.Either.class,net.minecraft.world.entity.player.PlayerSkin.Patch.class);ctor.setAccessible(true);return (net.minecraft.world.item.component.ResolvableProfile)ctor.newInstance(com.mojang.datafixers.util.Either.left(profile),patch);}catch(ReflectiveOperationException invalid){throw new AssertionError("Pinned26.2 native profile fixture unavailable",invalid);}
+ }
  static void testBooks(){
   var stack=fixture(Items.ENCHANTED_BOOK,1);stack.set(DataComponents.ITEM_NAME,Component.literal("Enchanted Book"));
   var attributes=new CompoundTag();attributes.putString("id","ENCHANTED_BOOK");attributes.putString("uuid","one");attributes.putString("origin","same");
@@ -32,9 +35,30 @@ public final class AutomationGameViewTest {
   check(AutomationGameView.book(fixture(Items.ENCHANTED_BOOK,1),10,false)==null,"display/vanilla book without authoritative NBT not inferred");
   System.out.println("BookGameViewTest: PASS (native integer NBT, metadata/UUID projection, immutable original, exact preview and no name/lore fallback)");
  }
+ static void testPest(){
+  var vacuum=fixture(Items.PAPER,1);var data=new CompoundTag();data.putString("id","INFINI_VACUUM");data.putString("uuid","my-vacuum");vacuum.set(DataComponents.CUSTOM_DATA,CustomData.of(data));
+  vacuum.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Ability: Vacuum RIGHT CLICK"),Component.literal("Suck pests within 12.5 blocks"))));
+  var before=vacuum.getComponents().toString();check(PestGameView.vacuum(vacuum,0).orElseThrow().range()==12.5,"native exact ID/lore Pest vacuum");check(vacuum.getComponents().toString().equals(before),"Pest observation does not alter tool");
+  data.putString("id","TURBOMAX_VACUUM");vacuum.set(DataComponents.CUSTOM_DATA,CustomData.of(data));check(PestGameView.vacuum(vacuum,0).isEmpty(),"native non-VACUUM-category item excluded");
+  var head=fixture(Items.PLAYER_HEAD,1);String hash="70a1e836bf1968b2eaa4837227a19204f17295d870ee9e754bd6b6d60ddbed3c";
+  String encoded=java.util.Base64.getEncoder().encodeToString(("{\"textures\":{\"SKIN\":{\"url\":\"https://textures.minecraft.net/texture/"+hash+"\"}}}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  var props=com.google.common.collect.ArrayListMultimap.<String,com.mojang.authlib.properties.Property>create();props.put("textures",new com.mojang.authlib.properties.Property("textures",encoded));
+  var profile=new com.mojang.authlib.GameProfile(new java.util.UUID(0,1),"fixture",new com.mojang.authlib.properties.PropertyMap(props));head.set(DataComponents.PROFILE,net.minecraft.world.item.component.ResolvableProfile.createResolved(profile));
+  check(PestGameView.knownHead(head),"native profile property identifies exact curated Pest skin without resolving/fetching");
+  head.set(DataComponents.CUSTOM_NAME,Component.literal("Decoration"));check(!PestGameView.knownHead(head),"custom-named skull not treated as Pest marker");head.remove(DataComponents.CUSTOM_NAME);
+  var patch=new net.minecraft.world.entity.player.PlayerSkin.Patch(java.util.Optional.empty(),java.util.Optional.empty(),java.util.Optional.empty(),java.util.Optional.of(net.minecraft.world.entity.player.PlayerModelType.SLIM));head.set(DataComponents.PROFILE,patchedProfile(profile,patch));check(!PestGameView.knownHead(head),"native skin patch overrides are not inferred from the partial profile texture");head.set(DataComponents.PROFILE,net.minecraft.world.item.component.ResolvableProfile.createResolved(profile));
+  props.put("textures",new com.mojang.authlib.properties.Property("textures",encoded));profile=new com.mojang.authlib.GameProfile(new java.util.UUID(0,1),"fixture",new com.mojang.authlib.properties.PropertyMap(props));head.set(DataComponents.PROFILE,net.minecraft.world.item.component.ResolvableProfile.createResolved(profile));check(!PestGameView.knownHead(head),"multiple skin properties are ambiguous");
+  var context=new AutomationContext(1,true,true,java.util.Set.of());check(!PestGameView.read(null,context,0).complete(),"no world is not a valid empty/cleared Pest scan");
+  var snapshot=new PestGameView.Snapshot(1,100,dev.kuan.kuanperion.automation.pest.PestTabObservation.parse(List.of("Pests: 0")),List.of(),List.of(),0,true);check(snapshot.fresh(1,100)&&snapshot.fresh(1,2000000100L)&&!snapshot.fresh(2,100)&&!snapshot.fresh(1,99)&&!snapshot.fresh(1,2000000101L),"Pest frame has bounded read-time freshness and world identity, not a kill receipt");
+  System.out.println("PestGameViewTest: PASS (native hotbar ID/lore, immutable tool, exact local profile/no resolve, custom/ambiguous heads and no-world guard)");
+ }
  public static void main(String[] args){
   try{var type=Class.forName("net.minecraft.client.multiplayer.ClientPacketListener");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$slot")),"server receipt Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   try{var type=Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$manualInventoryInput")),"manual inventory priority Mixin applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
+  System.out.println("AutomationMixinsTest: PASS (receipt and manual inventory priority applied)");
+  runFixtures();
+ }
+ static void runFixtures(){
   var stack=fixture(Items.WHEAT,12);var extra=new CompoundTag();extra.putString("id","WHEAT");extra.putString("uuid","test-uuid");var tag=new CompoundTag();tag.put("ExtraAttributes",extra);
   stack.set(DataComponents.CUSTOM_DATA,CustomData.of(tag));stack.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("§aExample"))));
   var item=AutomationGameView.item(stack,false);check(item.identified()&&item.skyblockId().equals("WHEAT")&&item.uuid().equals("test-uuid")&&item.count()==12&&item.lore().equals(List.of("Example")),"actual26.2 item/custom data/lore read correctly");
@@ -50,6 +74,7 @@ public final class AutomationGameViewTest {
   arrayData.putIntArray("uuid",new int[]{1,2});uuidArray.set(DataComponents.CUSTOM_DATA,CustomData.of(arrayData));check(AutomationGameView.item(uuidArray,false).protectedItem(),"unknown UUID representation fails closed");
   check(!AutomationGameView.item(ItemStack.EMPTY,false).identified(),"empty slot not identified");
   testBooks();
-  System.out.println("AutomationGameViewTest: PASS (26.2 component fixtures/NBT/lore/protection/metadata identity; applied packet Mixin)");
+  testPest();
+  System.out.println("AutomationGameViewTest: PASS (26.2 component fixtures/NBT/lore/protection/metadata identity)");
  }
 }

@@ -29,7 +29,8 @@
 - [x] Junk native inventory disposal at an explicitly authorized Garden point: exact allowlist/protection, server receipts, limits/cancellation, per-world reconfirmation, independent settings/UI; offline tests/full38-state runtime verified, live drop not yet validated.
 
 ## 3/4 — Pest
-- [ ] Observation/threshold/tool/target/movement/vacuum core -> return.
+- [x] Pest read-only observations: bounded scoped Tab, exact curated skin URL, official VACUUM IDs + explicit ability range, marker-associated entities, native26.2 immutable snapshots; no gameplay caller.
+- [ ] Pest threshold/service, navigation, controlled vacuum use, authoritative completion -> return and requested UI.
 - [ ] Pest UI rename/merge, independent automation and original notifications.
 - [ ] Trap cleanup/bait replenishment.
 - [ ] Exchange/spray.

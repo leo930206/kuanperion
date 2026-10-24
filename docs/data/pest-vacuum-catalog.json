@@ -1,0 +1,32 @@
+{
+  "source": "https://api.hypixel.net/v2/resources/skyblock/items",
+  "retrieved": "2026-10-24",
+  "lastUpdated": 1791302445914,
+  "items": [
+    {
+      "id": "INFINI_VACUUM",
+      "category": "VACUUM",
+      "material": "PAPER"
+    },
+    {
+      "id": "INFINI_VACUUM_HOOVERIUS",
+      "category": "VACUUM",
+      "material": "PAPER"
+    },
+    {
+      "id": "SKYMART_VACUUM",
+      "category": "VACUUM",
+      "material": "PAPER"
+    },
+    {
+      "id": "SKYMART_HYPER_VACUUM",
+      "category": "VACUUM",
+      "material": "PAPER"
+    },
+    {
+      "id": "SKYMART_TURBO_VACUUM",
+      "category": "VACUUM",
+      "material": "PAPER"
+    }
+  ]
+}

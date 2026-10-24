@@ -8,6 +8,8 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 ## 2.1.0 開發狀態
 
+原生唯讀資料回歸可在 `./scripts/build.sh` 後執行 `python3 scripts/test-native-observations.py`；只用真實 26.2 classes 的無視窗 bootstrap，不連伺服器、不證明 live 功能／Mixin。
+
 本分支是 `feature/2.1.0` 的分階段檢查點，不是完整大升級；正式遊戲使用獨立熱修版 2.0.17，不安裝開發 JAR。完整需求／待辦見 [規格](docs/spec-2.1.0.md)、[進度](tasks/todo-2.1.0.md)，離線驗證與限制見 [驗證紀錄](docs/verification-2.1.0.md)。
 
 已接上安全任務底層、獨立外部設定與 Trade → Stash：自動開關預設關閉，收到可識別的伺服器待領訊息才排程；也可手動開始。領取有間隔／次數／逾時限制，背包滿、切換世界、Mining、回程、選取任務或手動指令會停止，其他選單／失焦時不發指令。不改動原 Farming／Mining 輸入或開關。只在可確認的 Hypixel SkyBlock 連線中允許 `/pickupstash`。
