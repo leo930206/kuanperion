@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
+            if(phase==0) { testSettingsCommand(mc); testSidebarRouting(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); }
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
             if(phase==6)testKeybindClearButtons();
@@ -377,7 +377,7 @@ public final class UiSmoke implements ClientModInitializer {
             click(x+w-30,cy);if(!key.isDefault())throw new AssertionError("Reset after Clear failed "+key.getName());
             y+=h;
         }
-        System.out.println("UI_SMOKE_CLEAR_KEYS_PASS all five clear/reset buttons / modifiers zero / default restoration");
+        System.out.println("UI_SMOKE_CLEAR_KEYS_PASS all six clear/reset buttons / modifiers zero / default restoration");
     }
 
     private void testNewUiFeatures(Minecraft mc) throws Exception {
@@ -398,9 +398,11 @@ public final class UiSmoke implements ClientModInitializer {
         var component=(net.minecraft.network.chat.Component)prefix.invoke(null);
         if(!component.getString().equals("[Kuanperion] "))throw new AssertionError("chat prefix");
         var chars=component.getSiblings();
-        if(chars.stream().anyMatch(c->c.getStyle().isBold()) || chars.get(0).getStyle().getColor().getValue()!=0xAAAAAA || chars.get(1).getStyle().getColor().getValue()!=0x23B6F5 || chars.get(chars.size()-3).getStyle().getColor().getValue()!=0xF06C93 || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xAAAAAA)throw new AssertionError("nonbold gradient endpoints");
+        if(chars.stream().anyMatch(c->c.getStyle().isBold()) || chars.get(0).getStyle().getColor().getValue()!=0xAAAAAA || chars.get(1).getStyle().getColor().getValue()!=0x13A9F2 || chars.get(chars.size()-3).getStyle().getColor().getValue()!=0xE64478 || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xAAAAAA)throw new AssertionError("nonbold gradient endpoints");
         var keys=dev.kuan.kuanperion.KuanperionClient.uiKeybinds();
-        if(keys.size()!=5 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault() || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4)).isDefault())throw new AssertionError("unbound home/sethome shortcuts");
+        if(keys.size()!=6 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault() || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4)).isDefault())throw new AssertionError("home/sethome defaults");
+        String[] defaults={"Shift + S","Shift + H","Shift + B"};
+        for(int i=0;i<3;i++)if(!((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(i+3)).getBoundKeyName().equals(defaults[i]))throw new AssertionError("home/barn default chord "+i);
         var home=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4);
         var sethome=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3);
         ui.beginKeybindCapture(home);ui.keyPressed(new net.minecraft.client.input.KeyEvent(341,0,2));ui.keyPressed(new net.minecraft.client.input.KeyEvent(72,0,2));
@@ -408,6 +410,16 @@ public final class UiSmoke implements ClientModInitializer {
         sethome.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.h"),2);
         if(!sethome.isDefault())throw new AssertionError("duplicate home/sethome chord accepted");
         home.resetToDefault();
+        var barn=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(5);
+        barn.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.h"),1);
+        if(!barn.getBoundKeyName().equals("Shift + B"))throw new AssertionError("barn duplicate home chord accepted");
+        home.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.b"),1);
+        if(!home.getBoundKeyName().equals("Shift + H"))throw new AssertionError("home duplicate barn chord accepted");
+        barn.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.j"),4);
+        if(!barn.getBoundKeyName().equals("Alt + J"))throw new AssertionError("barn custom chord not saved");
+        var savedKeys=java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("options.txt"));
+        if(!savedKeys.contains("key_key.kuanperion.barn:key.keyboard.j"))throw new AssertionError("barn key not outside jar in options.txt");
+        barn.resetToDefault();
         var jerry=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow();
         var row=(dev.kuan.kuanperion.ui.settings.ToggleRowSetting)jerry.groups().get(0).getSettings().get(0);
         if(row.choices().size()!=4 || row.choices().stream().anyMatch(t->!t.getName().endsWith(" Jerry")))throw new AssertionError("one four-color row");
@@ -429,6 +441,21 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_13_FEATURES_PASS nonbold gradient / fourth shortcut / one Jerry row / zero beam / threshold help / stable search transition");
     }
 
+    private void testSettingsCommand(Minecraft mc) throws Exception {
+        var process=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredMethod("tickSettingsCommand",Minecraft.class);process.setAccessible(true);
+        for(String command:new String[]{"kuanperion","Kuanperion","KUANPERION","kUaNpErIoN"}){
+            var before=mc.gui.screen();
+            if(net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.ALLOW_COMMAND.invoker().allowSendCommandMessage(command))throw new AssertionError("local command leaked to server");
+            if(mc.gui.screen()!=before)throw new AssertionError("opened before ChatScreen finished closing");
+            mc.setScreenAndShow(null);process.invoke(null,mc);
+            if(!(mc.gui.screen() instanceof MainGUI))throw new AssertionError("command did not open same settings UI");
+            ui=(MainGUI)mc.gui.screen();process.invoke(null,mc);
+            if(mc.gui.screen()!=ui)throw new AssertionError("command repeated next tick");
+        }
+        for(String other:new String[]{"home","barn","sethome","kuanperion other","kuanperionx"})if(!net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.ALLOW_COMMAND.invoker().allowSendCommandMessage(other))throw new AssertionError("unrelated server command cancelled");
+        System.out.println("UI_SMOKE_SETTINGS_COMMAND_PASS registered Fabric event / mixed case / deferred open / server command isolation");
+    }
+
     private void testPreferenceReload(Minecraft mc) throws Exception {
         var cls=dev.kuan.kuanperion.KuanperionClient.class;
         var save=cls.getDeclaredMethod("saveConfig");save.setAccessible(true);
@@ -441,6 +468,7 @@ public final class UiSmoke implements ClientModInitializer {
         prefs.setProperty("scanRadius","7");prefs.setProperty("actionDelayTicks","9");
         prefs.setProperty("farmingCrop","CARROT");prefs.setProperty("farmingAutoSetHome","true");
         prefs.setProperty("hotkey.mining.modifiers","7");prefs.setProperty("hotkey.farming.modifiers","0");prefs.setProperty("hotkey.home.modifiers","7");
+        prefs.setProperty("hotkey.sethome.modifiers","0");prefs.setProperty("hotkey.barn.modifiers","4");
         prefs.setProperty("targets","minecraft:stone,minecraft:diamond_ore");
         prefs.setProperty("pestNotificationThreshold","4");
         prefs.setProperty("farmingMuteSoundEnabled","true");prefs.setProperty("miningMuteSoundEnabled","false");
@@ -452,7 +480,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(file)))throw new AssertionError("ordinary config load rewrites file");
             save.invoke(null);
             var after=new java.util.Properties();try(var in=java.nio.file.Files.newInputStream(file)){after.load(in);}
-            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","targets","pestNotificationThreshold","farmingMuteSoundEnabled","miningMuteSoundEnabled","farmingStallDetectionEnabled","farmingStallSeconds"))
+            for(String key:java.util.List.of("scanRadius","actionDelayTicks","farmingCrop","farmingAutoSetHome","hotkey.mining.modifiers","hotkey.farming.modifiers","hotkey.home.modifiers","hotkey.sethome.modifiers","hotkey.barn.modifiers","targets","pestNotificationThreshold","farmingMuteSoundEnabled","miningMuteSoundEnabled","farmingStallDetectionEnabled","farmingStallSeconds"))
                 if(!prefs.getProperty(key).equals(after.getProperty(key)))throw new AssertionError("preference lost on reload: "+key);
             if(!after.getProperty("miningEnabled").equals("false") || !after.getProperty("farmingEnabled").equals("false"))throw new AssertionError("unsafe automatic resume");
         } finally {java.nio.file.Files.write(file,original);load.invoke(null);}

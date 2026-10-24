@@ -7,9 +7,12 @@ public final class AutomationPreferencesTest {
    check(AutomationSoundPolicy.muted(farm,fp,mine,mp,world)==(world&&(farm&&fp||mine&&mp)),"independent mute switches/world exit");
    for(float volume:new float[]{0,.25f,1})check(AutomationSoundPolicy.volume(volume,farm,fp,mine,mp,world)==(world&&(farm&&fp||mine&&mp)?0:volume),"restore exact original volume including zero");
   }
-  check(ChatPrefixPalette.colorAt(0,10)==0x23B6F5,"saturated sky start");
-  check(ChatPrefixPalette.colorAt(9,10)==0xF06C93,"saturated pink end");
+  check(ChatPrefixPalette.colorAt(0,10)==0x13A9F2,"saturated sky start");
+  check(ChatPrefixPalette.colorAt(9,10)==0xE64478,"saturated pink end");
   check(ChatPrefixPalette.BRACKET==0xAAAAAA,"gray brackets");
+  int blueMiddle=ChatPrefixPalette.colorAt(4,10),pinkMiddle=ChatPrefixPalette.colorAt(5,10);
+  check(((blueMiddle>>16)&255)<215 && ((pinkMiddle>>8)&255)<220,"narrower white band/more color in middle letters");
+  check(ChatPrefixPalette.colorAt(0,1)==0x13A9F2,"single letter stays finite");
   FarmingStallGuard guard=new FarmingStallGuard();long second=1_000_000_000L;
   check(!guard.update(true,0,0,0,8*second),"arm custom stall");
   check(!guard.update(true,0,0,8*second-1,8*second),"eight second boundary");

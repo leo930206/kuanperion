@@ -50,3 +50,5 @@ python3 "$ROOT/scripts/test-settings-automation.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-sethome-key.py" "$JAVA_HOME"
 
 "$ROOT/scripts/test-automation-preferences.sh"
+
+python3 "$ROOT/scripts/test-settings-command.py" "$JAVA_HOME"

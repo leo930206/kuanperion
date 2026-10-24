@@ -15,10 +15,10 @@ method+='\n'+source[a:b]
 java=r'''package dev.kuan.kuanperion;
 import java.util.*;
 public class SethomeKeyTest {
- static final HotkeyChord.Edge miningHotkeyEdge=new HotkeyChord.Edge(), farmingHotkeyEdge=new HotkeyChord.Edge(),sethomeHotkeyEdge=new HotkeyChord.Edge(),homeHotkeyEdge=new HotkeyChord.Edge();
- static int miningModifiers=1,farmingModifiers=1,sethomeModifiers=0,homeModifiers=0,mods;
+ static final HotkeyChord.Edge miningHotkeyEdge=new HotkeyChord.Edge(), farmingHotkeyEdge=new HotkeyChord.Edge(),sethomeHotkeyEdge=new HotkeyChord.Edge(),homeHotkeyEdge=new HotkeyChord.Edge(),barnHotkeyEdge=new HotkeyChord.Edge();
+ static int miningModifiers=1,farmingModifiers=1,sethomeModifiers=0,homeModifiers=0,barnModifiers=1,mods;
  static class Key {boolean bound,down;}
- static Key toggleMiningKey=new Key(),toggleFarmingKey=new Key(),sethomeKey=new Key(),homeKey=new Key();
+ static Key toggleMiningKey=new Key(),toggleFarmingKey=new Key(),sethomeKey=new Key(),homeKey=new Key(),barnKey=new Key();
  static boolean hotkeyDown(Key key){return key.bound&&key.down;}
  static int currentHotkeyModifiers(){return mods;}
  static int farming,mining;static List<String> commands=new ArrayList<>();
@@ -61,6 +61,18 @@ public class SethomeKeyTest {
   check(feedback.size()==commands.size()&&feedback.stream().allMatch(s->s.startsWith("已發送 /")),"every shortcut reports one local chat message");
   int messages=feedback.size();mc.player.connection.fail=true;
   check(!sendHomeCommand(mc,"home",true)&&commands.size()==5&&feedback.size()==messages+1&&feedback.get(messages).startsWith("無法發送 /"),"never claim success when sending fails");
+  homeKey.down=false;mods=1;handleShiftHotkeys(mc);mc.player.connection.fail=false;barnKey.bound=true;
+  int before=commands.size();barnKey.down=true;handleShiftHotkeys(mc);
+  check(commands.size()==before+1&&commands.get(before).equals("barn")&&feedback.get(feedback.size()-1).equals("已發送 /barn。"),"Shift+B sends barn and chat feedback");
+  for(int i=0;i<100;i++)handleShiftHotkeys(mc);check(commands.size()==before+1,"held barn never repeats");
+  for(int mode=0;mode<5;mode++){
+   barnKey.down=false;handleShiftHotkeys(mc);
+   if(mode==0)mc.gui.screen=new Object();if(mode==1)GLFW.focused=false;if(mode==2)mc.player=null;if(mode==3)mc.level=null;if(mode==4)mods=3;
+   barnKey.down=true;handleShiftHotkeys(mc);check(commands.size()==before+1,"barn context and exact modifier guards");
+   mc.gui.screen=null;GLFW.focused=true;mc.player=new Player();mc.level=new Object();mods=1;
+   handleShiftHotkeys(mc);check(commands.size()==before+1,"barn held key cannot fire after context returns");
+  }
+  barnKey.down=false;handleShiftHotkeys(mc);barnKey.bound=false;barnKey.down=true;handleShiftHotkeys(mc);check(commands.size()==before+1,"clear barn disables it");
   check(farming==0&&mining==0,"no interference with farming/mining");
   System.out.println("SethomeKeyTest: PASS (unbound, one-shot, exact modifiers, screen/focus/world guards, no cross-feature action)");
  }
