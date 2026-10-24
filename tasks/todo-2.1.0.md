@@ -20,7 +20,8 @@
 - [ ] Bazaar acquisition actual GUI driver with title/identity/cost/amount proofs and caller wiring; confirm current server menu formats.
 - [x] Auto Sell NPC vertical slice: real typed command/menu driver, exact allowlist/protection, bounds, fresh server removal receipts, independent preferences/UI; offline tests only.
 - [ ] Auto Sell Bazaar path; validate current live NPC/Bazaar formats before release.
-- [ ] Book Combine pairing/levels/metadata/protection and menu flow.
+- [x] Book Combine exact preflight: authorized equal-level/single-enchantment pairs, protected identity and preserved result metadata; native26.2 NBT fixtures (no anvil actions yet).
+- [ ] Book Combine actual anvil flow, input/result receipts, XP/coin bounds, settings/service/UI and cancellation cleanup.
 - [ ] Pet Sell eligibility/confirmation/protection and menu flow.
 - [ ] Junk exact allowlist/protection/location/drop limits and cancellation.
 

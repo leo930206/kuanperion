@@ -30,6 +30,29 @@ public final class AutomationGameView {
   String fingerprint=stack.getComponents().toString();
   return new ItemSnapshot(id,BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),uuid,StringUtil.stripColor(stack.getHoverName().getString()),fingerprint,stack.getCount(),lore,protectedItem);
  }
+ /** Strict authoritative book preflight; no name/lore parsing to invent enchantments. */
+ public static BookCombinePlanner.Book book(ItemStack stack,int inventorySlot,boolean equipment){
+  var item=item(stack,equipment);if(!item.identified()||!item.skyblockId().equals("ENCHANTED_BOOK")||!item.minecraftId().equals("minecraft:enchanted_book"))return null;
+  var custom=stack.get(DataComponents.CUSTOM_DATA);if(custom==null)return null;
+  var raw=custom.copyTag();var attributes=raw.contains("ExtraAttributes")?raw.getCompoundOrEmpty("ExtraAttributes"):raw;
+  var enchants=attributes.getCompoundOrEmpty("enchantments");if(enchants.isEmpty()||enchants.size()>32)return null;
+  var levels=new TreeMap<String,Integer>();
+  for(String key:enchants.keySet()){
+   var tag=enchants.get(key);
+   if(!(tag instanceof net.minecraft.nbt.IntTag||tag instanceof net.minecraft.nbt.ShortTag||tag instanceof net.minecraft.nbt.ByteTag||tag instanceof net.minecraft.nbt.LongTag))return null;
+   long value=enchants.getLongOr(key,0);if(value<1||value>10)return null;levels.put(key,(int)value);
+  }
+  // Work only on copies. UUID protection remains on ItemSnapshot; never remove arbitrary attributes.
+  attributes.remove("uuid");attributes.remove("enchantments");if(raw.contains("ExtraAttributes"))raw.put("ExtraAttributes",attributes);
+  var metadata=new TreeMap<String,String>();metadata.put("skyblock-data",raw.toString());
+  for(var component:stack.getComponents()){
+   var type=component.type();
+   // Server-generated book name/lore can change with the enchantment level. Custom names are excluded by the planner.
+   if(type==DataComponents.CUSTOM_DATA||type==DataComponents.LORE||type==DataComponents.CUSTOM_NAME||type==DataComponents.ITEM_NAME)continue;
+   var key=BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type);if(key==null)return null;metadata.put(key.toString(),component.value().toString());
+  }
+  try{return new BookCombinePlanner.Book(inventorySlot,item,levels,metadata.toString());}catch(IllegalArgumentException malformed){return null;}
+ }
  public static List<InventorySlot> inventory(Minecraft mc){
   if(mc==null||mc.player==null)return List.of();var result=new ArrayList<InventorySlot>();
   var inv=mc.player.getInventory();for(int i=0;i<inv.getContainerSize();i++)result.add(new InventorySlot(i,item(inv.getItem(i),i<9||i>=36)));

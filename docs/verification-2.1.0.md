@@ -71,3 +71,14 @@ TDD：先新增 service 測試確認缺少實作時失敗；再實作測試通�
 UI smoke 首輪在 Mining capacity phase33 出現非預期轉到 Trade 的路由／null 錯誤，未視為通過；保留 failure screenshot/log。比對先前 NPC 通過版與此版的 92 個 UI class payload 完全相同。加入僅測試用路由追蹤後，乾淨目錄 37-state 通過，未重現異常；不能據此宣稱原因已修復。首輪診斷 Mixin 的 package 選得過廣造成測試啟動失敗，縮到專用 package 後才取得診斷紀錄；這些追蹤碼不進正式 JAR。最終 smoke 加入 fixture 前後及 phase32/33 的明確路由斷言，若重現會顯示實際 group，而非 null exception；不會偷偷重開畫面掩蓋錯誤。
 
 最終獨立 26.2 客戶端 37-state UI_SMOKE_PASS，確認共用底層變更沒有破壞舊 UI／快捷鍵／通知／Trade 設定與 inventory Mixins。實際執行未呼叫公開查價，未登入／連線伺服器。專案重建 payload 與隔離測試 JAR 逐 entry 相等。
+
+## Book Combine 精確 preflight（不是可用的合書流程）
+
+- 新增純 BookCombinePlanner：只接收明確授權的 enchantment ID／最高產出等級、同一附魔與同級的兩本單附魔書、完整非附魔 metadata 相容、非工具／綁定／鎖定／保護 UUID／快捷列。空授權、跨級、重複 slot、多附魔、改名、缺失 metadata 都拒絕；不從 lore 第一行或顯示名稱猜附魔。
+- 26.2 AutomationGameView.book 讀取原生 custom-data／ExtraAttributes enchantments，僅接受整數 NBT level；浮點數不得截斷冒充等級。對副本建立非附魔 metadata 投影，UUID 留在 ItemSnapshot 做保護比對，不修改原 ItemStack；未知屬性不任意刪除。
+- 預期結果 proof 要求等級恰好 +1 且其餘 metadata 保留，供之後鐵砧確認前檢查。這不是目前就已操作鐵砧的宣稱。
+- TDD：缺少 planner／native adapter 先編譯失敗；改名書保護測試先紅後綠。完整 pure runtime（含 BookCombinePlannerTest）通過；獨立 26.2 初始化 smoke 的 BookGameViewTest 與既有 fixtures／Mixin／設定／快捷鍵／樣式檢查通過。來源不新增 UI、開關、指令、購買、經驗消耗或自動合書動作。
+- 比對其餘 UI class payload 與已通過完整 37-state 的 Bazaar 檢查點一致；actual project 最終 test/build/UI/migration 與 payload 驗證另補記。
+- 尚待實作／驗證鐵砧選單、兩次輸入轉移的 server-only 回條、預覽與 XP/coins 上限、確認與結果回收、取消與輸入物回收、服務／持久化／Trade UI。Book Combine 在完整工作流程完成前不提供無效入口。
+
+Book preflight 專案端完整 test/build/UI/migration 均通過；重建 JAR 與暫存及獨立初始化測試 JAR 逐 entry 相等，92 個 production UI class 與先前 37-state 通過版相同。未包含測試 class；正式安裝中的 2.0.16 SHA-256 未變。這仍非 Book Combine 或完整大升級驗收。
