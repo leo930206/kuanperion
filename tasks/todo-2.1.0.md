@@ -16,7 +16,8 @@
 
 ## 2 — Trade and acquisition
 - [x] Protected inventory identities + exact allowlists + budgets/reservations/receipts (shared contracts; budget integration still required by buying workflows).
-- [ ] Bazaar acquisition with title/identity/cost/amount contracts and safe failure.
+- [x] Bazaar shared primitives: on-demand anonymous public book estimates, bounded exact menu transitions and dual-receipt spend ledger; not yet wired to a buying feature.
+- [ ] Bazaar acquisition actual GUI driver with title/identity/cost/amount proofs and caller wiring; confirm current server menu formats.
 - [x] Auto Sell NPC vertical slice: real typed command/menu driver, exact allowlist/protection, bounds, fresh server removal receipts, independent preferences/UI; offline tests only.
 - [ ] Auto Sell Bazaar path; validate current live NPC/Bazaar formats before release.
 - [ ] Book Combine pairing/levels/metadata/protection and menu flow.

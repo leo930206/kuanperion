@@ -44,6 +44,8 @@ public final class AutomationSafetyTest {
   coordinator.clear();var noScreen=coordinator.tryAcquire(AutomationFeature.STASH,safe,5,1000000000L);
   check(!GuardedMenuAction.execute(coordinator,noScreen,contract,ticket,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,()->menuContext,()->menu,request->{throw new AssertionError("no SCREEN capability");},6),"Stash cannot click menu");
   check(clicks[0]==1,"only authorized effect emitted");
+  coordinator.clear();var paidLease=coordinator.tryAcquire(AutomationFeature.VISITOR,safe,20,1000000000L);
+  check(GuardedMenuAction.perform(coordinator,paidLease,contract,ticket,GuardedMenuAction.Space.REQUIRE_FREE_SLOT,()->new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU)),()->menu,request->{throw new IllegalStateException("native may already have sent");},21)==GuardedMenuAction.Result.UNCERTAIN,"a post-guard native failure is uncertain, not proof of no spend");
   var gate=new FarmingHandoff();var token=gate.acquire(1,4,true);check(token!=null&&gate.held(),"acquire armed session hold");
   check(gate.acquire(1,4,true)==null,"no overlapping hold");
   check(!gate.finish(token,2,4,true)&&!gate.held(),"world switch cannot resume");

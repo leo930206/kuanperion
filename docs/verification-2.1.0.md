@@ -57,3 +57,17 @@ TDD：先新增 service 測試確認缺少實作時失敗；再實作測試通�
 - 尚未連線 Hypixel 驗證當前 NPC menu/receipt。Bazaar、其餘 Trade 與 Pest／maintenance／Visitor／Supercraft 仍未完成，不能當作完整 2.1.0。
 
 最終獨立 26.2 客戶端 37-state UI_SMOKE_PASS；包含實際 Auto Sell 設定綁定、預設關閉／空授權、持久化、離線指令拒絕、UUID int-array fixtures 與兩個 inventory Mixins 套用。人工檢視 Trade／NPC 詳情無重疊。這不是 live 伺服器出售驗收。
+
+## Bazaar 共用底層（尚無完整購買／出售 GUI driver）
+
+- 公開查價依 Hypixel 官方 API 的 top-30 order-book schema：<https://api.hypixel.net/#tag/SkyBlock/paths/~1v2~1skyblock~1bazaar/get>。精確 product ID／amount／price、雙向訂單深度、保守取整、過期／未來時間、UTF-8／JSON strictness／深度／大小上限皆有測試；深度不足不外推價格。
+- HypixelMarketClient 僅按需查固定匿名 HTTPS GET endpoint，不追蹤 redirects、不帶帳號／UUID／座標／API key／Cookie；8 MiB stream 上限、8/10 秒期限、共用進行中的查詢、20 秒快取與失敗 60 秒退避。建構與啟動不抓資料；目前尚未接任何功能呼叫，不會因安裝開發版自動查價。測試使用 fake transport，不實際打 API。
+- 精確選單 transition 只能由原 container 進到已宣告的下一份 contract，轉場空隙有期限，未知 GUI／另一個同名 container／stale owner 不接管。
+- 購買 ledger 要同時有 server GAME 購買收據與 window0 背包增量回條才能提交實付預算；單靠聊天、畫面預測、錯誤物品／數量／world 都不行。已點擊、取消、逾時或 native outcome 不明時，保留預算 reservation，不能自動當作沒付款而重買。
+- native purchase action 使用三態 REJECTED／SENT／UNCERTAIN，與單純 guard 拒絕分開；固定要求背包空位。既有 NPC boolean adapter 維持原有成功／停止語意。
+- TDD 覆蓋先紅後綠：缺失 parser/client/transition/ledger、JSON unquoted key、sub-coin 收據、同名 contract 的 ownership 逃逸與 native outcome 誤判。完整舊功能與新契約回歸、build/UI/migration 已通過；最終獨立 UI smoke 另補記。
+- 未宣稱 Bazaar 買賣流程已完成。選單 product/quantity/cost 驗證、實際 driver／呼叫者及 Visitor valuation 等仍待串接。官方 Wiki 舊 Bazaar 網址現回到論壇公告，不能拿來臆測當前 GUI；已向使用者索取可選的當前截圖，不需實際付款。
+
+UI smoke 首輪在 Mining capacity phase33 出現非預期轉到 Trade 的路由／null 錯誤，未視為通過；保留 failure screenshot/log。比對先前 NPC 通過版與此版的 92 個 UI class payload 完全相同。加入僅測試用路由追蹤後，乾淨目錄 37-state 通過，未重現異常；不能據此宣稱原因已修復。首輪診斷 Mixin 的 package 選得過廣造成測試啟動失敗，縮到專用 package 後才取得診斷紀錄；這些追蹤碼不進正式 JAR。最終 smoke 加入 fixture 前後及 phase32/33 的明確路由斷言，若重現會顯示實際 group，而非 null exception；不會偷偷重開畫面掩蓋錯誤。
+
+最終獨立 26.2 客戶端 37-state UI_SMOKE_PASS，確認共用底層變更沒有破壞舊 UI／快捷鍵／通知／Trade 設定與 inventory Mixins。實際執行未呼叫公開查價，未登入／連線伺服器。專案重建 payload 與隔離測試 JAR 逐 entry 相等。

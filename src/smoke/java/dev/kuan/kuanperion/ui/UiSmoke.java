@@ -44,6 +44,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase==4)testBuiltInPaletteClicks();
             if(phase==6)testKeybindClearButtons();
             if(phase==32 || phase==33) {
+                assertMiningDetail("phase "+phase);
                 var targets=ui.getActiveModuleSubTab().groups().get(1);
                 var count=(dev.kuan.kuanperion.ui.settings.SelectionActionSetting)targets.getSettings().get(0);
                 int size=selected().size();
@@ -536,12 +537,18 @@ public final class UiSmoke implements ClientModInitializer {
         System.out.println("UI_SMOKE_SETTINGS_COMMAND_PASS registered Fabric event / mixed case / deferred open / server command isolation");
     }
 
+    private void assertMiningDetail(String stage) {
+        var sub=ui.getActiveModuleSubTab();
+        if(ui.getActiveMainTab()!=0 || sub==null || !sub.name().equals("Mining"))throw new AssertionError("Mining route changed at "+stage+": main="+ui.getActiveMainTab()+" filter="+ui.context().navigation.activeFilter+" module="+(sub==null?"none":sub.name()));
+    }
     private void setCapacityFixture(boolean full) throws Exception {
         selected().clear();selected().addAll(java.util.List.of("minecraft:stone","minecraft:diamond_ore","minecraft:coal_ore"));
         if(full)selected().addAll(java.util.List.of("minecraft:iron_ore","minecraft:gold_ore","minecraft:cobblestone","minecraft:dirt","minecraft:sand","minecraft:gravel","minecraft:oak_log"));
         ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());
         ui.selectModuleCategory(2);
+        assertMiningDetail("fixture before count");
         var count=(dev.kuan.kuanperion.ui.settings.SelectionActionSetting)ui.getActiveModuleSubTab().groups().get(1).getSettings().get(0);count.setValue(99);
+        assertMiningDetail("fixture after count");
     }
 
     private void testPreferenceReload(Minecraft mc) throws Exception {

@@ -11,7 +11,7 @@ public final class AutomationMenuActions {
  private AutomationMenuActions(){}
  public static boolean click(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,GuardedMenuAction.Space space,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
   // Player-inventory mutations require an explicit authorization policy, not a generic GUI click.
-  if(ticket==null||ticket.click()==MenuContract.Click.THROW||ticket.observed().slot(ticket.slot()).playerInventory())return false;
+  if(!menuButton(ticket))return false;
   return execute(coordinator,lease,contract,ticket,space,observe,menus,now);
  }
  public static boolean inventoryAction(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection rules,GuardedMenuAction.Space space,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
@@ -19,12 +19,19 @@ public final class AutomationMenuActions {
   if(ticket.click()==MenuContract.Click.THROW&&(lease==null||lease.owner()!=AutomationFeature.JUNK))return false;
   return execute(coordinator,lease,contract,ticket,space,observe,menus,now);
  }
+ /** A rejected guard and a possibly-sent native failure must not look identical to a spend ledger. */
+ public static GuardedMenuAction.Result purchaseClick(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
+  if(!menuButton(ticket))return GuardedMenuAction.Result.REJECTED;
+  return GuardedMenuAction.perform(coordinator,lease,contract,ticket,GuardedMenuAction.Space.REQUIRE_FREE_SLOT,observe,menus,AutomationMenuActions::sendNative,now);
+ }
+ private static boolean menuButton(MenuContract.Ticket ticket){return ticket!=null&&ticket.observed()!=null&&ticket.observed().slot(ticket.slot())!=null&&ticket.click()!=MenuContract.Click.THROW&&!ticket.observed().slot(ticket.slot()).playerInventory();}
  private static boolean execute(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,GuardedMenuAction.Space space,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
-  return GuardedMenuAction.execute(coordinator,lease,contract,ticket,space,observe,menus,request->{
+  return GuardedMenuAction.execute(coordinator,lease,contract,ticket,space,observe,menus,AutomationMenuActions::sendNative,now);
+ }
+ private static boolean sendNative(MenuContract.Ticket request){
    var mc=Minecraft.getInstance();if(mc.player==null||mc.gameMode==null||!mc.player.containerMenu.getCarried().isEmpty())return false;
    var input=switch(request.click()){case PICKUP->ContainerInput.PICKUP;case QUICK_MOVE->ContainerInput.QUICK_MOVE;case THROW->ContainerInput.THROW;};
    int button=request.click()==MenuContract.Click.THROW?1:0;
    ownedInput=true;try{mc.gameMode.handleContainerInput(request.observed().containerId(),request.slot(),button,input,mc.player);return true;}finally{ownedInput=false;}
-  },now);
  }
 }

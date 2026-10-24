@@ -19,5 +19,15 @@ public final class InventoryReceipts {
   if(before==null||amount<=0||amount>before.count())return false;var after=after(stamp,container,slot);if(after==null||after.count()!=before.count()-amount)return false;
   return after.count()==0||before.fingerprint().equals(after.fingerprint())&&before.skyblockId().equals(after.skyblockId())&&before.uuid().equals(after.uuid());
  }
+ /** Window 0 player inventory slots 9..44 only; caller freezes this complete baseline before click. */
+ public boolean confirmsIncrease(Stamp stamp,Map<Integer,ItemSnapshot> before,String id,int amount){
+  if(stamp==null||before==null||before.size()!=36||id==null||id.isBlank()||amount<=0||amount>4096)return false;
+  long delta=0;boolean fresh=false;
+  for(int slot=9;slot<=44;slot++){
+   var old=before.get(slot);if(old==null)return false;var next=after(stamp,0,slot);if(next==null)continue;
+   fresh=true;if(id.equals(next.skyblockId()))delta+=next.count();if(id.equals(old.skyblockId()))delta-=old.count();
+  }
+  return fresh&&delta==amount;
+ }
  public void clear(){world=0;latest.clear();sequence++;}
 }
