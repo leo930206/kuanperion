@@ -14,7 +14,7 @@ def extract(name):
  while d:
   d+=(source[b]=='{')-(source[b]=='}');b+=1
  return source[a:b].replace('dev.kuan.kuanperion.ui.MainGUI','OwnMenu')
-methods='\n'.join(extract(n) for n in ['observe','send'])
+methods='\n'.join(extract(n) for n in ['currentWorldId','observe','send'])
 java=r'''package dev.kuan.kuanperion;
 import java.util.*;import java.util.function.*;import dev.kuan.kuanperion.automation.*;
 public class AutomationClientBridgeTest {

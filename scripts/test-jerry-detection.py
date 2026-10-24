@@ -30,6 +30,7 @@ harness = r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.function.*;
 public class JerryDetectionIntegrationTest {
+ static void invalidateAutomationFarmSession(){}
     static boolean jerryStopActionsEnabled;
     static boolean farmingManualStartPending;
     static int farmingMarkersCreated;

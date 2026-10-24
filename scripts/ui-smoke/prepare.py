@@ -28,7 +28,7 @@ for uid,v in [('net.minecraft','26.2'),('org.lwjgl3','3.4.1'),('net.fabricmc.fab
 cp.append(str(P/'libraries/com/mojang/minecraft/26.2/minecraft-26.2-client.jar'))
 cp=list(dict.fromkeys(cp));(R/'classpath.txt').write_text(':'.join(cp))
 compilecp=cp+[str(W/'build/classes')]+[str(p) for p in (W/'build/tmp/fabric-api').rglob('*.jar')]+[str(p) for p in (W/'src/main/resources/META-INF/jars').glob('*.jar')]
-subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/javac'),'--release','25','-encoding','UTF-8','-cp',':'.join(compilecp),'-d',str(R/'classes'),str(W/'src/smoke/java/dev/kuan/kuanperion/ui/UiSmoke.java')],check=True)
+subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/javac'),'--release','25','-encoding','UTF-8','-cp',':'.join(compilecp),'-d',str(R/'classes'),*[str(p) for p in (W/'src/smoke/java').rglob('*.java')]],check=True)
 (R/'classes/fabric.mod.json').write_text(json.dumps({'schemaVersion':1,'id':'kuanperion_ui_smoke','version':'1.0','name':'Isolated UI Smoke Test','environment':'client','entrypoints':{'client':['dev.kuan.kuanperion.ui.UiSmoke']},'depends':{'kuanperion':'2.1.0','fabric-api':'*'}}))
 subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/jar'),'--create','--file',str(R/'game/mods/ui-smoke.jar'),'-C',str(R/'classes'),'.'],check=True)
 shutil.copy2(W/'build/libs/kuanperion-2.1.0.jar',R/'game/mods/kuanperion-2.1.0.jar')

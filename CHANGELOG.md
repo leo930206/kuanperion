@@ -3,6 +3,8 @@
 ## 2.1.0 — 開發中（未發佈）
 
 - 新增隔離的自動化設定、安全執行權限、世界／原有任務守門與有界 Stash 工作流程。
+- 補上選單 identity／revision 守門、伺服器物品回條、精確白名單／預算，以及不重開 Farming 的暫停接續 token；實際交易工作流程仍在開發。
+- Trade 側欄改為與 Farming／Mining 相同 2px 圓角描邊的交換箭頭圖示。
 - Trade 側欄位於 Mining 和 Other 之間，目前只暴露已接線的 Stash，提供自動／手動領取、取消、間隔／次數／逾時與執行狀態。
 - 不更動原有通知、Farming／Mining 操作或既有設定位置；新自動化預設關閉。
 - 完整 Pest／Visitor／Greenhouse／Composter／其餘 Trade／Supercraft 尚未完成；不標記發佈、不安裝開發 JAR，正式遊戲保留 2.0.16。

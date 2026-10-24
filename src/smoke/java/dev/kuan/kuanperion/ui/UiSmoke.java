@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();

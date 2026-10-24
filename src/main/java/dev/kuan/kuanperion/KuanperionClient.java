@@ -240,7 +240,8 @@ public final class KuanperionClient implements ClientModInitializer {
         loadConfig();
         automation=new AutomationClientBridge(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir(),
                 ()->new AutomationClientBridge.LegacyState(farmingEnabled&&farmingEnabledThisSession,miningEnabled,farmingAutoRecovering,selectMode,SKYBLOCK_LOCATION_BRIDGE.islandName()),
-                KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature("Trade"),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())));
+                KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature("Trade"),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())),
+                ()->releaseFarmingKeys(Minecraft.getInstance()),KuanperionClient::stopFarmingAfterAutomation);
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         JerryFarmingMarkerRenderer.register(() -> jerryMarkerMaxSeconds.signum()==0 || JERRY_FARMING_MARKERS.isEmpty() ? List.of()
                 : JERRY_FARMING_MARKERS.inScope(jerryFarmingMarkerScope(Minecraft.getInstance())));
@@ -273,6 +274,21 @@ public final class KuanperionClient implements ClientModInitializer {
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
 
+    public static void observeAutomationSlot(int container,int slot,net.minecraft.world.item.ItemStack stack){
+        Minecraft mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
+        if(container==-2){observeAutomationInventorySlot(slot,stack);return;}
+        automation.serverSlot(container,slot,stack);
+        var menu=mc.player.containerMenu;
+        if(container!=0&&container==menu.containerId&&slot>=0&&slot<menu.slots.size()){
+            var entry=menu.slots.get(slot);if(entry.container==mc.player.getInventory())observeAutomationInventorySlot(entry.getContainerSlot(),stack);
+        }
+    }
+    public static void observeAutomationInventorySlot(int slot,net.minecraft.world.item.ItemStack stack){
+        Minecraft mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
+        var menus=mc.player.containerMenu==mc.player.inventoryMenu?List.of(mc.player.inventoryMenu):List.of(mc.player.inventoryMenu,mc.player.containerMenu);
+        for(var menu:menus)for(var entry:menu.slots)if(entry.container==mc.player.getInventory()&&entry.getContainerSlot()==slot){automation.serverSlot(menu.containerId,entry.index,stack);break;}
+    }
+
     private static Identifier id(String path) {
         return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
@@ -286,6 +302,7 @@ public final class KuanperionClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft mc) {
+        if(automation!=null)automation.beforeLegacyTick();
         expireJerryFarmingMarkers();
         if (mc.player == null || mc.level == null) SCREEN_NOTIFICATIONS.clear();
         while (settingsKey.consumeClick()) {
@@ -311,6 +328,7 @@ public final class KuanperionClient implements ClientModInitializer {
         } else {
             miningTicks = 0;
         }
+        if (!isAutomationHoldingFarming()) {
         if (farmingAutoRecovering) {
             if (mc.options != null) mc.options.pauseOnLostFocus = false;
             tickFarmingCommandQueue(mc);
@@ -321,6 +339,7 @@ public final class KuanperionClient implements ClientModInitializer {
         }
         tickFarmingSettingsAttack(mc);
         tickFarmingStallNotification(mc, System.nanoTime());
+        } else { FARMING_STALL_GUARD.reset(); }
         syncAutomationSound(mc);
     }
 
@@ -395,6 +414,7 @@ public final class KuanperionClient implements ClientModInitializer {
             miningEnabled = false;
             MINING_GUI_PAUSE_GUARD.reset();
             clearActiveTarget(mc);
+            invalidateAutomationFarmSession();
             farmingEnabled = true;
             farmingEnabledThisSession = true;
             resetFarmingRuntime(mc);
@@ -405,7 +425,17 @@ public final class KuanperionClient implements ClientModInitializer {
         saveConfig();
     }
 
+    private static boolean isAutomationHoldingFarming(){return automation!=null&&automation.holdsFarming();}
+    private static void invalidateAutomationFarmSession(){if(automation!=null)automation.invalidateFarmSession();}
+    private static void stopFarmingAfterAutomation(){
+        Minecraft mc=Minecraft.getInstance();
+        FarmingLocation location=detectFarmingLocation(mc);
+        if(abnormalHandlingEnabled&&farmingEnabledThisSession&&shouldAutoReturn(location))startFarmingAutoRecovery(mc,location);
+        else {stopFarming(mc,false);saveConfig();}
+    }
+
     private static void stopFarming(Minecraft mc, boolean announce) {
+        invalidateAutomationFarmSession();
         farmingRecoveryOrigin="";
         farmingManualStartPending = false;
         FARMING_STALL_GUARD.reset();
@@ -1901,6 +1931,7 @@ public final class KuanperionClient implements ClientModInitializer {
             mc.player.setDeltaMovement(0.0, velocity.y, 0.0);
             return;
         }
+        if (isAutomationHoldingFarming()) return;
         if (!farmingEnabled) return;
         if (isFarmingPauseScreen(mc.gui.screen())) {
             applyLockedMovement(mc, false, false, false, false, false);

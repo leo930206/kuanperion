@@ -29,3 +29,15 @@ TDD：先新增 service 測試確認缺少實作時失敗；再實作測試通�
 - 離線測試證明程式守門／狀態／UI／保存，不代表所有即時伺服器互動已驗收；安全停下也不等於成功領取。
 - Pest、Visitor、Greenhouse、Composter、其餘 Trade、Supercraft、移動／GUI 工作流程接管 Farming 等仍未完成，不提供無效開關假裝可用。
 - 無新版正式標籤、無 main 合併、無正式 JAR 替換。原 2.0.16 可由 `backup/pre-2.1.0` 還原。
+
+## 安全執行底層／Trade 圖示檢查點
+
+- Trade 改為雙向交換箭頭，與 Farming／Mining 同為 24px viewBox、2px 圓角描邊、無半透明外圈；新增 XML／側欄引用回歸檢查。
+- 新增精確物品 ID 白名單／保護規則、保留與提交花費預算、完整選單 identity/revision/slot ticket、26.2 唯讀物品與選單資料、受權限限制的點擊 adapter。通用 GUI 點擊不能修改玩家背包；背包動作須另附保護政策，THROW 只允許 Junk owner。
+- 新增伺服器封包 TAIL 觀察的 InventoryReceipts；本機預測、別的 slot、過期或不同 world 的資料不能冒充交易成功。僅有 gameplay session 時記錄，不送資料、不寫設定、不額外發封包。
+- Farming hold 實際接進既有 tick／輸入鎖／停滯偵測；手動停止或新 session 會失效，成功只能釋放原本的 hold，不能把 Farming 開關重新打開。錯誤／逾時安全停下，原有異常回程有優先權。未知選單或換成另一個同名 container 會使 session 失效。
+- AutomationSafetyTest：白名單／工具／UUID 保護、預算溢位／重播、選單變更、伺服器回條、Farming hold 與新舊 session／世界／未知 GUI。
+- 26.2 原版 Item 的元件在未進伺服器時尚未綁定，初次實體測試因此失敗；測試改用明確 Holder.direct 元件 fixtures，不改寫原版 registry，也不把 fixtures 當作 live server 證據。獨立客戶端確認 NBT／lore／metadata fingerprint／工具與綁定物保護，以及 ClientPacketListener 的回條 Mixin 確實套用。
+- 完整 36-state UI smoke PASS，另對後續 menu ownership 補強版本重跑初始化檢查；Trade 圖示人工檢視通過。完整紀錄保留於獨立 tmp game，不進正式遊戲。
+
+這仍是開發底層，不表示 Auto Sell／Junk 等工作流程已完成；下一階段才串接實際服務。
