@@ -1,6 +1,6 @@
 # 2.1.0 開發檢查點驗證（未發佈）
 
-日期：2026-10-24。這份紀錄不是完整大升級驗收；未完成項目見 `tasks/todo-2.1.0.md`。正式 main、v2.0.16 與安裝中的 2.0.16 JAR 不隨開發檢查點更新。
+日期：2026-10-24。這份紀錄不是完整大升級驗收；未完成項目見 `tasks/todo-2.1.0.md`。正式 main、v2.0.17 與安裝中的 2.0.17 JAR 不隨開發檢查點更新。
 
 ## 已執行
 
@@ -147,3 +147,17 @@ Pest 切片專案端完整 test/build/UI/migration 與新增 headless native fix
 - 新測試亦覆蓋 close 丟例外、同 container 未知 title 及 focus 恢復；focused pure 與 native wiring guard PASS。舊 source shape assertion 因安全條件移到 owns 判斷而確實失敗，改為更嚴格檢查 world／contract／container／close result／finally，不藉此移除保護。完整專案回歸與 artifact 比對待補記。
 
 Auto Sell 清理切片專案端完整 test/build/UI/migration/headless native fixtures PASS；最終 staging 重建與專案 JAR 逐 entry 相等。與前一 Pest 檢查點比對，production payload 唯一變更為 AutoSellTask.class；92 個 UI classes／資源／其他舊功能 bytecode 不變，無測試／trace classes。正式2.0.17 checksum 未變，main／已安裝設定未修改。未登入 Hypixel、未宣稱當前 NPC live 出售已驗收，整個2.1.0仍未完成。
+
+## Pest 已載入目標核心（開發中，未安裝）
+
+- Pest 入口取代 Pest 通知，但舊通知主開關／門檻／通道保留為獨立設定；舊通知啟用不會啟用自動除蟲。新核心預設關閉，門檻／時間／數量／半徑／冷卻保存於外部 automation.json，錯誤限制不默默退回可執行預設。
+- 真正串接 service → Farming hold → 原生工具／飛行／尋路／轉向／Vacuum → 回原位／原工具／視角／飛行狀態 → 原 session 才可續耕；只用伺服器已授予的 mayfly 與標準按鍵／useItem，不寫速度、傳送位置、noPhysics 或飛行權限。每個實際步驟重新驗證 lease、世界、Garden、焦點、手動輸入、工具與已載入的完整 swept-body 碰撞空間。
+- A* 每 tick 有 collision-query 預算，節點／半徑／五秒搜尋上限，六軸相鄰與精確小數錨點。未知 chunks 不視為空氣、不強制載入；路徑執行每一段再查碰撞。轉向限速，使用按鍵煞停觀察到的慣性，沒有直接改速度。
+- 只有實際嘗試使用 Vacuum 後，指定目標／marker 離場且伺服器 Tab 數量下降才記一次「確認數量減少」。單純實體消失、Tab 空白、只有數字下降均不能宣稱完成；尚有未載入目標時不宣稱清空 Garden。
+- 手動移動／視角／換工具、指令／背包接管、世界變化／失焦／權限撤銷／逾時，停止本任務並清除自己持有的輸入；不恢復使用者已接管的視角／工具、不重新開啟 Farming。失敗自動停用，避免無限重試。只在原錨點且有安全支撐時恢復原本的非飛行狀態，不在失敗空中把玩家摔下。
+- TDD 已重現並修正：Vacuum 容量 lore 更新被誤當換工具、idle lifecycle cancel 使下一次 Farming 永遠不派工，以及單純本機 disappearance 誤判等守門案例；UUID／精確 ID／能力距離仍須相同，不能用另一把同名工具替代。測試涵蓋 native 例外／終止清理、lease/world/focus/manual/hotbar、capturing timeout、還原拒絕不能回報完成。詳細最終命令與 runtime 結果待完成後續寫，未通過項目不先宣稱 PASS。
+- 目前這條線只處理已載入且在半徑內的候選，尚缺未載入地塊搜尋、陷阱／補餌／兌換／噴灑／策略／維護工作接續。沒有登入 Hypixel，離線 fixture／Mixin／GUI 不是 live 飛行或吸捕驗收；完整大升級仍待辦。
+
+本輪 staging 完整 `test.sh`（含新核心／service／尋路／轉向與原有回歸）、build、UI model／聊天室樣式、migration、headless native fixtures 全部 PASS。獨立26.2客戶端 `kuanperion-ui-smoke-pest-core` 於22:08:43 `UI_SMOKE_PASS`，含新的 Pest 真實設定 callbacks、獨立通知／自動化旗標、外部保存、離線拒絕，並驗證 receipt、inventory input 及 camera 三個 Mixin 實際套用。此輪為 chatOnly 初始化／callbacks 檢查，不冒稱重跑完整38-state動態 resize／hover。其 production JAR 與最終 staging 逐 entry 相等（327個檔案），無 Test／UiSmoke／Trace 類別；正式2.0.17 checksum 未變。
+
+測試過程保留真實失敗：一次廣泛文字替換把 movement precheck 放到舊 recovery method，導致原測試編譯失敗，已縮回唯一 START movement hook，原 recovery 行為恢復通過；慣性 fixture 最初錯把水平阻尼同用於垂直，查 pinned26.2 `Player.travel` 的飛行 Y 阻尼為0.6後修正 fixture，12種水平參數的定性收斂檢查通過，不把這個簡化數學模型當作實際飛行測試。專案同步／重建證據待後續補記。

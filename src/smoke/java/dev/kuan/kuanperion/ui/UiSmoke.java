@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -156,7 +156,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 6->{switchTab(3);testChordCapture();}
                 case 7->{((dev.kuan.kuanperion.ui.settings.KeybindSetting)dev.kuan.kuanperion.KuanperionClient.uiKeybinds().get(2)).resetToDefault();switchTab(4);}
                 case 8->{ui.activateSearchField();ui.setSearchQuery("通知");}
-                case 10->{var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Pest 通知")).findFirst().orElseThrow();var group=pest.groups().get(0);var setting=group.getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();ui.openSearchResult(0,pest,group,setting);}
+                case 10->{var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Pest")).findFirst().orElseThrow();var group=pest.groups().get(1);var setting=group.getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();ui.openSearchResult(0,pest,group,setting);}
                 case 12->{switchTab(1);ui.setActiveFilterIndex(0);ui.setActiveScroll(0,0);ui.refreshContext();if(ui.getActiveMainTab()!=1)throw new AssertionError("color transition did not select page immediately");System.out.println("UI_COLOR_TRANSITION main="+ui.getActiveMainTab());}
                 case 11->{var mining=MainGUIRegistry.MODULE_SUBTABS.stream().filter(s->s.name().equals("Mining")).findFirst().orElseThrow();ui.openModuleDetailFromCard(mining);ui.selectModuleCategory(2);}
                 case 9->{ui.onClose();if(mc.gui.screen()==ui)throw new AssertionError("close did not dismiss");ui=new MainGUI();mc.setScreenAndShow(ui);}
@@ -168,7 +168,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
+        String[][] expected={{"Farming","Pest","Visitor 通知"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index+" actual="+sections.stream().map(s->s.subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList()).toList());
     }
@@ -241,6 +241,23 @@ public final class UiSmoke implements ClientModInitializer {
         if(net.minecraft.world.inventory.InventoryMenu.SHIELD_SLOT!=45||net.minecraft.world.inventory.InventoryMenu.INV_SLOT_END!=36)throw new AssertionError("native inventory shape changed");
         junk.setPolicy(dev.kuan.kuanperion.automation.JunkPolicy.defaults());junk.setEnabled(false);clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_JUNK_PASS real settings/independent persistence/offline anchor and drop refusal/26.2 offhand shape/default restoration");
+    }
+    private void testPestUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);
+        var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var pest=bridge.pest();
+        if(pest.autoEnabled()||pest.active())throw new AssertionError("Pest automation must default off independently of notifications");
+        var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow();ui.openModuleDetailFromCard(sub);
+        var rows=sub.groups().get(0).getSettings();var notify=(dev.kuan.kuanperion.ui.settings.ToggleSetting)sub.groups().get(1).getSettings().get(0);boolean old=notify.getValue();
+        notify.setValue(true);if(pest.autoEnabled())throw new AssertionError("notification flag enabled automation");
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);notify.setValue(false);
+        if(!pest.autoEnabled())throw new AssertionError("notification-off disabled independent automation");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(2)).setValue(3);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(8)).execute();
+        if(pest.active()||rows.get(9).isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.PEST)||saved.pestPolicy().threshold()!=3||bridge.autoSell().autoEnabled()||bridge.junk().autoEnabled())throw new AssertionError("Pest settings not independent/external/persistent");
+        pest.setEnabled(false);pest.setPolicy(dev.kuan.kuanperion.automation.pest.PestPolicy.defaults());notify.setValue(old);clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_PEST_PASS real page/callbacks, independent notification and automation flags, external policy, no offline flight/use, safe default restoration");
     }
     private void testStashUi(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);
@@ -508,7 +525,7 @@ public final class UiSmoke implements ClientModInitializer {
         var jerry=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow();
         var row=(dev.kuan.kuanperion.ui.settings.ToggleRowSetting)jerry.groups().get(0).getSettings().get(0);
         if(row.choices().size()!=4 || row.choices().stream().anyMatch(t->!t.getName().endsWith(" Jerry")))throw new AssertionError("one four-color row");
-        var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest 通知")).findFirst().orElseThrow().groups().get(0).getSettings().get(0);
+        var pest=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow().groups().get(1).getSettings().stream().filter(t->t.getName().equals("通知門檻")).findFirst().orElseThrow();
         if(pest.getDescription().contains("Visitor"))throw new AssertionError("cross-feature threshold help");
         var marker=jerry.groups().get(0).getSettings().stream().filter(t->t.getName().startsWith("光柱")).findFirst().orElseThrow();
         String previous=((dev.kuan.kuanperion.ui.settings.TextSetting)marker).getValue();

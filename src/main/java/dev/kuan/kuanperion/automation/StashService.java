@@ -8,7 +8,9 @@ import java.util.function.Supplier;
 
 /** Main-thread orchestration; runtime state never persists or mutates legacy Farming/Mining. */
 public final class StashService {
- public record Notice(String text,boolean warning){}
+ public record Notice(String text,boolean warning,String feature){
+  public Notice(String text,boolean warning){this(text,warning,"Trade");}
+ }
  private final AutomationSettingsStore settings;
  private final StashTask task;
  private final Supplier<AutomationContext> context;

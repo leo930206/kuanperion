@@ -240,7 +240,7 @@ public final class KuanperionClient implements ClientModInitializer {
         loadConfig();
         automation=new AutomationClientBridge(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir(),
                 ()->new AutomationClientBridge.LegacyState(farmingEnabled&&farmingEnabledThisSession,miningEnabled,farmingAutoRecovering,selectMode,SKYBLOCK_LOCATION_BRIDGE.islandName()),
-                KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature("Trade"),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())),
+                KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature(notice.feature()),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())),
                 KuanperionClient::pauseFarmingForAutomation,KuanperionClient::stopFarmingAfterAutomation);
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         JerryFarmingMarkerRenderer.register(() -> jerryMarkerMaxSeconds.signum()==0 || JERRY_FARMING_MARKERS.isEmpty() ? List.of()
@@ -273,6 +273,8 @@ public final class KuanperionClient implements ClientModInitializer {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) { handleReceivedMessage(message);automation.onServerGameMessage(message.getString()); } });
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
+
+    public static void onManualAutomationLook(){if(automation!=null)automation.onManualLook();}
 
     public static void onManualAutomationInventoryInput(){if(automation!=null)automation.onManualInventoryInput();}
 
@@ -1939,6 +1941,7 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void enforceAutomationMovementLock(Minecraft mc) {
         if (mc == null || mc.player == null || mc.options == null) return;
+        if(automation!=null)automation.beforeMovementTick();
         if (finishFarmingRecoveryOnArrival(mc)) return;
         if (miningEnabled || farmingAutoRecovering) {
             applyLockedMovement(mc, false, false, false, false, false);
@@ -2861,8 +2864,9 @@ public final class KuanperionClient implements ClientModInitializer {
         }
         var mineTab=new ModulesTab.SubTab("Mining", "依種類優先序挖掘",()->miningEnabled,
             v->{if(v!=miningEnabled)toggleMining(Minecraft.getInstance());},List.of(mining,targets));
-        var pestTab=new ModulesTab.SubTab("Pest 通知", "依數量通知，不自動除蟲",()->pestNotificationEnabled,
-            v->setUiNotificationEnabled(NotificationType.PESTS,v),List.of(uiNotificationGroup(NotificationType.PESTS)));
+        var pestNotifications=uiNotificationGroup(NotificationType.PESTS);
+        pestNotifications.getSettings().add(0,new ToggleSetting("啟用 Pest 通知",()->pestNotificationEnabled,v->setUiNotificationEnabled(NotificationType.PESTS,v)));
+        var pestTab=dev.kuan.kuanperion.ui.PestModuleSettings.tab(automation.pest(),pestNotifications);
         var visitorTab=new ModulesTab.SubTab("Visitor 通知", "訪客達門檻時通知",()->visitorNotificationEnabled,
             v->setUiNotificationEnabled(NotificationType.VISITORS,v),List.of(uiNotificationGroup(NotificationType.VISITORS)));
         var jerry=SettingGroup.alwaysOn("Jerry 偵測", "分別選擇顏色、停止動作與 Farming 光柱期限");

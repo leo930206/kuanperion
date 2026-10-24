@@ -13,8 +13,9 @@ public abstract class EntityTurnMixin {
     @Inject(method = "turn", at = @At("HEAD"), cancellable = true)
     private void kuanHsba$lockManualLook(double yawDelta, double pitchDelta, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-        if ((Object) this == mc.player && KuanperionClient.shouldLockManualLook()) {
-            ci.cancel();
+        if ((Object) this == mc.player) {
+            if(yawDelta!=0||pitchDelta!=0)KuanperionClient.onManualAutomationLook();
+            if(KuanperionClient.shouldLockManualLook())ci.cancel();
         }
     }
 }

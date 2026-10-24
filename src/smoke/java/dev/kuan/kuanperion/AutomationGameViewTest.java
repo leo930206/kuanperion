@@ -39,6 +39,9 @@ public final class AutomationGameViewTest {
   var vacuum=fixture(Items.PAPER,1);var data=new CompoundTag();data.putString("id","INFINI_VACUUM");data.putString("uuid","my-vacuum");vacuum.set(DataComponents.CUSTOM_DATA,CustomData.of(data));
   vacuum.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Ability: Vacuum RIGHT CLICK"),Component.literal("Suck pests within 12.5 blocks"))));
   var before=vacuum.getComponents().toString();check(PestGameView.vacuum(vacuum,0).orElseThrow().range()==12.5,"native exact ID/lore Pest vacuum");check(vacuum.getComponents().toString().equals(before),"Pest observation does not alter tool");
+  var selected=PestGameView.vacuum(vacuum,0).orElseThrow();vacuum.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Ability: Vacuum RIGHT CLICK"),Component.literal("Suck pests within 12.5 blocks"),Component.literal("Vacuum Bag: 1"))));
+  check(dev.kuan.kuanperion.automation.pest.PestIdentity.sameVacuum(selected,AutomationGameView.item(vacuum,true)),"real UUID-bound vacuum survives native bag lore update");
+  data.putString("uuid","other-vacuum");vacuum.set(DataComponents.CUSTOM_DATA,CustomData.of(data));check(!dev.kuan.kuanperion.automation.pest.PestIdentity.sameVacuum(selected,AutomationGameView.item(vacuum,true)),"same-ID different native UUID not substituted");
   data.putString("id","TURBOMAX_VACUUM");vacuum.set(DataComponents.CUSTOM_DATA,CustomData.of(data));check(PestGameView.vacuum(vacuum,0).isEmpty(),"native non-VACUUM-category item excluded");
   var head=fixture(Items.PLAYER_HEAD,1);String hash="70a1e836bf1968b2eaa4837227a19204f17295d870ee9e754bd6b6d60ddbed3c";
   String encoded=java.util.Base64.getEncoder().encodeToString(("{\"textures\":{\"SKIN\":{\"url\":\"https://textures.minecraft.net/texture/"+hash+"\"}}}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -55,7 +58,8 @@ public final class AutomationGameViewTest {
  public static void main(String[] args){
   try{var type=Class.forName("net.minecraft.client.multiplayer.ClientPacketListener");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$slot")),"server receipt Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   try{var type=Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$manualInventoryInput")),"manual inventory priority Mixin applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
-  System.out.println("AutomationMixinsTest: PASS (receipt and manual inventory priority applied)");
+  try{var type=Class.forName("net.minecraft.world.entity.Entity");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanHsba$lockManualLook")),"manual camera takeover Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
+  System.out.println("AutomationMixinsTest: PASS (receipt, inventory priority and camera takeover applied)");
   runFixtures();
  }
  static void runFixtures(){

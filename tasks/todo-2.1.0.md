@@ -29,9 +29,10 @@
 - [x] Junk native inventory disposal at an explicitly authorized Garden point: exact allowlist/protection, server receipts, limits/cancellation, per-world reconfirmation, independent settings/UI; offline tests/full38-state runtime verified, live drop not yet validated.
 
 ## 3/4 — Pest
-- [x] Pest read-only observations: bounded scoped Tab, exact curated skin URL, official VACUUM IDs + explicit ability range, marker-associated entities, native26.2 immutable snapshots; no gameplay caller.
-- [ ] Pest threshold/service, navigation, controlled vacuum use, authoritative completion -> return and requested UI.
-- [ ] Pest UI rename/merge, independent automation and original notifications.
+- [x] Pest read-only observations: bounded scoped Tab, exact curated skin URL, official VACUUM IDs + explicit ability range, marker-associated entities, native26.2 immutable snapshots; read-only facts used by a separately guarded driver.
+- [x] Loaded-target Pest core vertical slice: independent threshold/service, server-granted flight, bounded swept-body pathing/rotation/key/use, paired server Tab decrease + target departure, return/tool/look/support restoration before releasing Farming; pure/native boundaries/offline verification (not live capture validation).
+- [ ] Pest unloaded-plot search/navigation and complete Garden cleanup; validate actual server flight/capture/return behavior before release.
+- [x] Pest UI rename/merge, independent automation and original notifications.
 - [ ] Trap cleanup/bait replenishment.
 - [ ] Exchange/spray.
 - [ ] Event/crop strategies and due-task scheduling.

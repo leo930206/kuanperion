@@ -47,6 +47,15 @@ public final class PestIdentity {
         var matcher=RANGE.matcher(text);if(!matcher.find())return Optional.empty();double range=Double.parseDouble(matcher.group(1));
         if(range<5||range>15||matcher.find())return Optional.empty();return Optional.of(new Vacuum(slot,item,range));
     }
+    /** Usage counters/bag lore may change server-side; a nonempty UUID binds the actual tool. */
+    public static boolean sameTool(ItemSnapshot expected,ItemSnapshot current){
+        if(expected==null||current==null)return false;
+        if(expected.uuid().isBlank())return expected.equals(current);
+        return expected.count()==1&&current.count()==1&&expected.uuid().equals(current.uuid())&&expected.skyblockId().equals(current.skyblockId())&&expected.minecraftId().equals(current.minecraftId());
+    }
+    public static boolean sameVacuum(Vacuum expected,ItemSnapshot current){
+        return expected!=null&&sameTool(expected.item(),current)&&vacuum(expected.slot(),current).filter(next->next.range()==expected.range()).isPresent();
+    }
     public static boolean knownTexture(String encoded){
         if(encoded==null||encoded.isEmpty()||encoded.length()>8192)return false;
         try{

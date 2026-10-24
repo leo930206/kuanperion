@@ -6,7 +6,7 @@ import java.util.List;
 final class MainGUISidebar {
     record Entry(String label, String icon, String description, int mainTab, int moduleFilter) {}
     private static final List<Entry> ENTRIES = List.of(
-        new Entry("Farming", "farming", "Farming、Pest 通知與 Visitor 通知", 0, 1),
+        new Entry("Farming", "farming", "Farming、Pest 與 Visitor 通知", 0, 1),
         new Entry("Mining", "mining", "Mining 與目標方塊設定", 0, 2),
         new Entry("Trade", "trade", "NPC 出售、Junk 與 Stash；其他交易工作移植中", 0, 3),
         new Entry("Other", "modules", "Jerry 偵測與 Discord Webhook", 0, 4),

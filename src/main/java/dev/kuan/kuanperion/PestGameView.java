@@ -14,7 +14,7 @@ import net.minecraft.world.entity.monster.Silverfish;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-/** Client-thread, on-demand, read-only Pest facts. No task/runtime caller or gameplay effect yet. */
+/** Client-thread, on-demand, read-only Pest facts; the separate leased controller owns effects. */
 public final class PestGameView {
     private PestGameView(){}
     public record Snapshot(long world,long observedAt,PestTabObservation tab,List<PestTargets.Target> targets,
