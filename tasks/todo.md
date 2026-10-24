@@ -41,3 +41,6 @@
 - [x] Own-menu exception, vanilla held-block bridge with miss cleanup, selection input isolation, stall integration and help text.
 - [x] Full regressions/build/actual client Mixin/UI verification and release preparation; publication recorded by commit/tag.
 - [x] Prepare separate latest-version manual26.2 launcher; actual launch/ready is recorded by its session log.
+
+## 2.1.0
+New approved automation work is tracked separately in tasks/todo-2.1.0.md; unfinished tasks must not be marked complete by UI scaffolding alone.

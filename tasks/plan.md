@@ -27,3 +27,6 @@ See docs/spec-2.0.5.md: exact bundled avatar, one texture/context and reserved/c
 
 ## 2.0.6 own settings continues automation
 See docs/spec-2.0.6.md. Pause-policy tests, narrow vanilla held-attack/miss blocker bridge, close cleanup/input isolation, monitoring integration, client checks/release, fresh manual26.2 UI window.
+
+## 2.1.0 approved development
+See docs/spec-2.1.0.md, tasks/plan-2.1.0.md and tasks/todo-2.1.0.md. Historical 2.0 tasks above remain unchanged.

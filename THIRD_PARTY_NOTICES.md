@@ -25,3 +25,7 @@ The bundled Inter OTF files retain their original bytes and embedded font metada
 Theme JSON and common interface SVG assets are adapted from the supplied GUI material under its included license unless separately marked. This release does not include the upstream logo, title-screen replacement, capes, gameplay textures, account services, or updater. A new local monogram replaces its interface logo.
 
 Minecraft, Fabric API and Fabric Loader are external runtime dependencies; their licenses and trademarks remain with their respective owners. Kuanperion is not affiliated with or endorsed by Mojang, Microsoft, Hypixel or upstream UI authors.
+
+## Selected automation migration (2.1.0 development)
+
+The approved migration is selective, not an import of the upstream runtime. Stash signal/command behavior in `automation/StashTask.java` is adapted from the supplied Aether 1.3.1-r6 `bootstrap/AetherChatEvents.handleStashState` and `bootstrap/AetherAutomationTickHandler.handleStashPickup`, rewritten with bounded client-tick state transitions, source filtering, context/resource ownership, cancellation, retry/deadline limits and protected external preferences. GPL-3.0-only/source attribution remains. These references do not introduce any Aether service connection; no original client JAR/bootstrap/account/telemetry/worker is run or shipped. Core local safety/storage classes are newly implemented for Kuanperion.
