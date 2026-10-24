@@ -2,7 +2,7 @@
 package dev.kuan.kuanperion.automation;
 /** Narrow outbound allowlist; no command comes from incoming chat or arbitrary configuration. */
 public enum AutomationCommand {
- PICKUP_STASH("pickupstash");
+ PICKUP_STASH("pickupstash"),BOOSTER_COOKIE("boostercookie");
  private final String wire;AutomationCommand(String wire){this.wire=wire;}public String wire(){return wire;}
  @FunctionalInterface public interface Sender {boolean send(AutomationCommand command);}
 }

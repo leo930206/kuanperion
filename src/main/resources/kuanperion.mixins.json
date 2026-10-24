@@ -8,7 +8,8 @@
     "MinecraftAttackAccess",
     "UiRenderMixin",
     "AutomationSoundMixin",
-    "AutomationReceiptMixin"
+    "AutomationReceiptMixin",
+    "AutomationInventoryInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

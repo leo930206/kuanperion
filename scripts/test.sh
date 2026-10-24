@@ -62,3 +62,5 @@ python3 "$ROOT/scripts/test-automation-client-bridge.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-trade-icon.py"
 
 python3 "$ROOT/scripts/test-farming-handoff-wiring.py"
+
+python3 "$ROOT/scripts/test-auto-sell-wiring.py"

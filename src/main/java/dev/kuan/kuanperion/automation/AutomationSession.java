@@ -8,6 +8,7 @@ public final class AutomationSession {
  private final AutomationCoordinator coordinator;private final Supplier<AutomationContext> observe;private final Runnable pauseFarm,safeStopFarm;
  private final FarmingHandoff farm=new FarmingHandoff();private long generation=1;private Handle active;private MenuContract expectedMenu;private Supplier<MenuSnapshot> menus;private int claimedContainer=-1;
  public AutomationSession(AutomationCoordinator coordinator,Supplier<AutomationContext> observe,Runnable pauseFarm,Runnable safeStopFarm){this.coordinator=coordinator;this.observe=observe;this.pauseFarm=pauseFarm;this.safeStopFarm=safeStopFarm;}
+ public boolean isCurrent(Handle handle){return handle!=null&&handle.equals(active);}
  public boolean active(){return active!=null;}public boolean holdsFarming(){return farm.held();}
  public Handle begin(AutomationFeature feature,long now,long lifetime){
   if(active!=null||feature==AutomationFeature.STASH)return null;

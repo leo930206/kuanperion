@@ -45,3 +45,15 @@ TDD：先新增 service 測試確認缺少實作時失敗；再實作測試通�
 ## /warp garden 快捷鍵修正 — 2026-10-24
 
 原 /home 顯示名稱、實際 wire command 與本機聊天室提示已統一為 /warp garden；保留 key.kuanperion.home／hotkey.home.modifiers 儲存 ID、Shift+H 預設及既有自訂／清空設定。先確認新名稱／指令測試在舊碼失敗，再修正並通過 focused 快捷鍵測試、完整 test/build/UI/migration 及獨立離線初始化 smoke。未連線發送伺服器指令，未安裝／發佈開發版。
+
+## NPC Auto Sell 開發切片（仍未發佈）
+
+- Trade 新增實際 Auto Sell／Stash 入口。NPC 透過唯一 typed `/boostercookie` 開啟選單，嚴格比對 `Booster Cookie` 標題與合法 chest shape；未實作的 Bazaar 出售不提供假選項。
+- 預設關閉、空 ID 白名單；工具／快捷列／綁定／鎖定／收藏／museum／指定 UUID 優先保護。UUID 比對忽略大小寫與連字號，支援 NBT UUID int[4]；無法辨識的 UUID 表示法一律保護。
+- 每次只 shift-click 一個已授權玩家背包 slot；新的伺服器移出回條前不操作下一個物品，不把本機預測或別的 slot 當作成功。回饋只稱「物品移出確認」，不宣稱已驗證實收 coins。
+- 有 stack/item/delay/deadline/cooldown/threshold 上限、自動只在無其他 GUI 時開始；手動操作／指令／世界變更取消自動 ownership，不吞使用者輸入、不擅自關閉已讓出的 GUI。預期外選單、逾時或每日 NPC cap 安全停止；成功只釋放同一 Farming session 的 hold。
+- AutoSellTaskTest／AutoSellServiceTest：預設拒絕、明確授權、server-only receipt、未知選單、逾時、取消、GUI/user 優先與獨立持久化。另有 typed command／protected action／manual-input Mixin 實際接線測試。
+- 完整 test、build、UI model、設定遷移測試通過；獨立 Minecraft 實跑結果另於本切片完成後補記。第一次最終測試與 UUID 紅燈測試寫入重疊而失敗，修正後凍結來源重新完整跑通，不隱藏該失敗。
+- 尚未連線 Hypixel 驗證當前 NPC menu/receipt。Bazaar、其餘 Trade 與 Pest／maintenance／Visitor／Supercraft 仍未完成，不能當作完整 2.1.0。
+
+最終獨立 26.2 客戶端 37-state UI_SMOKE_PASS；包含實際 Auto Sell 設定綁定、預設關閉／空授權、持久化、離線指令拒絕、UUID int-array fixtures 與兩個 inventory Mixins 套用。人工檢視 Trade／NPC 詳情無重疊。這不是 live 伺服器出售驗收。

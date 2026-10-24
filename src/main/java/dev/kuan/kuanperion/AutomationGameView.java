@@ -18,9 +18,13 @@ public final class AutomationGameView {
   var data=stack.get(DataComponents.CUSTOM_DATA);var tag=data==null?new CompoundTag():data.copyTag();
   var attributes=tag.contains("ExtraAttributes")?tag.getCompoundOrEmpty("ExtraAttributes"):tag;
   String id=attributes.getStringOr("id",""),uuid=attributes.getStringOr("uuid","");
+  if(uuid.isBlank()){
+   var parts=attributes.getIntArray("uuid").orElse(null);
+   if(parts!=null&&parts.length==4)uuid=new java.util.UUID(((long)parts[0]<<32)|(parts[1]&0xffffffffL),((long)parts[2]<<32)|(parts[3]&0xffffffffL)).toString();
+  }
   var loreComponent=stack.get(DataComponents.LORE);
   List<String> lore=loreComponent==null?List.of():loreComponent.lines().stream().map(c->StringUtil.stripColor(c.getString())).toList();
-  boolean protectedItem=equipmentSlot||stack.has(DataComponents.TOOL)||stack.has(DataComponents.MAX_DAMAGE)
+  boolean protectedItem=equipmentSlot||attributes.contains("uuid")&&uuid.isBlank()||stack.has(DataComponents.TOOL)||stack.has(DataComponents.MAX_DAMAGE)
    ||List.of("locked","favorite","soulbound","coop_soulbound","donated_museum").stream().anyMatch(attributes::contains)
    ||lore.stream().anyMatch(l->l.toUpperCase(Locale.ROOT).matches(".*\\b(SOULBOUND|FAVORITE|LOCKED)\\b.*")||l.contains("🔒"));
   String fingerprint=stack.getComponents().toString();

@@ -10,6 +10,7 @@ public final class AutomationSafetyTest {
   check(!new InventoryProtection(Set.of(),Set.of()).permits(wheat),"empty list denies everything");
   check(!rules.permits(item("WHEAT",1,true)),"held/tool/armor/locked protection wins");
   check(!new InventoryProtection(Set.of("WHEAT"),Set.of(wheat.uuid())).permits(wheat),"protected UUID wins");
+  check(!new InventoryProtection(Set.of("WHEAT"),Set.of("UUIDWHEAT")).permits(wheat),"UUID formatting/case cannot bypass protection");
   check(!rules.permits(new ItemSnapshot("WHEAT","minecraft:paper","","","",1,List.of(),false)),"missing fingerprint denied");
   var budget=new SpendingBudget(1000);var a=budget.reserve(500,900);check(a!=null&&budget.available()==500,"reservation deducted");
   check(budget.reserve(501,900)==null,"over budget denied");

@@ -33,11 +33,11 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -139,6 +139,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 32 -> {setCapacityFixture(true);}
                 case 33 -> {setCapacityFixture(false);}
                 case 34 -> clickSidebar(2);
+                case 36 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow());
                 case 35 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Stash")).findFirst().orElseThrow());
                 case 29 -> {ui.setSearchMode(false);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());ui.selectModuleCategory(2);}
                 case 13 -> clickSidebar(0);
@@ -165,7 +166,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Stash"},{"Jerry 偵測","Discord Webhook"}};
+        String[][] expected={{"Farming","Pest 通知","Visitor 通知"},{"Mining"},{"Auto Sell","Stash"},{"Jerry 偵測","Discord Webhook"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index);
     }
@@ -203,6 +204,24 @@ public final class UiSmoke implements ClientModInitializer {
         if(!lines.equals(java.util.List.of("Mod Version "+MainGUIRegistry.modVersion()+"")))throw new AssertionError("wrong footer metadata");
         clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_SIDEBAR_PASS five visible routes / group membership / detail-back / cross-group search / Setting pages / collapsed footer / metadata");
+    }
+    private void testAutoSellUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);
+        var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var sell=bridge.autoSell();
+        if(sell.autoEnabled()||sell.active()||!sell.policy().allowedIds().isEmpty())throw new AssertionError("new disposal must be off/empty");
+        var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow();
+        ui.openModuleDetailFromCard(sub);var rows=sub.groups().get(0).getSettings();
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(1)).setValue("WHEAT, CARROT_ITEM");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(5)).setValue(2);
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");
+        var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.AUTO_SELL)||saved.autoSellPolicy().maxStacks()!=2||!saved.autoSellPolicy().allowedIds().equals(java.util.Set.of("WHEAT","CARROT_ITEM"))||saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.STASH))throw new AssertionError("NPC policy/enable persist independently");
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(10)).execute();
+        if(sell.active()||rows.get(11).isVisible())throw new AssertionError("offline NPC command must not start");
+        sell.setPolicy(dev.kuan.kuanperion.automation.AutoSellPolicy.defaults());sell.setEnabled(false);
+        clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_NPC_PASS real Auto Sell page/callbacks, persisted exact IDs/limits/default off, no offline command, no Stash interference");
     }
     private void testStashUi(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);

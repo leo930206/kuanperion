@@ -26,7 +26,7 @@ public final class AutomationSettingsStore {
    if(version==null||!version.isJsonPrimitive()||!version.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Missing schema");
    int schema=version.getAsBigDecimal().intValueExact();
    if(schema!=SCHEMA){writable=false;issue="設定格式版本不相容，未啟用自動化或覆寫檔案";return;}
-   for(String name:new String[]{"features","stash"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
+   for(String name:new String[]{"features","stash","autoSell"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
    root=candidate;
   }catch(IOException|RuntimeException invalid){writable=false;issue="自動化設定無法讀取，原檔保留且自動化停用";}
  }
@@ -39,6 +39,11 @@ public final class AutomationSettingsStore {
  public StashTask.Policy stashPolicy(){var section=section(root,"stash");return new StashTask.Policy(integer(section,"delaySeconds",3,2,60),integer(section,"maxAttempts",10,1,30),integer(section,"timeoutSeconds",60,10,300),bool(section,"onlyWhileFarming",true));}
  public void setEnabled(AutomationFeature feature,boolean enabled)throws IOException {update(copy->object(copy,"features").addProperty(feature.id(),enabled));}
  public void setStashPolicy(StashTask.Policy policy)throws IOException {update(copy->{var s=object(copy,"stash");s.addProperty("delaySeconds",policy.delaySeconds());s.addProperty("maxAttempts",policy.maxAttempts());s.addProperty("timeoutSeconds",policy.timeoutSeconds());s.addProperty("onlyWhileFarming",policy.onlyWhileFarming());});}
+ public AutoSellPolicy autoSellPolicy(){
+  var s=section(root,"autoSell");try{return new AutoSellPolicy(strings(s,"allowedIds"),strings(s,"protectedUuids"),integer(s,"maxStacks",5,1,27),integer(s,"maxItems",320,1,4096),integer(s,"delayMillis",1000,500,5000),integer(s,"timeoutSeconds",60,10,180),integer(s,"cooldownSeconds",60,10,3600),integer(s,"thresholdPercent",85,1,100),bool(s,"onlyWhileFarming",true));}catch(RuntimeException invalid){return AutoSellPolicy.defaults();}
+ }
+ public void setAutoSellPolicy(AutoSellPolicy policy)throws IOException{update(copy->{var s=object(copy,"autoSell");s.add("allowedIds",JSON.toJsonTree(new java.util.TreeSet<>(policy.allowedIds())));s.add("protectedUuids",JSON.toJsonTree(new java.util.TreeSet<>(policy.protectedUuids())));s.addProperty("maxStacks",policy.maxStacks());s.addProperty("maxItems",policy.maxItems());s.addProperty("delayMillis",policy.delayMillis());s.addProperty("timeoutSeconds",policy.timeoutSeconds());s.addProperty("cooldownSeconds",policy.cooldownSeconds());s.addProperty("thresholdPercent",policy.thresholdPercent());s.addProperty("onlyWhileFarming",policy.onlyWhileFarming());});}
+ private static java.util.Set<String> strings(JsonObject s,String key){var value=s.get(key);if(value==null)return java.util.Set.of();if(!value.isJsonArray()||value.getAsJsonArray().size()>128)throw new IllegalArgumentException("Invalid ID list");var result=new java.util.HashSet<String>();for(var v:value.getAsJsonArray()){if(!v.isJsonPrimitive()||!v.getAsJsonPrimitive().isString())throw new IllegalArgumentException("Invalid ID");result.add(v.getAsString());}return java.util.Set.copyOf(result);}
  private void update(Consumer<JsonObject> edit)throws IOException {
   if(!writable)throw new IOException(issue);
   if(!Arrays.equals(fingerprint,readBytes()))throw new IOException("設定已被其他視窗修改，未覆寫；請重新啟動讀取最新設定");

@@ -15,9 +15,10 @@
 - [x] Existing Farming hold/resume token and stop/new-start/Mining/Jerry/world/death/disconnect/expected-menu invalidation paths; no task may arm Farming.
 
 ## 2 — Trade and acquisition
-- [ ] Protected inventory identities + exact allowlists + budgets/reservations/receipts.
+- [x] Protected inventory identities + exact allowlists + budgets/reservations/receipts (shared contracts; budget integration still required by buying workflows).
 - [ ] Bazaar acquisition with title/identity/cost/amount contracts and safe failure.
-- [ ] Auto Sell actual NPC/Bazaar paths, limits and exclusions.
+- [x] Auto Sell NPC vertical slice: real typed command/menu driver, exact allowlist/protection, bounds, fresh server removal receipts, independent preferences/UI; offline tests only.
+- [ ] Auto Sell Bazaar path; validate current live NPC/Bazaar formats before release.
 - [ ] Book Combine pairing/levels/metadata/protection and menu flow.
 - [ ] Pet Sell eligibility/confirmation/protection and menu flow.
 - [ ] Junk exact allowlist/protection/location/drop limits and cancellation.

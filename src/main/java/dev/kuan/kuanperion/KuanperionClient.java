@@ -241,7 +241,7 @@ public final class KuanperionClient implements ClientModInitializer {
         automation=new AutomationClientBridge(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir(),
                 ()->new AutomationClientBridge.LegacyState(farmingEnabled&&farmingEnabledThisSession,miningEnabled,farmingAutoRecovering,selectMode,SKYBLOCK_LOCATION_BRIDGE.islandName()),
                 KuanperionClient::sidebarLines,notice->say(Minecraft.getInstance(),feature("Trade"),plain(" "),notice.warning()?warning(notice.text()):plain(notice.text())),
-                ()->releaseFarmingKeys(Minecraft.getInstance()),KuanperionClient::stopFarmingAfterAutomation);
+                KuanperionClient::pauseFarmingForAutomation,KuanperionClient::stopFarmingAfterAutomation);
         dev.kuan.kuanperion.ui.theme.Theme.loadTheme();
         JerryFarmingMarkerRenderer.register(() -> jerryMarkerMaxSeconds.signum()==0 || JERRY_FARMING_MARKERS.isEmpty() ? List.of()
                 : JERRY_FARMING_MARKERS.inScope(jerryFarmingMarkerScope(Minecraft.getInstance())));
@@ -273,6 +273,8 @@ public final class KuanperionClient implements ClientModInitializer {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) { handleReceivedMessage(message);automation.onServerGameMessage(message.getString()); } });
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleReceivedMessage(message));
     }
+
+    public static void onManualAutomationInventoryInput(){if(automation!=null)automation.onManualInventoryInput();}
 
     public static void observeAutomationSlot(int container,int slot,net.minecraft.world.item.ItemStack stack){
         Minecraft mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
@@ -427,6 +429,7 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static boolean isAutomationHoldingFarming(){return automation!=null&&automation.holdsFarming();}
     private static void invalidateAutomationFarmSession(){if(automation!=null)automation.invalidateFarmSession();}
+    private static void pauseFarmingForAutomation(){var mc=Minecraft.getInstance();releaseFarmingKeys(mc);farmingSettingsWasOpen=false;if(mc.gameMode!=null)mc.gameMode.stopDestroyBlock();}
     private static void stopFarmingAfterAutomation(){
         Minecraft mc=Minecraft.getInstance();
         FarmingLocation location=detectFarmingLocation(mc);
@@ -2870,7 +2873,7 @@ public final class KuanperionClient implements ClientModInitializer {
         var webhookTab=new ModulesTab.SubTab("Discord Webhook", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
         return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,visitorTab)),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
-            new MainGUIRegistry.ModuleSection("trade","Trade",dev.kuan.kuanperion.ui.AutomationModuleSettings.trade(automation.stash())),
+            new MainGUIRegistry.ModuleSection("trade","Trade",dev.kuan.kuanperion.ui.AutomationModuleSettings.trade(automation.stash(),automation.autoSell())),
             new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab)));
     }
 

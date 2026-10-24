@@ -20,6 +20,7 @@ public final class AutomationGameViewTest {
  }
  public static void main(String[] args){
   try{var type=Class.forName("net.minecraft.client.multiplayer.ClientPacketListener");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$slot")),"server receipt Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
+  try{var type=Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$manualInventoryInput")),"manual inventory priority Mixin applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   var stack=fixture(Items.WHEAT,12);var extra=new CompoundTag();extra.putString("id","WHEAT");extra.putString("uuid","test-uuid");var tag=new CompoundTag();tag.put("ExtraAttributes",extra);
   stack.set(DataComponents.CUSTOM_DATA,CustomData.of(tag));stack.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("§aExample"))));
   var item=AutomationGameView.item(stack,false);check(item.identified()&&item.skyblockId().equals("WHEAT")&&item.uuid().equals("test-uuid")&&item.count()==12&&item.lore().equals(List.of("Example")),"actual26.2 item/custom data/lore read correctly");
@@ -30,6 +31,9 @@ public final class AutomationGameViewTest {
   var tool=fixture(Items.DIAMOND_PICKAXE,1);tool.set(DataComponents.MAX_DAMAGE,1561);check(AutomationGameView.item(tool,false).protectedItem(),"damageable tool components protected without relying on name");
   var bound=fixture(Items.PAPER,1);bound.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("§8[Co-op Soulbound]"))));check(AutomationGameView.item(bound,false).protectedItem(),"wrapped soulbound lore protected conservatively");
   check(!AutomationGameView.item(fixture(Items.WHEAT,1),false).identified(),"vanilla-name spoof without server ID cannot authorize disposal");
+  var uuidArray=fixture(Items.PAPER,1);var arrayData=new CompoundTag();arrayData.putString("id","EXAMPLE");arrayData.putIntArray("uuid",new int[]{1,2,3,4});uuidArray.set(DataComponents.CUSTOM_DATA,CustomData.of(arrayData));
+  check(AutomationGameView.item(uuidArray,false).uuid().equals("00000001-0000-0002-0000-000300000004"),"NBT int-array UUID preserved for protected-item matching");
+  arrayData.putIntArray("uuid",new int[]{1,2});uuidArray.set(DataComponents.CUSTOM_DATA,CustomData.of(arrayData));check(AutomationGameView.item(uuidArray,false).protectedItem(),"unknown UUID representation fails closed");
   check(!AutomationGameView.item(ItemStack.EMPTY,false).identified(),"empty slot not identified");
   System.out.println("AutomationGameViewTest: PASS (26.2 component fixtures/NBT/lore/protection/metadata identity; applied packet Mixin)");
  }

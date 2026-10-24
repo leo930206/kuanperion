@@ -19,6 +19,6 @@ public enum AutomationFeature {
  private final String id,page;private final boolean garden;private final Set<AutomationCoordinator.Resource> resources;
  AutomationFeature(String id,String page,boolean garden,Set<AutomationCoordinator.Resource> resources){this.id=id;this.page=page;this.garden=garden;this.resources=Set.copyOf(resources);}
  public String id(){return id;}public String page(){return page;}public boolean requiresGarden(){return garden;}public Set<AutomationCoordinator.Resource> resources(){return resources;}
- /** Only implemented task drivers may be exposed as working automation. */
- public boolean implemented(){return this==STASH;}
+ /** At least one executable driver exists; full module scope is tracked separately in tasks. */
+ public boolean implemented(){return this==STASH||this==AUTO_SELL;}
 }

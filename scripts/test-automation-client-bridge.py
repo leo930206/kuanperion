@@ -10,7 +10,7 @@ assert 'ClientTickEvents.END_CLIENT_TICK.register(client->automation.tick())' in
 chat_line=next(line for line in client.splitlines() if 'ClientReceiveMessageEvents.CHAT.register' in line)
 assert 'automation.' not in chat_line,'Player chat must not drive Stash'
 def extract(name):
- a=re.search(r' (?:public|private) [^\n]* '+name+r'\(',source).start();b=source.index('{',a)+1;d=1
+ a=re.search(r' (?:public|private) [^{}\n()]+ '+name+r'\(',source).start();b=source.index('{',a)+1;d=1
  while d:
   d+=(source[b]=='{')-(source[b]=='}');b+=1
  return source[a:b].replace('dev.kuan.kuanperion.ui.MainGUI','OwnMenu')
@@ -39,6 +39,7 @@ public class AutomationClientBridgeTest {
   mc.level=new Object();mc.player=new Player();var first=adapter.observe();
   check(first.canIssueCommand()&&first.garden()&&adapter.send(AutomationCommand.PICKUP_STASH),"known SkyBlock safe context sends exact command");
   check(mc.player.connection.commands.equals(List.of("pickupstash")),"typed no-slash command only");
+  check(!adapter.send(AutomationCommand.BOOSTER_COOKIE),"Stash boundary cannot send gameplay commands");
   mc.gui.screen=new Object();check(!adapter.send(AutomationCommand.PICKUP_STASH),"foreign GUI blocks");mc.gui.screen=new OwnMenu();check(adapter.observe().canIssueCommand(),"own settings does not block command-only task");mc.gui.screen=null;
   GLFW.focused=false;check(!adapter.send(AutomationCommand.PICKUP_STASH),"background blocks");GLFW.focused=true;
   for(int i=0;i<3;i++){adapter.flags=new LegacyState(true,i==0,i==1,i==2,"GARDEN");check(adapter.observe().hardBlocked()&&!adapter.send(AutomationCommand.PICKUP_STASH),"Mining/recovery/selection priority");}
