@@ -5,6 +5,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,6 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Observe server-applied results, never client prediction or outbound packets. */
 @Mixin(ClientPacketListener.class)
 public abstract class AutomationReceiptMixin {
+ @Inject(method="handleMovePlayer",at=@At("TAIL"))
+ private void kuanperion$position(ClientboundPlayerPositionPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationPosition(packet);}
  @Inject(method="handleContainerSetSlot",at=@At("TAIL"))
  private void kuanperion$slot(ClientboundContainerSetSlotPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationSlot(packet.getContainerId(),packet.getSlot(),packet.getItem());}
  @Inject(method="handleContainerContent",at=@At("TAIL"))

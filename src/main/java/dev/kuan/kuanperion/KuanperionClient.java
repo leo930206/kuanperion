@@ -278,6 +278,11 @@ public final class KuanperionClient implements ClientModInitializer {
 
     public static void onManualAutomationInventoryInput(){if(automation!=null)automation.onManualInventoryInput();}
 
+    public static void observeAutomationPosition(net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket packet){
+        var mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
+        automation.serverPosition(packet);
+    }
+
     public static void observeAutomationSlot(int container,int slot,net.minecraft.world.item.ItemStack stack){
         Minecraft mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
         if(container==-2){observeAutomationInventorySlot(slot,stack);return;}

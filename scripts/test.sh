@@ -71,3 +71,5 @@ python3 "$ROOT/scripts/test-market-boundaries.py"
 python3 "$ROOT/scripts/test-junk-wiring.py"
 
 python3 "$ROOT/scripts/test-pest-boundaries.py"
+
+python3 "$ROOT/scripts/test-position-boundaries.py"

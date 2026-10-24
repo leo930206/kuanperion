@@ -14,6 +14,7 @@ public final class AutomationClientBridge {
  public record LegacyState(boolean farmingArmed,boolean mining,boolean recovering,boolean selecting,String island){}
  private final Supplier<LegacyState> legacy;private final Function<Minecraft,List<String>> sidebar;
  private final InventoryReceipts receipts=new InventoryReceipts();
+ private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
  private final PestService pest;private final PestFlightController flight;
  private final JunkService junk;private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
@@ -54,6 +55,11 @@ public final class AutomationClientBridge {
  public JunkService junk(){return junk;}
  public void tick(){long now=System.nanoTime();pest.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
+ public PlayerPositionReceipts positionReceipts(){return positions;}
+ public void serverPosition(net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket packet){
+  if(packet==null){positions.clear();return;}var point=AutomationPositionView.absolute(packet);
+  positions.observe(currentWorldId(),packet.id(),point,point!=null,System.nanoTime());
+ }
  public InventoryReceipts receipts(){return receipts;}
  public void serverSlot(int container,int slot,net.minecraft.world.item.ItemStack stack){if(!session.active())return;receipts.observe(currentWorldId(),container,slot,AutomationGameView.item(stack,false));}
  public AutomationSession session(){return session;}
@@ -63,7 +69,7 @@ public final class AutomationClientBridge {
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
  public void onManualInventoryInput(){pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();}
+ public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);
@@ -76,12 +82,14 @@ public final class AutomationClientBridge {
   if(flags.selecting())blockers.add(AutomationContext.Blocker.SELECTION);
   if(mc.gui.screen()!=null&&!(mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI))blockers.add(AutomationContext.Blocker.MENU);
   if(mc.player!=null&&mc.player.getInventory().getFreeSlot()<0)blockers.add(AutomationContext.Blocker.INVENTORY_FULL);
-  List<String> lines=flags.island()==null&&mc.level!=null&&mc.player!=null?sidebar.apply(mc):List.of();
+  List<String> lines=List.of();
+  if(mc.level!=null&&mc.player!=null)try{lines=sidebar.apply(mc);}catch(RuntimeException unavailable){lines=List.of();}
+  var location=AutomationLocation.inspect(lines,flags.island());
   String address=mc.getCurrentServer()==null?"":mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
   boolean official=address.matches("(?:[a-z0-9-]+\\.)*hypixel\\.net(?::[0-9]+)?");
-  boolean skyblock=official&&(flags.island()!=null||lines.stream().anyMatch(line->line.toUpperCase(Locale.ROOT).contains("SKYBLOCK")));
+  boolean skyblock=official&&location.skyblock();
   if(!skyblock)blockers.add(AutomationContext.Blocker.OUTSIDE_SKYBLOCK);
-  boolean garden="GARDEN".equals(flags.island())||flags.island()==null&&lines.stream().anyMatch(line->line.toLowerCase(Locale.ROOT).contains("garden")||line.toLowerCase(Locale.ROOT).contains("plot"));
+  boolean garden=skyblock&&location.garden();
   return new AutomationContext(worldGeneration,flags.farmingArmed(),garden,blockers);
  }
  private boolean sendGameplay(AutomationSession.Handle handle,AutomationCommand command){

@@ -20,7 +20,8 @@ import java.util.*;import java.util.function.*;import dev.kuan.kuanperion.automa
 public class AutomationClientBridgeTest {
  record LegacyState(boolean farmingArmed,boolean mining,boolean recovering,boolean selecting,String island){}
  LegacyState flags=new LegacyState(true,false,false,false,"GARDEN");
- final Supplier<LegacyState> legacy=()->flags;final Function<Minecraft,List<String>> sidebar=mc->List.of("skyblock","gardenplot");
+ List<String> nativeLines=List.of("SKYBLOCK","⏣ The Garden","Plot - 14");
+ final Supplier<LegacyState> legacy=()->flags;final Function<Minecraft,List<String>> sidebar=mc->nativeLines;
  Object levelIdentity;long worldGeneration;
  static class OwnMenu{}
  static class Gui {Object screen;Object screen(){return screen;}}
@@ -49,12 +50,17 @@ public class AutomationClientBridgeTest {
   adapter.flags=new LegacyState(true,false,false,false,null);mc.server.ip="mc.hypixel.net:25565";check(adapter.observe().canIssueCommand()&&adapter.observe().garden(),"official server plus native sidebar fallback");
   mc.server.ip="other.example";check(!adapter.send(AutomationCommand.PICKUP_STASH),"fake SkyBlock sidebar alone not enough");
   mc.server.ip="mc.hypixel.net";mc.level=new Object();check(adapter.observe().worldId()!=first.worldId(),"world identity changes generation");
+  adapter.flags=new LegacyState(true,false,false,false,"GARDEN");adapter.nativeLines=List.of("HYPIXEL","⏣ Main Lobby");
+  check(adapter.observe().hardBlocked()&&!adapter.observe().garden()&&!adapter.send(AutomationCommand.PICKUP_STASH),"stale optional Garden API after world change is not native SkyBlock/Garden proof");
+  adapter.nativeLines=List.of("SKYBLOCK","⏣ Hub","Visit the Garden");check(adapter.observe().canIssueCommand()&&!adapter.observe().garden(),"native Hub and quest mention cannot be interpreted as Garden from stale API");
+  adapter.nativeLines=List.of("SKYBLOCK","⏣ The Garden");adapter.flags=new LegacyState(true,false,false,false,"HUB");check(!adapter.observe().garden(),"known native/API contradiction waits rather than authorizes movement");
+  adapter.flags=new LegacyState(true,false,false,false,null);check(adapter.observe().garden(),"fresh native Garden works without optional API");
   check(mc.player.connection.commands.size()==1,"blocked contexts generated no network calls");
   System.out.println("AutomationClientBridgeTest: PASS (actual observe/send methods, world/focus/GUI/inventory/legacy priority/official server)");
  }
 }'''.replace('METHODS',methods)
 with tempfile.TemporaryDirectory() as tmp:
  p=Path(tmp)/'AutomationClientBridgeTest.java';p.write_text(java);jdk=Path(sys.argv[1])/'bin'
- files=[root/'src/main/java/dev/kuan/kuanperion/automation'/(n+'.java') for n in ['AutomationContext','AutomationCommand','AutomationCoordinator','AutomationFeature']]
+ files=[root/'src/main/java/dev/kuan/kuanperion/automation'/(n+'.java') for n in ['AutomationContext','AutomationCommand','AutomationCoordinator','AutomationFeature','AutomationLocation']]
  subprocess.run([str(jdk/'javac'),'--release','21','-encoding','UTF-8','-d',tmp,*map(str,files),str(p)],check=True)
  subprocess.run([str(jdk/'java'),'-cp',tmp,'dev.kuan.kuanperion.AutomationClientBridgeTest'],check=True)

@@ -56,7 +56,7 @@ public final class AutomationGameViewTest {
   System.out.println("PestGameViewTest: PASS (native hotbar ID/lore, immutable tool, exact local profile/no resolve, custom/ambiguous heads and no-world guard)");
  }
  public static void main(String[] args){
-  try{var type=Class.forName("net.minecraft.client.multiplayer.ClientPacketListener");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$slot")),"server receipt Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
+  try{var type=Class.forName("net.minecraft.client.multiplayer.ClientPacketListener");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$slot")),"server receipt Mixin actually applied");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$position")),"server position receipt Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   try{var type=Class.forName("net.minecraft.client.multiplayer.MultiPlayerGameMode");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanperion$manualInventoryInput")),"manual inventory priority Mixin applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   try{var type=Class.forName("net.minecraft.world.entity.Entity");check(java.util.Arrays.stream(type.getDeclaredMethods()).anyMatch(m->m.getName().contains("kuanHsba$lockManualLook")),"manual camera takeover Mixin actually applied");}catch(ClassNotFoundException e){throw new AssertionError(e);}
   System.out.println("AutomationMixinsTest: PASS (receipt, inventory priority and camera takeover applied)");
@@ -79,6 +79,7 @@ public final class AutomationGameViewTest {
   check(!AutomationGameView.item(ItemStack.EMPTY,false).identified(),"empty slot not identified");
   testBooks();
   testPest();
+  AutomationPositionViewTest.runFixtures();
   System.out.println("AutomationGameViewTest: PASS (26.2 component fixtures/NBT/lore/protection/metadata identity)");
  }
 }

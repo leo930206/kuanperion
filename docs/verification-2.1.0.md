@@ -171,3 +171,15 @@ Pest 核心同步後，專案端完整 test/build/UI/migration/headless native �
 - 四點耗盡時先返回、還原工具／視角及安全飛行狀態，再以 INCOMPLETE 停止 Farming／停用自動 Pest、等待操作，不宣稱清空。Tab 0 與仍存活目標矛盾時有界等待／失敗，不能偷放行 Farming。
 - TDD 缺失 policy／state／FlightBounds 先紅；實際重現「發現目標後仍留一 tick 舊搜尋鍵」與「搜尋中 Tab 0／存活目標矛盾仍進返回成功」紅燈後修正。四點／返回次數、發現中斷、人工取消、設定獨立保存／舊檔預設、三維 geofence 均有測試。
 - Staging 完整 test/build/UI/migration/headless native PASS；獨立26.2 `kuanperion-ui-smoke-pest-sweep` 22:33:24 UI_SMOKE_PASS，實際測試新增搜尋開關保存與原有通知／自動化獨立、原生 Mixin 與其他初始化 callbacks。仍為 chatOnly 模式，沒有 live 捕捉、沒有跨未載入地塊的傳送；完整38-state／live驗收仍在 release gate，未把此切片當作整個七階段完成。
+
+Pest 四點搜尋專案端完整 test/build/UI/migration/native PASS，production payload 與獨立客戶端／frozen JAR 相等（328 entries），`3cac22e` 已推送開發分支。正式2.0.17保持原 checksum，未安裝2.1.0。
+
+## 新世界位置佐證／伺服器絕對位置回條
+
+日期：2026-10-25。接續跨地塊導航前，先補齊資料證據與位置守門，尚未新增任何傳送 driver 或 UI 開關。
+
+- 原 observe 方法確實可因切世界後殘留的 API GARDEN，在原生 Lobby／Hub 仍授權 SkyBlock／Garden。以實際 production-method harness 重現紅燈；改成必須有目前原生 SKYBLOCK header，Garden 另需精確地區／有效 Plot 行，且原生其他地區與已知 API 矛盾會否決。只提到 Garden 的任務文字不算，未知資料不退回舊 API。這只收緊新自動化 context，不修改原 Farming／Mining 位置恢復流程。
+- 原生資料有大小／行數限制，格式處理使用預編譯 regex，避免每個權限檢查重建 patterns。官方伺服器網域限制保留。
+- ClientPacketListener.handleMovePlayer 的 TAIL 只投影伺服器封包中絕對 XYZ；relative XYZ 不依本機預測合成，relative rotation／delta flag 不影響絕對座標的判定。只存一筆最新回條與32個 opaque ID，world／epoch／sequence／收到時間守門，不假設 ID 正數或遞增，重播／未知資料會清除可用證據。
+- 不讀本機 player.position() 製造回條，不送指令／傳送／速度／能力封包，不持久化位置、不加遙測。資料回條不是執行權限，未有 runtime travel caller，後續仍須 lease／目的地／現在玩家位置／時效一同驗證。
+- 純類別／native projection／wiring 缺失先紅；pinned26.2 真實封包 fixtures 驗證 absolute／relative 各旗標、NaN／缺資料與不可變性。Staging 完整 test/build/UI/migration/native PASS；獨立26.2 position-proof 客戶端 01:04:53 UI_SMOKE_PASS，新增位置 Mixin handler 實際套用斷言通過，同跑舊 Pest／Trade／設定初始化 callbacks。非 live 伺服器移動驗收，亦非完整38-state resize/hover rerun。
