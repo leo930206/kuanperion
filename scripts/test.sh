@@ -18,6 +18,7 @@ trap 'rm -rf "$TMP"' EXIT
     "$ROOT/src/main/java/dev/kuan/kuanperion/ScreenNotificationQueue.java" \
     "$ROOT/src/test/java/dev/kuan/kuanperion/NotificationScreenDurationTest.java"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.kuanperion.FarmingToolGuardTest
+python3 "$ROOT/scripts/test-farming-start-tool.py" "$JAVA_HOME"
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.kuanperion.GuiPauseGuardTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.kuanperion.SkyBlockLocationBridgeTest
 "$JAVA_HOME/bin/java" -cp "$TMP" dev.kuan.kuanperion.GardenTabNotificationsTest

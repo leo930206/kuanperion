@@ -1,6 +1,6 @@
 # Kuanperion 2.1.0 — approved automation migration
 
-Approved in conversation 2026-10-24. Target release starts at 2.1.0. Work on feature/2.1.0, not main; 2.0.16 remains installed until the release gate. An incomplete development build is not a completed migration.
+Approved in conversation 2026-10-24. Target release starts at 2.1.0. Work on feature/2.1.0, not main; Stable 2.0.17 (the separately released hotfix) remains installed until the 2.1.0 release gate. An incomplete development build is not a completed migration.
 
 ## Objective and approved surface
 
@@ -55,4 +55,8 @@ All seven phases in tasks/todo-2.1.0.md are functional, wired to the requested p
 
 ## User amendment — 2026-10-24
 
-The former /home shortcut must display /warp garden, send the exact command `warp garden`, and report `已發送 /warp garden。` in local chat. Keep key.kuanperion.home and hotkey.home.modifiers as persistence IDs so existing custom/cleared bindings survive. Shift+H remains the default. Do not rewrite historical changelogs.
+The former /home shortcut must display /warp garden, send the exact command `warp garden`, and report `已發送 /warp garden。` in local chat. Keep key.kuanperion.home and hotkey.home.modifiers as persistence IDs so existing custom/cleared bindings survive. Shift+G is the default (user amendment 2026-10-24); keep saved custom/cleared bindings unchanged. Do not rewrite historical changelogs.
+
+## Two release lines — 2026-10-24
+
+Stable 2.0.17 was released from main/2.0.16 with only the Garden shortcut and Farming startup hotbar selection. These same changes are synchronized to feature/2.1.0. Do not merge incomplete automation into main or replace the stable installed JAR while continuing the upgrade. Shift+G applies to new/reset bindings; saved custom, cleared and former defaults remain unchanged. Startup selection respects the existing tool-detection toggle; runtime wrong-tool pauses remain manual.

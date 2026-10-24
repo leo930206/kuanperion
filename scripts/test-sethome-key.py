@@ -8,7 +8,7 @@ assert 'new KeybindSetting("/warp garden",homeKey,1,' in source,'Shortcut label 
 import json
 labels=json.loads((root/'src/main/resources/assets/kuanperion/lang/en_us.json').read_text())
 assert labels['key.kuanperion.home']=='/warp garden','Keep legacy key ID but display new command'
-assert 'new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, InputConstants.KEY_H' in source,'Do not reset saved bindings or Shift+H default'
+assert 'new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, InputConstants.KEY_G' in source,'Keep saved binding ID and use Shift+G for defaults/reset'
 m=re.search(r'    private static void handleShiftHotkeys\(',source);a=m.start();b=source.index('{',a)+1;depth=1
 while depth:
  depth+=(source[b]=='{')-(source[b]=='}');b+=1

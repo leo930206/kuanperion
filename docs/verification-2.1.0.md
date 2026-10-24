@@ -82,3 +82,11 @@ UI smoke 首輪在 Mining capacity phase33 出現非預期轉到 Trade 的路由
 - 尚待實作／驗證鐵砧選單、兩次輸入轉移的 server-only 回條、預覽與 XP/coins 上限、確認與結果回收、取消與輸入物回收、服務／持久化／Trade UI。Book Combine 在完整工作流程完成前不提供無效入口。
 
 Book preflight 專案端完整 test/build/UI/migration 均通過；重建 JAR 與暫存及獨立初始化測試 JAR 逐 entry 相等，92 個 production UI class 與先前 37-state 通過版相同。未包含測試 class；正式安裝中的 2.0.16 SHA-256 未變。這仍非 Book Combine 或完整大升級驗收。
+
+## 2.0.17 hotfix 同步 — 2026-10-24
+
+- 兩條線分開：穩定版 2.0.17 從 2.0.16 建立，僅帶 Garden 快捷鍵與 Farming 啟動工具選取；不混入 Trade 或自動化開發底層。2.1.0 同步相同 helper 與快捷鍵預設，版本仍為 2.1.0。
+- /warp garden 新建／重設預設為 Shift+G；保持持久化 ID，既有自訂、已儲存舊預設或清空都不強制改寫。實際 wire command 與聊天室回報維持 /warp garden。
+- 啟用工具偵測時，開始辨識作物後先保留正確手持工具，否則只搜尋快捷列 0..8；找到即選用，找不到才原有錯誤／停止。執行中手動換錯工具仍暫停等待換回。
+- TDD 先紅後綠：缺少 selector、舊 KEY_H；focused 生產方法測試涵蓋全部 13 種 block ID × 9 格、正確手持、主背包不取用、無匹配不切換、南瓜／西瓜、修飾名稱與 runtime pause 接線。第一次 focused shortcut 執行漏傳 JDK 參數屬測試呼叫錯誤，補參數後通過。
+- 暫存版完整 test/build/UI/migration PASS；獨立 26.2 初始化 smoke PASS（含新預設／重設／衝突／自訂保存與既有原生 fixtures）。不冒稱 live 伺服器收成已驗證，完整大升級仍未完成。

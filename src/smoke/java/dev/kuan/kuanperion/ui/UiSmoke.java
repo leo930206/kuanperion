@@ -468,7 +468,7 @@ public final class UiSmoke implements ClientModInitializer {
         if(chars.stream().anyMatch(c->c.getStyle().isBold()) || chars.get(0).getStyle().getColor().getValue()!=0xAAAAAA || chars.get(1).getStyle().getColor().getValue()!=0x13A9F2 || chars.get(chars.size()-3).getStyle().getColor().getValue()!=0xE64478 || chars.get(chars.size()-2).getStyle().getColor().getValue()!=0xAAAAAA)throw new AssertionError("nonbold gradient endpoints");
         var keys=dev.kuan.kuanperion.KuanperionClient.uiKeybinds();
         if(keys.size()!=6 || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3)).isDefault() || !((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4)).isDefault())throw new AssertionError("home/sethome defaults");
-        String[] defaults={"Shift + S","Shift + H","Shift + B"};
+        String[] defaults={"Shift + S","Shift + G","Shift + B"};
         for(int i=0;i<3;i++)if(!((dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(i+3)).getBoundKeyName().equals(defaults[i]))throw new AssertionError("home/barn default chord "+i);
         var home=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4);
         var sethome=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3);
@@ -478,10 +478,10 @@ public final class UiSmoke implements ClientModInitializer {
         if(!sethome.isDefault())throw new AssertionError("duplicate home/sethome chord accepted");
         home.resetToDefault();
         var barn=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(5);
-        barn.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.h"),1);
+        barn.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.g"),1);
         if(!barn.getBoundKeyName().equals("Shift + B"))throw new AssertionError("barn duplicate home chord accepted");
         home.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.b"),1);
-        if(!home.getBoundKeyName().equals("Shift + H"))throw new AssertionError("home duplicate barn chord accepted");
+        if(!home.getBoundKeyName().equals("Shift + G"))throw new AssertionError("home duplicate barn chord accepted");
         barn.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.j"),4);
         if(!barn.getBoundKeyName().equals("Alt + J"))throw new AssertionError("barn custom chord not saved");
         var savedKeys=java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("options.txt"));

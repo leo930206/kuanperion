@@ -5,6 +5,8 @@
 - [x] Source Git bundle + installed JAR backed up; backup/pre-2.1.0 pushed to GitHub.
 - [x] feature/2.1.0 created; installed game version/settings untouched.
 
+- [x] Separate 2.0.17 hotfix released/installed on main: Garden Shift+G and Farming hotbar startup selection; synchronized into 2.1.0, no incomplete automation shipped.
+
 ## 1 — safe runtime
 - [x] Pure feature IDs, capability/risk/resource ownership contract + tests.
 - [x] World/session/focus/Mining/recovery/menu guards; bounded lease and stale-token rejection.
