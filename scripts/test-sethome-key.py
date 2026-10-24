@@ -4,6 +4,11 @@ from pathlib import Path
 import re, subprocess,sys,tempfile
 root=Path(__file__).resolve().parent.parent
 source=(root/'src/main/java/dev/kuan/kuanperion/KuanperionClient.java').read_text()
+assert 'new KeybindSetting("/warp garden",homeKey,1,' in source,'Shortcut label must match actual command'
+import json
+labels=json.loads((root/'src/main/resources/assets/kuanperion/lang/en_us.json').read_text())
+assert labels['key.kuanperion.home']=='/warp garden','Keep legacy key ID but display new command'
+assert 'new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, InputConstants.KEY_G' in source,'Keep saved binding ID and use Shift+G for defaults/reset'
 m=re.search(r'    private static void handleShiftHotkeys\(',source);a=m.start();b=source.index('{',a)+1;depth=1
 while depth:
  depth+=(source[b]=='{')-(source[b]=='}');b+=1
@@ -49,7 +54,7 @@ public class SethomeKeyTest {
   }
   sethomeKey.down=false;mods=0;homeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==3,"home initially unbound");
   homeKey.down=false;handleShiftHotkeys(mc);homeKey.bound=true;homeKey.down=true;handleShiftHotkeys(mc);
-  check(commands.size()==4&&commands.get(3).equals("home"),"home sends exact command independently of sethome");
+  check(commands.size()==4&&commands.get(3).equals("warp garden")&&feedback.get(feedback.size()-1).equals("已發送 /warp garden。"),"warp garden command and feedback match, independently of sethome");
   for(int i=0;i<100;i++)handleShiftHotkeys(mc);check(commands.size()==4,"held home does not repeat");
   homeKey.down=false;handleShiftHotkeys(mc);homeModifiers=3;mods=3;homeKey.down=true;handleShiftHotkeys(mc);check(commands.size()==5,"home chord");
   for(int mode=0;mode<3;mode++){
@@ -60,7 +65,7 @@ public class SethomeKeyTest {
   }
   check(feedback.size()==commands.size()&&feedback.stream().allMatch(s->s.startsWith("已發送 /")),"every shortcut reports one local chat message");
   int messages=feedback.size();mc.player.connection.fail=true;
-  check(!sendHomeCommand(mc,"home",true)&&commands.size()==5&&feedback.size()==messages+1&&feedback.get(messages).startsWith("無法發送 /"),"never claim success when sending fails");
+  check(!sendHomeCommand(mc,"warp garden",true)&&commands.size()==5&&feedback.size()==messages+1&&feedback.get(messages).startsWith("無法發送 /"),"never claim success when sending fails");
   homeKey.down=false;mods=1;handleShiftHotkeys(mc);mc.player.connection.fail=false;barnKey.bound=true;
   int before=commands.size();barnKey.down=true;handleShiftHotkeys(mc);
   check(commands.size()==before+1&&commands.get(before).equals("barn")&&feedback.get(feedback.size()-1).equals("已發送 /barn。"),"Shift+B sends barn and chat feedback");

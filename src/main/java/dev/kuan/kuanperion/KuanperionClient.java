@@ -245,7 +245,7 @@ public final class KuanperionClient implements ClientModInitializer {
         toggleMiningKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_mining", InputConstants.Type.KEYSYM, InputConstants.KEY_M, category));
         toggleFarmingKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.toggle_farming", InputConstants.Type.KEYSYM, InputConstants.KEY_F, category));
         sethomeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.sethome", InputConstants.Type.KEYSYM, InputConstants.KEY_S, category));
-        homeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, InputConstants.KEY_H, category));
+        homeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.home", InputConstants.Type.KEYSYM, InputConstants.KEY_G, category));
         barnKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.kuanperion.barn", InputConstants.Type.KEYSYM, InputConstants.KEY_B, category));
         try {
             var oldKeys=LegacyConfigMigration.legacyKeyOverrides(new File(Minecraft.getInstance().gameDirectory,"options.txt").toPath());
@@ -343,7 +343,7 @@ public final class KuanperionClient implements ClientModInitializer {
         if(miningHotkeyEdge.press(hotkeyDown(toggleMiningKey),HotkeyChord.matches(miningModifiers,modifiers),allowed))toggleMining(mc);
         if(farmingHotkeyEdge.press(hotkeyDown(toggleFarmingKey),HotkeyChord.matches(farmingModifiers,modifiers),allowed))toggleFarming(mc);
         if(sethomeHotkeyEdge.press(hotkeyDown(sethomeKey),HotkeyChord.matches(sethomeModifiers,modifiers),allowed))sendHomeCommand(mc,"sethome",true);
-        if(homeHotkeyEdge.press(hotkeyDown(homeKey),HotkeyChord.matches(homeModifiers,modifiers),allowed))sendHomeCommand(mc,"home",true);
+        if(homeHotkeyEdge.press(hotkeyDown(homeKey),HotkeyChord.matches(homeModifiers,modifiers),allowed))sendHomeCommand(mc,"warp garden",true);
         if(barnHotkeyEdge.press(hotkeyDown(barnKey),HotkeyChord.matches(barnModifiers,modifiers),allowed))sendHomeCommand(mc,"barn",true);
     }
 
@@ -1665,8 +1665,7 @@ public final class KuanperionClient implements ClientModInitializer {
                 String expectedTool = expectedToolForCropBlock(cropBlockId);
                 FARMING_TOOL_GUARD.reset(expectedTool);
                 if (farmingToolDetectionEnabled && expectedTool != null) {
-                    String heldTool = StringUtil.stripColor(player.getMainHandItem().getHoverName().getString());
-                    if (!FARMING_TOOL_GUARD.matches(heldTool)) {
+                    if (!selectStartingFarmingTool(player)) {
                         say(mc, feature("Farming"), error(" 工具錯誤："), cropName(detected.label), plain(" 需要 "),
                                 warning(expectedTool));
                         stopFarming(mc, false);
@@ -1730,6 +1729,19 @@ public final class KuanperionClient implements ClientModInitializer {
             saveConfig();
         }
         return true;
+    }
+
+    private static boolean selectStartingFarmingTool(LocalPlayer player) {
+        if (FARMING_TOOL_GUARD.matches(StringUtil.stripColor(player.getMainHandItem().getHoverName().getString()))) return true;
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < 9; slot++) {
+            String tool = StringUtil.stripColor(inventory.getItem(slot).getHoverName().getString());
+            if (FARMING_TOOL_GUARD.matches(tool)) {
+                inventory.setSelectedSlot(slot);
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean pauseFarmingForWrongTool(Minecraft mc, LocalPlayer player) {
@@ -2897,7 +2909,7 @@ public final class KuanperionClient implements ClientModInitializer {
             new KeybindSetting("Mining",toggleMiningKey,1,()->miningModifiers,(key,mods)->setUiKeybinding(toggleMiningKey,key,mods)),
             new KeybindSetting("Farming",toggleFarmingKey,1,()->farmingModifiers,(key,mods)->setUiKeybinding(toggleFarmingKey,key,mods)),
             new KeybindSetting("/sethome",sethomeKey,1,()->sethomeModifiers,(key,mods)->setUiKeybinding(sethomeKey,key,mods)),
-            new KeybindSetting("/home",homeKey,1,()->homeModifiers,(key,mods)->setUiKeybinding(homeKey,key,mods)),
+            new KeybindSetting("/warp garden",homeKey,1,()->homeModifiers,(key,mods)->setUiKeybinding(homeKey,key,mods)),
             new KeybindSetting("/barn",barnKey,1,()->barnModifiers,(key,mods)->setUiKeybinding(barnKey,key,mods)));
     }
 

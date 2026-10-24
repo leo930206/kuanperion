@@ -5,6 +5,6 @@
   "key.category.kuanperion.keys": "Kuanperion",
   "category.kuanperion.keys": "Kuanperion",
   "key.kuanperion.sethome": "Set Home (/sethome)",
-  "key.kuanperion.home": "Go Home (/home)",
+  "key.kuanperion.home": "/warp garden",
   "key.kuanperion.barn": "Go Barn (/barn)"
 }
