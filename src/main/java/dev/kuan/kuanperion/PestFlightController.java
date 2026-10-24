@@ -19,7 +19,7 @@ import org.lwjgl.glfw.GLFW;
 public final class PestFlightController implements PestTask.Port {
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;
  private AutomationSession.Handle owner;private Object ownedLevel;private final Set<KeyMapping> pressed=new HashSet<>();
- private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
+ private PestFlightBounds bounds;private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
  private long plannedAt,lastProgress,lastUse;private boolean used;
  public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this.coordinator=coordinator;this.session=session;this.observe=observe;}
  public AutomationContext context(){return observe.get();}
@@ -49,10 +49,10 @@ public final class PestFlightController implements PestTask.Port {
   if(key.getType()==InputConstants.Type.MOUSE)return GLFW.glfwGetMouseButton(window,key.getValue())==GLFW.GLFW_PRESS;
   return unknown; // Unsupported scancodes fail closed, never mistake our injected isDown for a human.
  }
- public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,long now){
+ public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,int radius,long now){
   if(!allowed(h,now,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR))return false;
   var mc=mc();var p=mc.player;if(p.isPassenger()||p.isSleeping()||p.isUsingItem()||PestGameView.vacuum(p.getInventory().getItem(tool.slot()),tool.slot()).filter(tool::equals).isEmpty())return false;
-  owner=h;ownedLevel=mc.level;search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;used=false;
+  owner=h;ownedLevel=mc.level;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;used=false;
   p.getInventory().setSelectedSlot(tool.slot());
   if(!p.getAbilities().flying){p.getAbilities().flying=true;p.onUpdateAbilities();}
   return true;
@@ -62,7 +62,7 @@ public final class PestFlightController implements PestTask.Port {
   release(h);
   // Legacy safe-stop may have cleared these after release; honor real physical input last.
   var mc=mc();if(mc.options!=null&&mc.getWindow()!=null)for(var key:List.of(mc.options.keyUp,mc.options.keyDown,mc.options.keyLeft,mc.options.keyRight,mc.options.keyJump,mc.options.keyShift))key.setDown(mc.gui.screen()==null&&physical(key,false));
-  owner=null;ownedLevel=null;search=null;searchGoal=null;route=List.of();
+  owner=null;ownedLevel=null;bounds=null;search=null;searchGoal=null;route=List.of();
  }
  private void keys(boolean forward,boolean back,boolean up,boolean down){
   var o=mc().options;set(o.keyUp,forward);set(o.keyDown,back);set(o.keyLeft,false);set(o.keyRight,false);set(o.keyJump,up);set(o.keyShift,down);
@@ -97,7 +97,7 @@ public final class PestFlightController implements PestTask.Port {
  }
  /** Swept full player body; refuse unloaded chunks and hazardous blocks before collision access. */
  private boolean clear(PestTargets.Point from,PestTargets.Point to){
-  var mc=mc();if(mc.level==null||mc.player==null||from.distanceSquared(to)>16)return false;
+  var mc=mc();if(mc.level==null||mc.player==null||bounds==null||!bounds.permits(from,to)||from.distanceSquared(to)>16)return false;
   var p=mc.player;var origin=point(p.position());var body=p.getBoundingBox().move(from.x()-origin.x(),from.y()-origin.y(),from.z()-origin.z()).deflate(.005);
   var swept=body.expandTowards(to.x()-from.x(),to.y()-from.y(),to.z()-from.z());
   if(!loaded(swept))return false;
@@ -138,6 +138,6 @@ public final class PestFlightController implements PestTask.Port {
    var below=p.getBoundingBox().move(0,-.15,0);if(!loaded(below)||mc.level.noCollision(p,below))return PestTask.Motion.BLOCKED;
    p.getAbilities().flying=false;p.onUpdateAbilities();
   }
-  p.setYRot(anchor.yaw());p.setXRot(anchor.pitch());p.getInventory().setSelectedSlot(anchor.slot());owner=null;ownedLevel=null;search=null;route=List.of();return PestTask.Motion.ARRIVED;
+  p.setYRot(anchor.yaw());p.setXRot(anchor.pitch());p.getInventory().setSelectedSlot(anchor.slot());owner=null;ownedLevel=null;bounds=null;search=null;route=List.of();return PestTask.Motion.ARRIVED;
  }
 }

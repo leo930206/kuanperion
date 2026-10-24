@@ -2,9 +2,9 @@
 package dev.kuan.kuanperion.automation.pest;
 import dev.kuan.kuanperion.automation.*;
 import java.util.*;
-/** Loaded-target cleanup. A disappearance is not a kill: require a coupled server Tab decrease. */
+/** Bounded local cleanup and optional explicit search. A disappearance is not a kill: require a coupled server Tab decrease. */
 public final class PestTask {
- public enum State {IDLE,PREPARING,SEEKING,CAPTURING,RETURNING,RESTORING,COMPLETE,CANCELLED,TIMED_OUT,FAILED}
+ public enum State {IDLE,PREPARING,SEEKING,SWEEPING,CAPTURING,RETURNING,RESTORING,COMPLETE,INCOMPLETE,CANCELLED,TIMED_OUT,FAILED}
  public enum Motion {MOVING,ARRIVED,BLOCKED}
  public enum Capture {AIMING,USING,REJECTED}
  public record Anchor(PestTargets.Point position,float yaw,float pitch,int slot,ItemSnapshot item,boolean flying){}
@@ -14,7 +14,7 @@ public final class PestTask {
  }
  public interface Port {
   AutomationContext context();Frame frame(long now);
-  boolean prepare(AutomationSession.Handle handle,PestIdentity.Vacuum tool,Anchor anchor,long now);
+  boolean prepare(AutomationSession.Handle handle,PestIdentity.Vacuum tool,Anchor anchor,int radius,long now);
   Motion move(AutomationSession.Handle handle,PestTargets.Point goal,double tolerance,long now);
   Capture capture(AutomationSession.Handle handle,PestTargets.Target target,PestIdentity.Vacuum tool,long now);
   Motion restore(AutomationSession.Handle handle,Anchor anchor,long now);
@@ -25,19 +25,20 @@ public final class PestTask {
  private static final long SECOND=1_000_000_000L;
  private final AutomationSession session;private final Port port;private State state=State.IDLE;private AutomationSession.Handle handle;
  private PestPolicy policy;private Anchor anchor;private PestIdentity.Vacuum tool;private PestTargets.Target target;
- private long world,started,phaseStart;private int baseline,confirmed;private boolean used;
+ private long world,started,phaseStart;private int baseline,confirmed;private boolean used,incomplete,sweepArrived;private int sweepIndex;private long sweepArrival;
+ private static final int[][] SWEEP={{1,1},{-1,1},{-1,-1},{1,-1}};
  public PestTask(AutomationSession session,Port port){this.session=session;this.port=port;}
  public State state(){return state;}public int confirmedDecreases(){return confirmed;}
- public boolean active(){return switch(state){case PREPARING,SEEKING,CAPTURING,RETURNING,RESTORING->true;default->false;};}
+ public boolean active(){return switch(state){case PREPARING,SEEKING,SWEEPING,CAPTURING,RETURNING,RESTORING->true;default->false;};}
  public boolean request(PestPolicy policy,boolean manual,long now){
   if(active())return false;
   try{
    var context=port.context();var f=port.frame(now);
-   if(!context.canIssueCommand()||!context.garden()||!f.fresh(context.worldId(),now)||f.manualInput()||!f.mayFly()||f.alive()<policy.threshold()||f.targets().isEmpty()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
+   if(!context.canIssueCommand()||!context.garden()||!f.fresh(context.worldId(),now)||f.manualInput()||!f.mayFly()||f.alive()<policy.threshold()||f.targets().isEmpty()&&!policy.sweep()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
    var best=f.tools().stream().filter(t->PestIdentity.vacuum(t.slot(),t.item()).filter(v->v.equals(t)).isPresent()).max(Comparator.comparingDouble(PestIdentity.Vacuum::range).thenComparingInt(t->-t.slot())).orElse(null);
-   if(best==null||f.targets().stream().noneMatch(t->f.position().distanceSquared(t.position())<=policy.radius()*policy.radius()))return false;
+   if(best==null||!policy.sweep()&&f.targets().stream().noneMatch(t->f.position().distanceSquared(t.position())<=policy.radius()*policy.radius()))return false;
    var next=session.begin(AutomationFeature.PEST,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
-   handle=next;this.policy=policy;tool=best;anchor=new Anchor(f.position(),f.yaw(),f.pitch(),f.slot(),f.item(),f.flying());world=context.worldId();started=phaseStart=now;confirmed=0;used=false;target=null;state=State.PREPARING;return true;
+   handle=next;this.policy=policy;tool=best;anchor=new Anchor(f.position(),f.yaw(),f.pitch(),f.slot(),f.item(),f.flying());world=context.worldId();started=phaseStart=now;confirmed=0;sweepIndex=0;incomplete=false;sweepArrived=false;used=false;target=null;state=State.PREPARING;return true;
   }catch(RuntimeException invalid){return false;}
  }
  public void tick(long now){
@@ -49,18 +50,29 @@ public final class PestTask {
   if(!session.isCurrent(handle)||!context.canIssueCommand()||!context.garden()||handle.hold()!=null&&!context.farmingActive()||context.worldId()!=world||!f.fresh(world,now)||f.manualInput()||!f.mayFly()){finish(State.CANCELLED,now);return;}
   if(now-started<0||now-started>=policy.timeoutSeconds()*SECOND){finish(State.TIMED_OUT,now);return;}
   if(f.position().distanceSquared(anchor.position())>Math.pow(policy.radius()+2,2)){finish(State.FAILED,now);return;}
-  if(state==State.PREPARING){if(!port.prepare(handle,tool,anchor,now)){finish(State.FAILED,now);return;}state=State.SEEKING;phaseStart=now;return;}
+  if(state==State.PREPARING){if(!port.prepare(handle,tool,anchor,policy.radius(),now)){finish(State.FAILED,now);return;}state=State.SEEKING;phaseStart=now;return;}
   if(f.slot()!=tool.slot()||!PestIdentity.sameVacuum(tool,f.item())){finish(State.CANCELLED,now);return;}
   if(state==State.RETURNING){
    port.release(handle);var motion=port.move(handle,anchor.position(),.35,now);
    if(motion==Motion.BLOCKED)finish(State.FAILED,now);else if(motion==Motion.ARRIVED){state=State.RESTORING;phaseStart=now;}return;
   }
-  if(state==State.RESTORING){var motion=port.restore(handle,anchor,now);if(motion==Motion.BLOCKED)finish(State.FAILED,now);else if(motion==Motion.ARRIVED)finish(State.COMPLETE,now);return;}
+  if(state==State.RESTORING){var motion=port.restore(handle,anchor,now);if(motion==Motion.BLOCKED)finish(State.FAILED,now);else if(motion==Motion.ARRIVED)finish(incomplete?State.INCOMPLETE:State.COMPLETE,now);return;}
+  if(state==State.SWEEPING){
+   if(f.targets().stream().anyMatch(t->anchor.position().distanceSquared(t.position())<=policy.radius()*policy.radius())){port.release(handle);state=State.SEEKING;phaseStart=now;return;}
+   if(sweepArrived){if(now-sweepArrival>=SECOND){sweepIndex++;state=State.SEEKING;phaseStart=now;}return;}
+   double offset=policy.radius()*.5;var direction=SWEEP[sweepIndex];var start=anchor.position();
+   var goal=new PestTargets.Point(start.x()+direction[0]*offset,start.y()+Math.min(6,policy.radius()*.25),start.z()+direction[1]*offset);
+   var motion=port.move(handle,goal,.6,now);if(motion==Motion.BLOCKED)finish(State.FAILED,now);else if(motion==Motion.ARRIVED){sweepArrived=true;sweepArrival=now;}return;
+  }
   if(state==State.SEEKING){
    port.release(handle);
-   if(f.alive()==0||confirmed>=policy.maxTargets()){state=State.RETURNING;return;}
+   if(confirmed>=policy.maxTargets()||f.alive()==0&&f.targets().isEmpty()){state=State.RETURNING;return;}
+   if(f.alive()==0){if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;}
    target=f.targets().stream().filter(t->anchor.position().distanceSquared(t.position())<=policy.radius()*policy.radius()).min(Comparator.comparingDouble(t->f.position().distanceSquared(t.position()))).orElse(null);
-   if(target==null){if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;}
+   if(target==null){
+    if(policy.sweep()){if(sweepIndex<SWEEP.length){sweepArrived=false;state=State.SWEEPING;}else{incomplete=true;state=State.RETURNING;}}
+    else if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;
+   }
    baseline=f.alive();used=false;phaseStart=now;state=State.CAPTURING;
   }
   if(state==State.CAPTURING){
@@ -68,7 +80,7 @@ public final class PestTask {
    if(next==null){
     port.release(handle);
     boolean markerGone=f.targets().stream().noneMatch(t->t.markerId()==target.markerId());
-    if(used&&markerGone&&f.alive()<baseline){confirmed++;state=State.SEEKING;phaseStart=now;return;}
+    if(used&&markerGone&&f.alive()<baseline){confirmed++;sweepIndex=0;state=State.SEEKING;phaseStart=now;return;}
    }else{
     target=next;
     double distance=Math.sqrt(f.eye().distanceSquared(target.position()));

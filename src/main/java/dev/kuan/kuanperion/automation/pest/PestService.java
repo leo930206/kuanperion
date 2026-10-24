@@ -26,6 +26,7 @@ public final class PestService {
   boolean success=state==PestTask.State.COMPLETE;
   if(!success){suspended=true;try{settings.setEnabled(AutomationFeature.PEST,false);}catch(IOException ignored){}}
   String text=success?"已確認 Pest 數量減少 "+task.confirmedDecreases()+" 次，已返回原位。":switch(state){
+   case INCOMPLETE->"已返回原位，但範圍內未找到剩餘 Pest，已停用自動除蟲，等待操作。";
    case CANCELLED->"Pest 已停止，等待操作。";
    case TIMED_OUT->"Pest 逾時，已停止並停用自動除蟲，等待操作。";
    default->"Pest 未完成：目標、路徑、飛行權限或返回驗證失敗，已停止並停用自動除蟲。";

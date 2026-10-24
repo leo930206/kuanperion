@@ -28,6 +28,7 @@ for forbidden in ['.setPos(','.setDeltaMovement(','.noPhysics','setFlyingSpeed',
 assert 'session.isCurrent(h)' in driver and 'coordinator.permits(' in driver and 'manualInput()' in driver
 assert 'getAbilities().mayfly' in driver and 'hasChunkAt(' in driver and 'noCollision(p,swept)' in driver
 assert 'mc.gameMode.useItem(p,InteractionHand.MAIN_HAND)' in driver and '250_000_000L' in driver
+assert 'bounds=new PestFlightBounds(anchor.position(),radius)' in driver and '!bounds.permits(from,to)' in driver
 assert 'public void dispose(' in driver and 'physical(key,false)' in driver
 assert 'pest.tick(now)' in bridge and 'pest.cancel(System.nanoTime())' in bridge
 assert 'beforeMovementTick()' in client and 'PestModuleSettings.tab(' in client

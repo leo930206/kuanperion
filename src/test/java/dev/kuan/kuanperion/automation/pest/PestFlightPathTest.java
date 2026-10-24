@@ -18,6 +18,9 @@ public final class PestFlightPathTest {
   g=new Grid();path=new PestFlightPath(1,p(0,70,0),p(5,70,0),.1,8,2048,g,0);path.step(1,5000000000L,24);check(path.state()==PestFlightPath.State.TIMED_OUT&&g.checks==0,"bounded planning deadline");
   g=new Grid();g.throwsError=true;path=new PestFlightPath(1,p(0,70,0),p(5,70,0),.1,8,2048,g,0);path.step(1,0,24);check(path.state()==PestFlightPath.State.FAILED,"collision observation errors fail closed");
   g=new Grid();path=new PestFlightPath(1,p(0,70,0),p(20,70,0),.1,32,16,g,0);finish(path,1);check(path.state()==PestFlightPath.State.LIMIT,"node/memory cap cannot expand forever");
+  var fence=new PestFlightBounds(new PestTargets.Point(.5,70,.5),16);
+  check(fence.permits(new PestTargets.Point(.5,70,.5),new PestTargets.Point(16.5,70,.5)),"inclusive explicit flight radius");
+  check(!fence.permits(new PestTargets.Point(.5,70,.5),new PestTargets.Point(16.51,70,.5))&&!fence.permits(new PestTargets.Point(.5,86.01,.5),new PestTargets.Point(.5,70,.5)),"planning/execution fence must include full start and end in 3D");
   System.out.println("PestFlightPathTest: PASS (bounded queries/nodes/deadline, obstacle routing, fractional anchors, no unknown-air/world/stale/error bypass)");
  }
 }

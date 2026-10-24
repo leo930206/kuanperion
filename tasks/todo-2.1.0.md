@@ -53,3 +53,6 @@
 - [ ] Isolated runtime/UI checks and explicit server-test limitations.
 - [ ] Build payload equality, source/JAR backup, settings and unrelated mods preserved.
 - [ ] Only after all above: publish/tag/install 2.1.0, update main.
+
+### Next Pest increment (in progress, not released)
+- [x] Explicit opt-in local four-point sweep when global pests are known but no loaded target is in range; same native flight fence, discovery interrupts sweep, exhaustion returns INCOMPLETE and stops instead of claiming a cleared Garden.

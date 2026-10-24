@@ -252,10 +252,11 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);notify.setValue(false);
         if(!pest.autoEnabled())throw new AssertionError("notification-off disabled independent automation");
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(2)).setValue(3);
-        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(8)).execute();
-        if(pest.active()||rows.get(9).isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(8)).setValue(true);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(9)).execute();
+        if(pest.active()||rows.get(10).isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
-        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.PEST)||saved.pestPolicy().threshold()!=3||bridge.autoSell().autoEnabled()||bridge.junk().autoEnabled())throw new AssertionError("Pest settings not independent/external/persistent");
+        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.PEST)||saved.pestPolicy().threshold()!=3||!saved.pestPolicy().sweep()||bridge.autoSell().autoEnabled()||bridge.junk().autoEnabled())throw new AssertionError("Pest settings not independent/external/persistent");
         pest.setEnabled(false);pest.setPolicy(dev.kuan.kuanperion.automation.pest.PestPolicy.defaults());notify.setValue(old);clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_PEST_PASS real page/callbacks, independent notification and automation flags, external policy, no offline flight/use, safe default restoration");
     }

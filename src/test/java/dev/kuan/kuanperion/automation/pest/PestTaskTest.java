@@ -13,7 +13,7 @@ public final class PestTaskTest {
   boolean flight=true,manual,complete=true,accepted=true,throwPrepare,throwCapture;int slot=0;ItemSnapshot item=OLD;PestTargets.Point pos=ORIGIN;List<PestTargets.Target> targets=List.of(TARGET);
   public AutomationContext context(){return ctx;}
   public PestTask.Frame frame(long time){return new PestTask.Frame(1,time,pos,new PestTargets.Point(pos.x(),pos.y()+1.62,pos.z()),0,0,slot,item,flight,false,manual,alive,targets,List.of(new PestIdentity.Vacuum(3,TOOL,10)),complete);}
-  public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,long time){prepares++;if(throwPrepare)throw new IllegalStateException("native prepare failure");slot=3;item=TOOL;return accepted;}
+  public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,int radius,long time){check(radius>=16&&radius<=96,"validated radius reaches native preparation");prepares++;if(throwPrepare)throw new IllegalStateException("native prepare failure");slot=3;item=TOOL;return accepted;}
   public PestTask.Motion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long time){moves++;pos=goal;return accepted?PestTask.Motion.ARRIVED:PestTask.Motion.BLOCKED;}
   public PestTask.Capture capture(AutomationSession.Handle h,PestTargets.Target t,PestIdentity.Vacuum tool,long time){uses++;if(throwCapture)throw new IllegalStateException("native use failure");return accepted?PestTask.Capture.USING:PestTask.Capture.REJECTED;}
   public void release(AutomationSession.Handle h){releases++;}
@@ -43,6 +43,13 @@ public final class PestTaskTest {
   h=new Harness();h.start(0);h.f.throwCapture=true;h.task.tick(S);check(h.task.state()==PestTask.State.FAILED&&!h.session.active()&&h.f.stops==1,"native use exception cannot escape with held input/session");
   h=new Harness();h.start(0);h.f.complete=false;h.task.tick(S);check(!h.task.active()&&h.f.uses==0,"unknown Tab/native frame is not empty successful Garden");
   h=new Harness();h.start(0);h.f.ctx=new AutomationContext(1,false,true,Set.of());h.task.tick(S);check(!h.task.active()&&h.f.uses==0,"manually disarmed Farming cannot be captured by a stale hold");
+  h=new Harness();h.f.targets=List.of();check(h.task.request(PestPolicy.defaults().withSweep(true),true,0),"explicit sweep authorization may start with known global pests but no loaded target");
+  for(int step=0;step<24&&h.task.active();step++)h.task.tick(step*S);
+  check(h.task.state()==PestTask.State.INCOMPLETE&&h.f.moves==5&&h.f.restores==1&&h.f.stops==1&&h.task.confirmedDecreases()==0,"four bounded scan points then return safely, no fake clear/resume when global pests remain");
+  h=new Harness();h.f.targets=List.of();check(h.task.request(PestPolicy.defaults().withSweep(true),true,0),"sweep discovery fixture");h.task.tick(0);h.task.tick(S);h.task.tick(2*S);
+  var found=new PestTargets.Target(TARGET.id(),TARGET.uuid(),TARGET.kind(),new PestTargets.Point(h.f.pos.x()+1,h.f.pos.y()+1,h.f.pos.z()),TARGET.markerId());h.f.targets=List.of(found);int beforeDiscovery=h.f.releases;h.task.tick(3*S);check(h.f.releases>beforeDiscovery,"target discovery releases old sweep keys immediately");h.task.tick(4*S);check(h.f.uses==1&&h.task.active(),"newly loaded target interrupts scan and enters normal guarded capture");h.task.cancel(5*S);
+  h=new Harness();h.f.targets=List.of();check(h.task.request(PestPolicy.defaults().withSweep(true),true,0),"manual sweep cancel fixture");h.task.tick(0);h.task.tick(S);h.f.manual=true;h.task.tick(2*S);check(!h.task.active()&&h.f.moves==0&&h.f.restores==0,"manual input cancels scanning before movement or user pose restoration");
+  h=new Harness();h.f.targets=List.of();check(h.task.request(PestPolicy.defaults().withSweep(true),true,0),"conflicting sweep count fixture");h.task.tick(0);h.task.tick(S);h.task.tick(2*S);h.f.targets=List.of(TARGET);h.f.alive=0;h.task.tick(3*S);h.task.tick(4*S);check(h.task.state()==PestTask.State.SEEKING&&h.f.uses==0,"zero count with surviving target cannot resume Farming or use an unrelated vacuum");h.task.tick(9*S);check(h.task.state()==PestTask.State.FAILED&&h.f.stops==1,"conflicting zero count/target view bounded and no fake successful return");
   System.out.println("PestTaskTest: PASS (server-granted flight, typed exact tool, paired count/departure proof, bounded capture, return-before-resume, manual/world/focus/slot/revocation guards)");
  }
 }

@@ -161,3 +161,13 @@ Auto Sell 清理切片專案端完整 test/build/UI/migration/headless native fi
 本輪 staging 完整 `test.sh`（含新核心／service／尋路／轉向與原有回歸）、build、UI model／聊天室樣式、migration、headless native fixtures 全部 PASS。獨立26.2客戶端 `kuanperion-ui-smoke-pest-core` 於22:08:43 `UI_SMOKE_PASS`，含新的 Pest 真實設定 callbacks、獨立通知／自動化旗標、外部保存、離線拒絕，並驗證 receipt、inventory input 及 camera 三個 Mixin 實際套用。此輪為 chatOnly 初始化／callbacks 檢查，不冒稱重跑完整38-state動態 resize／hover。其 production JAR 與最終 staging 逐 entry 相等（327個檔案），無 Test／UiSmoke／Trace 類別；正式2.0.17 checksum 未變。
 
 測試過程保留真實失敗：一次廣泛文字替換把 movement precheck 放到舊 recovery method，導致原測試編譯失敗，已縮回唯一 START movement hook，原 recovery 行為恢復通過；慣性 fixture 最初錯把水平阻尼同用於垂直，查 pinned26.2 `Player.travel` 的飛行 Y 阻尼為0.6後修正 fixture，12種水平參數的定性收斂檢查通過，不把這個簡化數學模型當作實際飛行測試。專案同步／重建證據待後續補記。
+
+Pest 核心同步後，專案端完整 test/build/UI/migration/headless native 全數 PASS；專案重建與已通過獨立客戶端的 frozen production JAR 327 entries 相等。`06d7179` 已推送 feature/2.1.0，正式2.0.17與 main/tag 未變。這是中途備份，不作為停止點；繼續下一個實際搜尋切片。
+
+## Pest 有界範圍搜尋（獨立選項）
+
+- 新增明確 opt-in 的四點搜尋，缺省／舊檔均為 false；通知或既有 Pest 主開關不默默授權更廣的搜尋。設定布林採嚴格驗證，型別錯誤不當成 true。仍只在 Garden 既有飛行權限內使用同一原生控制器，不加傳送或位置／速度寫入。
+- 同一三維 FlightBounds 同時守住 A* 提案與實際每段完整 body-collision recheck；目標點在半徑內，未知 chunks 不當空氣。每點抵達後只短暫等待載入資訊，找到目標立即釋放舊搜尋輸入並交回吸捕流程；人工接管仍優先。
+- 四點耗盡時先返回、還原工具／視角及安全飛行狀態，再以 INCOMPLETE 停止 Farming／停用自動 Pest、等待操作，不宣稱清空。Tab 0 與仍存活目標矛盾時有界等待／失敗，不能偷放行 Farming。
+- TDD 缺失 policy／state／FlightBounds 先紅；實際重現「發現目標後仍留一 tick 舊搜尋鍵」與「搜尋中 Tab 0／存活目標矛盾仍進返回成功」紅燈後修正。四點／返回次數、發現中斷、人工取消、設定獨立保存／舊檔預設、三維 geofence 均有測試。
+- Staging 完整 test/build/UI/migration/headless native PASS；獨立26.2 `kuanperion-ui-smoke-pest-sweep` 22:33:24 UI_SMOKE_PASS，實際測試新增搜尋開關保存與原有通知／自動化獨立、原生 Mixin 與其他初始化 callbacks。仍為 chatOnly 模式，沒有 live 捕捉、沒有跨未載入地塊的傳送；完整38-state／live驗收仍在 release gate，未把此切片當作整個七階段完成。
