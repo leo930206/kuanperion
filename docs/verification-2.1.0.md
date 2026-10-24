@@ -41,3 +41,7 @@ TDD：先新增 service 測試確認缺少實作時失敗；再實作測試通�
 - 完整 36-state UI smoke PASS，另對後續 menu ownership 補強版本重跑初始化檢查；Trade 圖示人工檢視通過。完整紀錄保留於獨立 tmp game，不進正式遊戲。
 
 這仍是開發底層，不表示 Auto Sell／Junk 等工作流程已完成；下一階段才串接實際服務。
+
+## /warp garden 快捷鍵修正 — 2026-10-24
+
+原 /home 顯示名稱、實際 wire command 與本機聊天室提示已統一為 /warp garden；保留 key.kuanperion.home／hotkey.home.modifiers 儲存 ID、Shift+H 預設及既有自訂／清空設定。先確認新名稱／指令測試在舊碼失敗，再修正並通過 focused 快捷鍵測試、完整 test/build/UI/migration 及獨立離線初始化 smoke。未連線發送伺服器指令，未安裝／發佈開發版。

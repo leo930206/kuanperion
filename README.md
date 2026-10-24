@@ -51,9 +51,9 @@ Mining 選取方塊只新增，不會清空舊清單；每個新種類插在順�
 - 六個快捷鍵右側都有「清空／重設」；清空保存為 `Not Bound` 並移除修飾鍵，重設恢復各自預設值。
 - Farming／Mining 各有獨立、預設關閉的執行中靜音開關；只過濾執行時聲音增益，不改 Minecraft 音量偏好，停止或離開世界恢復原設定（含原本的靜音）。
 - Farming「一段時間都沒動偵測」獨立於異常狀況處理，預設五秒，可輸入正小數。持續非預期停滯到時先關閉 Farming，再發一次 Discord 通知；未設定 Webhook 仍會停止，不會自動重啟。正常選單暫停、錯誤工具與預定等待不累積計時。
-- `/sethome`、`/home`、`/barn` 快捷鍵預設分別為 Shift+S、Shift+H、Shift+B，支援組合鍵；只在遊戲世界、無選單且視窗聚焦時觸發，一次按下只發一次。
+- `/sethome`、`/warp garden`、`/barn` 快捷鍵預設分別為 Shift+S、Shift+H、Shift+B，支援組合鍵；只在遊戲世界、無選單且視窗聚焦時觸發，一次按下只發一次。
 - 啟用異常狀況處理並已設定 Webhook 時，自動回到 Garden 後通知原本被傳送到的地點；只發一次，Farming 仍保持關閉等待操作。
-- 聊天前綴括號為灰色，名稱改為較鮮明的天空藍→白→粉紅漸層，皆不加粗。快捷鍵送出 `/sethome`、`/home`、`/barn` 後會回報「已發送」；Jerry 自動 `/sethome` 與 Jerry 聊天室通知合併同一行，未開聊天室通知則獨立回報。
+- 聊天前綴括號為灰色，名稱改為較鮮明的天空藍→白→粉紅漸層，皆不加粗。快捷鍵送出 `/sethome`、`/warp garden`、`/barn` 後會回報「已發送」；Jerry 自動 `/sethome` 與 Jerry 聊天室通知合併同一行，未開聊天室通知則獨立回報。
 
 專案目前位於 `/Users/kuan/projects/kuanperion`；GitHub：[leo930206/kuanperion](https://github.com/leo930206/kuanperion)。本分支已開始 2.1.0 分階段移植，尚未完成整版驗收。
 

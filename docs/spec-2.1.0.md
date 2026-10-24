@@ -52,3 +52,7 @@ Code style: small deterministic state machines, client-thread effects through ty
 ## Definition of complete
 
 All seven phases in tasks/todo-2.1.0.md are functional, wired to the requested pages, tested with failure/cancel/timeout paths and existing regressions green. Notifications and automation independent; no forbidden runtime integration; retained settings; protected inventory/spend limits; version/README/changelog truthfully match. Only then tag/install 2.1.0 and advance main. Until then publish honest checkpoints on feature/2.1.0, retaining 2.0.16 as the playable version.
+
+## User amendment — 2026-10-24
+
+The former /home shortcut must display /warp garden, send the exact command `warp garden`, and report `已發送 /warp garden。` in local chat. Keep key.kuanperion.home and hotkey.home.modifiers as persistence IDs so existing custom/cleared bindings survive. Shift+H remains the default. Do not rewrite historical changelogs.

@@ -453,7 +453,7 @@ public final class UiSmoke implements ClientModInitializer {
         var home=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(4);
         var sethome=(dev.kuan.kuanperion.ui.settings.KeybindSetting)keys.get(3);
         ui.beginKeybindCapture(home);ui.keyPressed(new net.minecraft.client.input.KeyEvent(341,0,2));ui.keyPressed(new net.minecraft.client.input.KeyEvent(72,0,2));
-        if(home.getModifiers()!=2 || !home.getBoundKeyName().equals("Ctrl + H"))throw new AssertionError("home chord capture failed");
+        if(!home.getName().equals("/warp garden")||home.getModifiers()!=2 || !home.getBoundKeyName().equals("Ctrl + H"))throw new AssertionError("home chord capture failed");
         sethome.setBoundKey(com.mojang.blaze3d.platform.InputConstants.getKey("key.keyboard.h"),2);
         if(!sethome.isDefault())throw new AssertionError("duplicate home/sethome chord accepted");
         home.resetToDefault();
