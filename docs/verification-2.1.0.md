@@ -137,3 +137,13 @@ Book 協定專案端完整 test/build/UI/migration PASS；staging 與專案重�
 新 `python3 scripts/test-native-observations.py` 在 build 後可用 pinned26.2 vanilla Bootstrap + Holder.direct fixtures 無視窗重跑完整 NBT／Book／Pest 資料投影，無 client／帳號／連線／GPU／遊戲設定／資源下載。此路徑不聲稱 Mixin 套用；原有獨立 client smoke 仍保留兩項原生 Mixin 斷言。skinPatch 案例 headless 真紅後綠，native fixtures、focused pure suite PASS。舊 GUI 初始化仍為前述已通過版本，最終 client/payload 證據另行標示，不混用。
 
 Pest 切片專案端完整 test/build/UI/migration 與新增 headless native fixtures 全數 PASS。專案重建與 frozen staging production JAR 逐 entry 相等，92 個 UI class 與 Junk38-state 通過版相同，沒有測試／trace 類別。最終 skinPatch 補強以無視窗真實26.2 fixtures 驗證，沒有把先前 client PASS 冒稱最後修改後已重新實跑完整 GUI；live Pest 捕捉及 phase7 runtime release matrix 仍待完成。正式2.0.17 checksum 未變。
+
+
+## NPC Auto Sell 清理／例外與失焦補強
+
+- Review 後以測試實際重現「close 未關閉仍報 COMPLETE／恢復 Farming」、「native command 例外逃出 tick 且 hold 未釋放」、「同標題／container 但 malformed shape 仍被關閉」、「失焦仍完成／關選單」紅燈。
+- 完成前重新驗證 world／container／精確 Cookie contract 及 chest+36 slot shape；只有仍擁有的原選單可關閉。未能關閉或 native close 例外均 FAILED，finally 釋放 lease／hold 並安全停止原 Farming；session.finish 失敗不能假報完成。未知／手動接管的 GUI 不關掉。
+- native tick 例外封閉成 FAILED，不冒充無風險成功或繼續點擊。FOCUS 短暫缺失時延後動作、完成與恢復；期限仍有界，不無限持有 Farming。未新增指令／出售權限／UI／持久化旗標，不修改穩定2.0.17。
+- 新測試亦覆蓋 close 丟例外、同 container 未知 title 及 focus 恢復；focused pure 與 native wiring guard PASS。舊 source shape assertion 因安全條件移到 owns 判斷而確實失敗，改為更嚴格檢查 world／contract／container／close result／finally，不藉此移除保護。完整專案回歸與 artifact 比對待補記。
+
+Auto Sell 清理切片專案端完整 test/build/UI/migration/headless native fixtures PASS；最終 staging 重建與專案 JAR 逐 entry 相等。與前一 Pest 檢查點比對，production payload 唯一變更為 AutoSellTask.class；92 個 UI classes／資源／其他舊功能 bytecode 不變，無測試／trace classes。正式2.0.17 checksum 未變，main／已安裝設定未修改。未登入 Hypixel、未宣稱當前 NPC live 出售已驗收，整個2.1.0仍未完成。

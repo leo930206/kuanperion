@@ -11,5 +11,8 @@ assert 'AutomationModuleSettings.trade(automation.stash(),automation.autoSell(),
 assert 'rules.permits(ticket.observed().item(ticket.slot()))' in a and 'finally{ownedInput=false;}' in a
 assert 'if(!AutomationMenuActions.ownsInventoryInput())' in m and 'at=@At("HEAD")' in m and 'cancellable' not in m
 assert 'AutomationInventoryInputMixin' in json.loads((r/'src/main/resources/kuanperion.mixins.json').read_text())['client']
-assert 'session.isCurrent(handle))port.closeOwnedMenu' in (src/'automation/AutoSellTask.java').read_text()
+task=(src/'automation/AutoSellTask.java').read_text()
+assert 'session.isCurrent(handle)' in task and 'COOKIE.matches(visible)' in task
+assert 'visible.worldId()==world' in task and 'visible.containerId()==ownedContainer' in task
+assert 'if(port.menu()!=null)state=State.FAILED;' in task and 'finally{boolean completed=session.finish' in task
 print('AutoSellWiringTest: PASS (real service/menu command/typed protected actions, manual-input priority without swallowing user input, no stale GUI close)')

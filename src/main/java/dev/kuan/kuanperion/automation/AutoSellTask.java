@@ -25,10 +25,12 @@ public final class AutoSellTask {
   this.policy=policy;handle=next;world=context.worldId();started=lastAction=now;soldStacks=soldItems=0;pending=null;ownedContainer=-1;state=State.OPENING;
   session.expectMenu(handle,COOKIE,port::menu);return true;
  }
- public void tick(long now){
+ public void tick(long now){if(!active())return;try{runTick(now);}catch(RuntimeException failure){finish(State.FAILED,now);}}
+ private void runTick(long now){
   if(!active())return;var context=port.context();
   if(!session.isCurrent(handle)||context.worldId()!=world||context.hardBlocked()){finish(State.CANCELLED,now);return;}
   if(now-started<0||now-started>=policy.timeoutSeconds()*SECOND){finish(State.TIMED_OUT,now);return;}
+  if(context.blockers().contains(AutomationContext.Blocker.FOCUS))return;
   if(state==State.OPENING){if(!AutomationSession.forFeature(context,AutomationFeature.AUTO_SELL).canIssueCommand())return;
    if(!port.command(handle,AutomationCommand.BOOSTER_COOKIE)){finish(State.FAILED,now);return;}state=State.WAITING_MENU;lastAction=now;return;}
   var menu=port.menu();if(menu==null){if(ownedContainer>=0)finish(State.CANCELLED,now);return;}
@@ -51,8 +53,12 @@ public final class AutoSellTask {
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
  private void finish(State terminal,long now){
   state=terminal;
-  // Only our own still-visible container may be closed. Adapter rechecks its identity.
-  if(ownedContainer>=0&&session.isCurrent(handle))port.closeOwnedMenu(ownedContainer);
-  session.finish(handle,terminal==State.COMPLETE,now);handle=null;pending=null;ownedContainer=-1;
+  try{
+   var visible=port.menu();
+   boolean owns=ownedContainer>=0&&session.isCurrent(handle)&&visible!=null&&visible.worldId()==world&&visible.containerId()==ownedContainer&&COOKIE.matches(visible)&&visible.slots().size()==visible.containerSlots()+36;
+   if(owns){port.closeOwnedMenu(ownedContainer);if(port.menu()!=null)state=State.FAILED;}
+   else if(state==State.COMPLETE)state=State.FAILED;
+  }catch(RuntimeException failure){state=State.FAILED;}
+  finally{boolean completed=session.finish(handle,state==State.COMPLETE,now);if(state==State.COMPLETE&&!completed)state=State.FAILED;handle=null;pending=null;ownedContainer=-1;}
  }
 }
