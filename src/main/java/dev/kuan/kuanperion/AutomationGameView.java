@@ -58,6 +58,11 @@ public final class AutomationGameView {
   var inv=mc.player.getInventory();for(int i=0;i<inv.getContainerSize();i++)result.add(new InventorySlot(i,item(inv.getItem(i),i<9||i>=36)));
   return List.copyOf(result);
  }
+ /** Only the player's vanilla inventory, including protected offhand; never a server lookalike. */
+ public static MenuSnapshot junkMenu(Minecraft mc,long world){
+  if(mc==null||mc.player==null||!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)||mc.player.containerMenu!=mc.player.inventoryMenu)return null;
+  var menu=menu(mc,world);return menu!=null&&menu.containerId()==0&&menu.containerSlots()==9&&menu.slots().size()==46?menu:null;
+ }
  public static MenuSnapshot menu(Minecraft mc,long world){
   if(mc==null||mc.player==null||world<=0||!(mc.gui.screen() instanceof AbstractContainerScreen<?> screen))return null;
   var menu=screen.getMenu();if(menu!=mc.player.containerMenu)return null;

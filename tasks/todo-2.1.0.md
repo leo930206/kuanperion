@@ -25,7 +25,7 @@
 - [x] Book Combine exact preflight: authorized equal-level/single-enchantment pairs, protected identity and preserved result metadata; native26.2 NBT fixtures (no anvil actions yet).
 - [ ] Book Combine actual anvil flow, input/result receipts, XP/coin bounds, settings/service/UI and cancellation cleanup.
 - [ ] Pet Sell eligibility/confirmation/protection and menu flow.
-- [ ] Junk exact allowlist/protection/location/drop limits and cancellation.
+- [x] Junk native inventory disposal at an explicitly authorized Garden point: exact allowlist/protection, server receipts, limits/cancellation, per-world reconfirmation, independent settings/UI; offline tests/full38-state runtime verified, live drop not yet validated.
 
 ## 3/4 — Pest
 - [ ] Observation/threshold/tool/target/movement/vacuum core -> return.

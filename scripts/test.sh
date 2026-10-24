@@ -67,3 +67,5 @@ python3 "$ROOT/scripts/test-farming-handoff-wiring.py"
 python3 "$ROOT/scripts/test-auto-sell-wiring.py"
 
 python3 "$ROOT/scripts/test-market-boundaries.py"
+
+python3 "$ROOT/scripts/test-junk-wiring.py"

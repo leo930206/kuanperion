@@ -51,7 +51,7 @@ Code style: small deterministic state machines, client-thread effects through ty
 
 ## Definition of complete
 
-All seven phases in tasks/todo-2.1.0.md are functional, wired to the requested pages, tested with failure/cancel/timeout paths and existing regressions green. Notifications and automation independent; no forbidden runtime integration; retained settings; protected inventory/spend limits; version/README/changelog truthfully match. Only then tag/install 2.1.0 and advance main. Until then publish honest checkpoints on feature/2.1.0, retaining 2.0.16 as the playable version.
+All seven phases in tasks/todo-2.1.0.md are functional, wired to the requested pages, tested with failure/cancel/timeout paths and existing regressions green. Notifications and automation independent; no forbidden runtime integration; retained settings; protected inventory/spend limits; version/README/changelog truthfully match. Only then tag/install 2.1.0 and advance main. Until then publish honest checkpoints on feature/2.1.0, retaining stable 2.0.17 as the playable version.
 
 ## User amendment — 2026-10-24
 

@@ -2,6 +2,8 @@
 
 ## 2.1.0 — 開發中（未發佈）
 
+- Trade 新增指定 Garden 位置的 Junk 工作流程：精確白名單與保護、46-slot 原生背包驗證、單疊 server-only 回條與上限、世界重新授權、失敗停用；不自行導航，不把 offline 測試當作 live 驗收。
+
 - 原 `/home` 快捷鍵名稱、實際發送與聊天室回報統一改為 `/warp garden`；預設 Shift+G，保留內部鍵 ID 與既有自訂／清空綁定。
 
 - 新增隔離的自動化設定、安全執行權限、世界／原有任務守門與有界 Stash 工作流程。
@@ -9,7 +11,7 @@
 - Trade 側欄改為與 Farming／Mining 相同 2px 圓角描邊的交換箭頭圖示。
 - Trade 側欄位於 Mining 和 Other 之間，目前只暴露已接線的 Stash，提供自動／手動領取、取消、間隔／次數／逾時與執行狀態。
 - 不更動原有通知、Farming／Mining 操作或既有設定位置；新自動化預設關閉。
-- 完整 Pest／Visitor／Greenhouse／Composter／其餘 Trade／Supercraft 尚未完成；不標記發佈、不安裝開發 JAR，正式遊戲保留 2.0.16。
+- 完整 Pest／Visitor／Greenhouse／Composter／其餘 Trade／Supercraft 尚未完成；不標記發佈、不安裝開發 JAR，正式遊戲使用獨立穩定版 2.0.17。
 
 ## 2.0.17 — 2026-10-24
 

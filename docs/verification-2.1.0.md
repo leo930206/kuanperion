@@ -90,3 +90,21 @@ Book preflight 專案端完整 test/build/UI/migration 均通過；重建 JAR �
 - 啟用工具偵測時，開始辨識作物後先保留正確手持工具，否則只搜尋快捷列 0..8；找到即選用，找不到才原有錯誤／停止。執行中手動換錯工具仍暫停等待換回。
 - TDD 先紅後綠：缺少 selector、舊 KEY_H；focused 生產方法測試涵蓋全部 13 種 block ID × 9 格、正確手持、主背包不取用、無匹配不切換、南瓜／西瓜、修飾名稱與 runtime pause 接線。第一次 focused shortcut 執行漏傳 JDK 參數屬測試呼叫錯誤，補參數後通過。
 - 暫存版完整 test/build/UI/migration PASS；獨立 26.2 初始化 smoke PASS（含新預設／重設／衝突／自訂保存與既有原生 fixtures）。不冒稱 live 伺服器收成已驗證，完整大升級仍未完成。
+
+## Junk 指定 Garden 位置丟棄流程（開發版，未安裝）
+
+- 預設關閉、空 ID 白名單、無丟棄位置。只在使用者記錄的 Garden 座標半徑內工作，不自行導航／傳送；重啟或換世界後不從舊位置與啟用旗標重播丟棄，需重新記錄位置、在該位置明確啟用，或手動確認。世界授權不保存。
+- 只開啟玩家原生 InventoryScreen / inventoryMenu / container0，辨識完整 46 slots（含 offhand45）；只授權主背包 slots9..35，排除快捷列、裝備、副手、工具、綁定／鎖定／收藏及保護 UUID。Native THROW 仍使用既有 protected inventory action gate 與手動輸入優先 Mixin。
+- 一次一疊並等待新的 server-only window0 同 slot 移出回條；本機預測／別的 slot 不計成功。不拆堆、不超過堆疊／數量／時間上限；不確定 native outcome、拒絕或逾時停下並持久停用自動 Junk。手動接管後不關使用者選單，不重新開啟 Farming。
+- 原有原子外部設定新增獨立 junk 區塊，保留深層未知 anchor 欄位；無效數字／座標、數值字串與限制不默默擴大丟棄授權。Trade 入口／獨立 enable、白名單、保護 UUID、位置、半徑、門檻／間隔／上下限、手動執行／停止／狀態均實際接線。
+- TDD：缺少 Policy/Task/Service/native wiring 先紅後綠；新增「舊 enabled 在新世界自動丟棄」濫用案例曾確實失敗，加入不持久化的世界授權後通過。位置／Garden／dimension、保護、46-slot offhand、滿背包、焦點、手動接管、堆疊／物品 cap、server-only 回條、外部寫入衝突、未知 anchor 欄位、失敗停用皆有回歸測試。
+- 第一輪 runtime smoke 因測試仍預期 Trade 只有 Auto Sell/Stash 而在 assertGroup 失敗，沒有視為通過；修正明確預期為 Auto Sell/Junk/Stash 並增加實際分組診斷。早期 pure inventory fixture 也已由45修為 pinned26.2 的46，包含副手；沒有把錯誤形狀發佈或安裝。
+- 完整 test/build/UI/migration 與最終獨立 runtime 結果，待實際執行完成後補記。沒有登入 Hypixel、沒有在正式遊戲丟棄任何物品；offline 證據不冒稱已驗收 live drop。
+
+Junk 新世界授權補強後，完整 pure/UI/model/migration 均通過。最終 runtime 首次進入 Farming 詳情後又出現預期外回到 Trade 概覽（phase1），與先前 phase33 的未明路由異常類似；保留 screenshots/failure.png 與 log，不重開目標頁掩蓋。正在用僅測試 JAR 的路由／輸入 trace 定位，未修改正式 UI 行為、未將此輪當作通過。
+
+後續合書查核：2026-10-24 讀取 https://wiki.hypixel.net/Anvil 已導到官方 Wiki 結束公告，不能作為當前 GUI 欄位證據。官方 2020 Enchanting 公告 https://hypixel.net/threads/skyblock-enchanting-mega-overhaul.3604521/ 描述書與書合併免經驗，與把書套用到裝備的費用不同；此歷史規則不能取代目前伺服器 preview/cost 驗證。舊上游 BookCombineManager 以名稱包含 anvil、固定 slot22 連點，缺少 preview／cost／server receipt，不原樣採用。
+
+Junk 最終診斷客戶端完整 38-state UI_SMOKE_PASS，含 UI_SMOKE_JUNK_PASS（實際 callbacks／獨立保存／離線拒絕／原生 slot 常數）與既有 fixtures／Mixin。人工檢視 35-trade、38-junk，入口與控制列無重疊。測試附加 trace 僅在獨立 ui-smoke.jar，不在 production JAR；這次沒有重現 phase1／舊 phase33 異常，不能宣稱已修復根因。Trace 中另觀察到兩次非 UiSmoke 呼叫的 KeyboardHandler 事件，但沒有證據能把前次失敗歸咎於它們。完整 pure/build/UI/migration PASS；專案端重建與 payload 比對後另補記。
+
+Junk 專案端 test/build/UI/migration 全數 PASS；重建 production JAR 與已通過 38-state 診斷客戶端的 production JAR 逐 entry 相等，未包含測試／trace class。正式安裝的 2.0.17 SHA-256 未變。這是 Junk 開發切片驗證，不是完整大升級或 live 伺服器驗收。

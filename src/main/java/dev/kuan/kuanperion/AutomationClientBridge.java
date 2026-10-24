@@ -14,7 +14,7 @@ public final class AutomationClientBridge {
  private final Supplier<LegacyState> legacy;private final Function<Minecraft,List<String>> sidebar;
  private final InventoryReceipts receipts=new InventoryReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
- private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
+ private final JunkService junk;private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
  private final StashService stash;private Object levelIdentity;private long worldGeneration;
  public AutomationClientBridge(Path configDir,Supplier<LegacyState> legacy,Function<Minecraft,List<String>> sidebar,Consumer<StashService.Notice> feedback,Runnable pauseFarm,Runnable safeStopFarm){
   this.legacy=legacy;this.sidebar=sidebar;
@@ -29,21 +29,34 @@ public final class AutomationClientBridge {
    public boolean sell(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection protection,long now){return session.isCurrent(handle)&&AutomationMenuActions.inventoryAction(coordinator,handle.lease(),contract,ticket,protection,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,AutomationClientBridge.this::observe,this::menu,now);}
    public void closeOwnedMenu(int id){var mc=Minecraft.getInstance();var menu=menu();if(mc.player!=null&&menu!=null&&menu.containerId()==id)mc.player.closeContainer();}
   },()->Minecraft.getInstance().gui.screen()==null,feedback);
+  junk=new JunkService(settings,session,receipts,new JunkTask.Port(){
+   public AutomationContext context(){return observe();}
+   public JunkPolicy.Location location(){var mc=Minecraft.getInstance();return mc.level==null||mc.player==null?null:new JunkPolicy.Location(mc.level.dimension().toString(),mc.player.getX(),mc.player.getY(),mc.player.getZ());}
+   public List<ItemSnapshot> inventory(){return AutomationGameView.inventory(Minecraft.getInstance()).stream().filter(s->s.index()<36).map(AutomationGameView.InventorySlot::item).toList();}
+   public MenuSnapshot menu(){return AutomationGameView.junkMenu(Minecraft.getInstance(),currentWorldId());}
+   public boolean open(AutomationSession.Handle handle){
+    var mc=Minecraft.getInstance();if(!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.JUNK||!AutomationSession.forFeature(observe(),AutomationFeature.JUNK).canIssueCommand()||mc.player==null||mc.player.containerMenu!=mc.player.inventoryMenu||!mc.player.containerMenu.getCarried().isEmpty())return false;
+    mc.setScreenAndShow(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));return menu()!=null;
+   }
+   public boolean drop(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection rules,long now){return session.isCurrent(handle)&&handle.lease().owner()==AutomationFeature.JUNK&&AutomationMenuActions.inventoryAction(coordinator,handle.lease(),contract,ticket,rules,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,AutomationClientBridge.this::observe,this::menu,now);}
+   public void closeOwnedMenu(int id){var mc=Minecraft.getInstance();var menu=menu();if(mc.player!=null&&menu!=null&&menu.containerId()==id)mc.player.closeContainer();}
+  },()->Minecraft.getInstance().gui.screen()==null,feedback);
  }
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}
- public void tick(){long now=System.nanoTime();stash.tick(now);autoSell.tick(now);}
+ public JunkService junk(){return junk;}
+ public void tick(){long now=System.nanoTime();stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
  public InventoryReceipts receipts(){return receipts;}
  public void serverSlot(int container,int slot,net.minecraft.world.item.ItemStack stack){if(!session.active())return;receipts.observe(currentWorldId(),container,slot,AutomationGameView.item(stack,false));}
  public AutomationSession session(){return session;}
  public AutomationCoordinator coordinator(){return coordinator;}
  public boolean holdsFarming(){return session.holdsFarming();}
- public void invalidateFarmSession(){session.invalidate();autoSell.cancel(System.nanoTime());}
+ public void invalidateFarmSession(){session.invalidate();autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();session.cancel(System.nanoTime());}
  public void onManualInventoryInput(){session.cancel(System.nanoTime());}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();autoSell.cancel(System.nanoTime());receipts.clear();}
+ public void worldChanged(){stash.cancel("切換世界");session.invalidate();autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);
