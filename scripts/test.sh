@@ -77,3 +77,5 @@ python3 "$ROOT/scripts/test-pest-travel-wiring.py"
 python3 "$ROOT/scripts/test-cursor-boundaries.py"
 
 python3 "$ROOT/scripts/test-greenhouse-boundaries.py"
+
+python3 "$ROOT/scripts/test-flight-core.py"

@@ -21,15 +21,17 @@ assert all(item['category']=='VACUUM' for item in catalog['items'])
 authorized=set(re.findall(r'"([A-Z_]+)"',identity.split('Set<String> VACUUMS=Set.of(',1)[1].split(');',1)[0]))
 assert authorized=={item['id'] for item in catalog['items']}
 driver=(main/'PestFlightController.java').read_text()
+core=(main/'GardenFlightCore.java').read_text()
+movement=driver+'\n'+core
 bridge=(main/'AutomationClientBridge.java').read_text()
 client=(main/'KuanperionClient.java').read_text()
 for forbidden in ['.setPos(','.setDeltaMovement(','.noPhysics','setFlyingSpeed','mayfly=','mayfly =','HttpClient','sendCommand(']:
-    assert forbidden not in strip(driver),forbidden
-assert 'session.isCurrent(h)' in driver and 'coordinator.permits(' in driver and 'manualInput()' in driver
-assert 'getAbilities().mayfly' in driver and 'hasChunkAt(' in driver and 'noCollision(p,swept)' in driver
+    assert forbidden not in strip(movement),forbidden
+assert 'session.isCurrent(h)' in driver and 'coordinator.permits(' in core and 'manualInput()' in driver
+assert 'getAbilities().mayfly' in core and 'hasChunkAt(' in core and 'noCollision(p,swept)' in core
 assert 'mc.gameMode.useItem(p,InteractionHand.MAIN_HAND)' in driver and '250_000_000L' in driver
-assert 'bounds=new PestFlightBounds(anchor.position(),radius)' in driver and '!bounds.permits(from,to)' in driver
-assert 'public void dispose(' in driver and 'physical(key,false)' in driver
+assert 'bounds=new PestFlightBounds(anchor.position(),radius)' in core and '!bounds.permits(from,to)' in core
+assert 'public void dispose(' in driver and 'physical(key,false)' in core
 assert 'pest.tick(now)' in bridge and 'pest.cancel(System.nanoTime())' in bridge
 assert 'beforeMovementTick()' in client and 'PestModuleSettings.tab(' in client
 assert '啟用 Pest 通知' in client and '()->pestNotificationEnabled' in client

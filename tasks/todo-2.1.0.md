@@ -43,6 +43,7 @@
 
 ## 5 — farm maintenance
 - [x] Greenhouse read-only exact crop identities, bounded no-load native discovery, typed entity/block targets and watched server-applied harvest update receipts; no local prediction proof or unfinished toggle.
+- [x] Shared fixed-owner legal-flight primitive extracted without widening Pest/Garden authority; original Pest vacuum/return facade behavior and method bodies verified.
 - [ ] Greenhouse configured plots/tools/targets executable harvest -> return, native flight integration and live validation.
 - [ ] Composter inspect/source/purchase/fill -> return.
 
