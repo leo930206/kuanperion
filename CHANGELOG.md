@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Supercraft 開發前置：精確數量／材料授權與單次伺服器收件驗證；不使用最大化合成、不因選單預覽或本機預測判定成功。尚未加入可執行的合成入口，選單／配方／費用格式仍待接線驗證。
 - Farming 的 Visitor 已合併原通知入口：明確白名單／估價授權、匿名需求查詢、驗證 Barn 抵達及 NPC 雙重身分、單次提交背包材料、伺服器三重回條與原位返回；預設關閉，缺料只略過，不自動購料。已納入 Jerry 七服務停止矩陣；連服驗收與購料仍待完成。
 - Pest trap release now distinguishes an actual delayed server menu close from manual/local disappearance, retaining the original Farming hold only for a scoped applied-close receipt.
 - Visitor discovery dependency: complete bounded Tab queues and exact hologram/NPC dual identities, with listed-player/duplicate/ambiguous-nearest rejection and loaded-only native snapshots; now used by the inventory-backed Visitor task.
