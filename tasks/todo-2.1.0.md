@@ -35,7 +35,8 @@
 - [x] Pest explicit opt-in strict-Tab plot travel, server absolute-position quorum before flight, per-run visit bound and original-plot/segmented exact-anchor return (offline verified).
 - [ ] Complete Garden search/cleanup behavior and current server formats; validate actual server flight/capture/return behavior before release.
 - [x] Pest UI rename/merge, independent automation and original notifications.
-- [ ] Trap cleanup/bait replenishment.
+- [x] Explicit opt-in loaded full-trap release -> normal Pest capture -> exact return under one original Farm hold; strict Tab/marker/menu/proof and manual/cursor safety, offline verified.
+- [ ] Unloaded trap destination/travel, bait replenishment and current live trap formats.
 - [ ] Exchange/spray.
 - [ ] Event/crop strategies and due-task scheduling.
 

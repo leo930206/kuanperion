@@ -20,6 +20,7 @@ public final class AutomationSession {
   return active;
  }
  public void cancel(long now){finish(active,false,now);}
+ public void clearExpectedMenu(Handle handle){if(!isCurrent(handle))return;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;}
  public void expectMenu(Handle handle,MenuContract contract,Supplier<MenuSnapshot> menus){
   if(handle==null||!handle.equals(active))throw new IllegalStateException("Not current task");this.expectedMenu=contract;this.menus=menus;claimedContainer=-1;transition=null;
  }

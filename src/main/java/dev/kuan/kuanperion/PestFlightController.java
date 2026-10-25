@@ -21,6 +21,7 @@ public final class PestFlightController implements PestTask.Port {
  private final Travel travel;
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;
  private AutomationSession.Handle owner;private Object ownedLevel;private final Set<KeyMapping> pressed=new HashSet<>();
+ private PestGameView.Snapshot latestFacts;private PestIdentity.Vacuum preparedTool;
  private PestFlightBounds bounds;private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
  private long plannedAt,lastProgress,lastUse;private boolean used;
  public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this(coordinator,session,observe,(h,p,n)->false);}
@@ -32,7 +33,7 @@ public final class PestFlightController implements PestTask.Port {
  private static PestTargets.Point point(Vec3 p){return new PestTargets.Point(p.x,p.y,p.z);}
  private static Vec3 vec(PestTargets.Point p){return new Vec3(p.x(),p.y(),p.z());}
  public PestTask.Frame frame(long now){
-  var mc=mc();var context=context();var facts=PestGameView.read(mc,context,now);var p=mc.player;
+  var mc=mc();var context=context();var facts=PestGameView.read(mc,context,now);latestFacts=facts;var p=mc.player;
   var zero=new PestTargets.Point(0,0,0);var empty=new ItemSnapshot("","minecraft:air","","","",0,List.of(),true);
   if(p==null)return new PestTask.Frame(context.worldId(),now,zero,zero,0,0,-1,empty,false,false,true,-1,List.of(),List.of(),false);
   return new PestTask.Frame(facts.world(),facts.observedAt(),point(p.position()),point(p.getEyePosition()),p.getYRot(),p.getXRot(),p.getInventory().getSelectedSlot(),AutomationGameView.item(p.getMainHandItem(),true),p.getAbilities().mayfly,p.getAbilities().flying,manualInput(),facts.tab().alive(),facts.targets(),facts.vacuums(),facts.complete()).withPlots(facts.tab().plots(),facts.tab().plotsKnown());
@@ -57,17 +58,43 @@ public final class PestFlightController implements PestTask.Port {
  public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,int radius,long now){
   if(!allowed(h,now,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR))return false;
   var mc=mc();var p=mc.player;if(p.isPassenger()||p.isSleeping()||p.isUsingItem()||!PestIdentity.sameVacuum(tool,AutomationGameView.item(p.getInventory().getItem(tool.slot()),true)))return false;
-  owner=h;ownedLevel=mc.level;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;used=false;
+  owner=h;ownedLevel=mc.level;preparedTool=tool;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;used=false;
   p.getInventory().setSelectedSlot(tool.slot());
   if(!p.getAbilities().flying){p.getAbilities().flying=true;p.onUpdateAbilities();}
   return true;
+ }
+ public PestTrapRelease.Facts facts(long now){
+  var context=context();var facts=latestFacts;
+  if(facts==null||facts.world()!=context.worldId()||facts.observedAt()!=now)facts=PestGameView.read(mc(),context,now);
+  return new PestTrapRelease.Facts(facts.world(),facts.observedAt(),facts.tab().alive(),facts.traps(),facts.trapTargets(),facts.targets().stream().map(PestTargets.Target::uuid).collect(java.util.stream.Collectors.toUnmodifiableSet()));
+ }
+ public boolean cursorEmpty(){return mc().player!=null&&mc().player.containerMenu.getCarried().isEmpty();}
+ public MenuSnapshot menu(){return AutomationGameView.menu(mc(),context().worldId());}
+ public boolean release(AutomationSession.Handle h,MenuContract contract,MenuContract.Ticket ticket,long now){
+  return owner!=null&&owner.equals(h)&&session.isCurrent(h)&&h.lease().owner()==AutomationFeature.PEST&&AutomationMenuActions.click(coordinator,h.lease(),contract,ticket,GuardedMenuAction.Space.REQUIRE_FREE_SLOT,this::context,this::menu,now);
+ }
+ public void closeOwnedMenu(int id){
+  var mc=mc();var visible=menu();if(owner!=null&&session.isCurrent(owner)&&ownedLevel==mc.level&&visible!=null&&visible.worldId()==owner.lease().worldId()&&visible.containerId()==id&&mc.player!=null&&mc.player.containerMenu.getCarried().isEmpty())mc.player.closeContainer();
+ }
+ public PestTrapRelease.Open open(AutomationSession.Handle h,PestTrapTarget target,long now){
+  release(h);
+  if(target==null||!allowed(h,now,AutomationCoordinator.Resource.USE,AutomationCoordinator.Resource.LOOK)||owner==null||!owner.equals(h))return PestTrapRelease.Open.REJECTED;
+  var mc=mc();var p=mc.player;if(mc.gameMode==null||p.isSpectator()||p.containerMenu!=p.inventoryMenu||!p.containerMenu.getCarried().isEmpty()||preparedTool==null||!PestIdentity.sameVacuum(preparedTool,AutomationGameView.item(p.getMainHandItem(),true))||!clear(point(p.position()),point(p.position())))return PestTrapRelease.Open.REJECTED;
+  var entity=mc.level.getEntity(target.entityId());
+  if(!(entity instanceof net.minecraft.world.entity.decoration.ArmorStand stand)||stand.isRemoved()||!stand.hasCustomName()||!stand.getUUID().equals(target.uuid())||PestGameView.trapMarker(stand.getId(),stand.getUUID(),stand.getCustomName().getString(),stand.position().add(0,stand.getEyeHeight()-.5,0)).filter(target::equals).isEmpty())return PestTrapRelease.Open.REJECTED;
+  Vec3 eye=p.getEyePosition(),aim=vec(target.position());if(eye.distanceToSqr(aim)>2.75*2.75||!loaded(new AABB(eye,aim).inflate(.01))||mc.level.clip(new ClipContext(eye,aim,ClipContext.Block.COLLIDER,ClipContext.Fluid.ANY,p)).getType()!=HitResult.Type.MISS)return PestTrapRelease.Open.REJECTED;
+  double dx=aim.x-eye.x,dy=aim.y-eye.y,dz=aim.z-eye.z;float yaw=(float)Math.toDegrees(Math.atan2(-dx,dz)),pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.hypot(dx,dz)));
+  float nextYaw=PestSteering.rotate(p.getYRot(),yaw,12,true),nextPitch=PestSteering.rotate(p.getXRot(),pitch,12,false);p.setYRot(nextYaw);p.setXRot(nextPitch);
+  if(Math.abs(PestSteering.rotate(nextYaw,yaw,30,true)-nextYaw)>3||Math.abs(nextPitch-pitch)>3)return PestTrapRelease.Open.AIMING;
+  if(!allowed(h,now,AutomationCoordinator.Resource.USE))return PestTrapRelease.Open.REJECTED;
+  mc.gameMode.interact(p,stand,new EntityHitResult(stand,aim),InteractionHand.MAIN_HAND);return PestTrapRelease.Open.SENT;
  }
  public void dispose(AutomationSession.Handle h){
   if(h==null||owner==null||!owner.equals(h))return;
   release(h);
   // Legacy safe-stop may have cleared these after release; honor real physical input last.
   var mc=mc();if(mc.options!=null&&mc.getWindow()!=null)for(var key:List.of(mc.options.keyUp,mc.options.keyDown,mc.options.keyLeft,mc.options.keyRight,mc.options.keyJump,mc.options.keyShift))key.setDown(mc.gui.screen()==null&&physical(key,false));
-  owner=null;ownedLevel=null;bounds=null;search=null;searchGoal=null;route=List.of();
+  owner=null;ownedLevel=null;preparedTool=null;latestFacts=null;bounds=null;search=null;searchGoal=null;route=List.of();
  }
  private void keys(boolean forward,boolean back,boolean up,boolean down){
   var o=mc().options;set(o.keyUp,forward);set(o.keyDown,back);set(o.keyLeft,false);set(o.keyRight,false);set(o.keyJump,up);set(o.keyShift,down);

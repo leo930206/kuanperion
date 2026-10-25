@@ -49,7 +49,7 @@ public final class AutomationClientBridge {
   },()->Minecraft.getInstance().gui.screen()==null,feedback);
  }
  public PestService pest(){return pest;}
- public void beforeMovementTick(){if(pest.active()&&(!observe().canIssueCommand()||flight.manualInput()))pest.cancel(System.nanoTime());}
+ public void beforeMovementTick(){if(pest.active()&&(!observe().canIssueCommand()&&!pest.ownsMenu()||flight.manualInput()))pest.cancel(System.nanoTime());}
  public void onManualLook(){if(pest.active()&&Minecraft.getInstance().gui.screen()==null)pest.cancel(System.nanoTime());}
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}

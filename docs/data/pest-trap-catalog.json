@@ -1,0 +1,22 @@
+{
+  "source": "https://api.hypixel.net/v2/resources/skyblock/items",
+  "auditedCache": "2026-10-24",
+  "sha256": "adb76eae35cbce2f18f01b947f9d914967b36e53895adf615e39efbd9d2c4fe8",
+  "items": [
+    {
+      "id": "PEST_TRAP",
+      "name": "Pest Trap",
+      "material": "PAPER"
+    },
+    {
+      "id": "VERMIN_PEST_TRAP",
+      "name": "Vermin Trap",
+      "material": "PAPER"
+    },
+    {
+      "id": "MOUSE_PEST_TRAP",
+      "name": "Mouse Trap",
+      "material": "PAPER"
+    }
+  ]
+}

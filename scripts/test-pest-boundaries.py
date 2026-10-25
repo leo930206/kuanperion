@@ -35,3 +35,21 @@ assert 'beforeMovementTick()' in client and 'PestModuleSettings.tab(' in client
 assert '啟用 Pest 通知' in client and '()->pestNotificationEnabled' in client
 assert 'onManualAutomationLook' in (main/'mixin/EntityTurnMixin.java').read_text()
 print('PestBoundariesTest: PASS (read-only bounded observations, one leased legal-flight controller, no movement packets/velocity/teleport/network, physical priority, independent notification flag)')
+
+trap=(main/'automation/pest/PestTrapRelease.java').read_text()
+policy=(main/'automation/AutomationSettingsStore.java').read_text()
+session=(main/'automation/AutomationSession.java').read_text()
+assert 'mc.gameMode.interact(p,stand,new EntityHitResult(stand,aim),InteractionHand.MAIN_HAND)' in driver
+assert 'mc.player.containerMenu.getCarried().isEmpty()' in driver and 'PestTrapTarget.unique(traps)' in view
+assert 'GuardedMenuAction.Space.REQUIRE_FREE_SLOT,this::context,this::menu,now' in driver
+assert 'buttons.size()!=1' in trap and 'buttons.getFirst().index()' in trap and '!slot.playerInventory()' in trap
+assert 'facts.alive()>baseline' in trap and '!facts.traps().full().contains(target.trapId())' in trap
+assert 'terminal!=State.CANCELLED' in trap and 'session.clearExpectedMenu(handle)' in trap
+assert 'public void clearExpectedMenu(Handle handle){if(!isCurrent(handle))return;' in session
+assert '!observe().canIssueCommand()&&!pest.ownsMenu()' in bridge
+assert 'strictBoolean(s,"clearTraps",false)' in policy
+catalog=json.loads((root/'docs/data/pest-trap-catalog.json').read_text())
+assert catalog['source']=='https://api.hypixel.net/v2/resources/skyblock/items'
+assert {i['id'] for i in catalog['items']}=={'PEST_TRAP','MOUSE_PEST_TRAP','VERMIN_PEST_TRAP'}
+assert {i['name'] for i in catalog['items']}=={'Pest Trap','Mouse Trap','Vermin Trap'}
+print('PestTrapBoundariesTest: PASS (read-only catalog/Tab/marker facts; guarded native interaction, unique free role, owned MENU exception, release/count proof, manual takeover no close, opt-in persistence)')

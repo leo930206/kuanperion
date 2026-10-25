@@ -1,0 +1,30 @@
+package dev.kuan.kuanperion.automation.pest;
+import dev.kuan.kuanperion.automation.*;import java.util.*;
+public final class PestTrapReleaseTest {
+ static final long S=1_000_000_000L;static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ static final PestTrapTarget TARGET=PestTrapTarget.read(10,UUID.fromString("00000000-0000-0000-0000-000000000010"),"Pest Trap #1",new PestTargets.Point(1,72,3)).orElseThrow();
+ static ItemSnapshot button(String name){return new ItemSnapshot("","minecraft:lime_dye","",name,"button",1,List.of("Click to release!"),false);}
+ static MenuSnapshot menu(int id,String title,List<MenuSnapshot.Slot> special){var slots=new ArrayList<MenuSnapshot.Slot>();var empty=new ItemSnapshot("","minecraft:air","","","",0,List.of(),false);for(int i=0;i<45;i++)slots.add(new MenuSnapshot.Slot(i,empty,i>=9));for(var slot:special)slots.set(slot.index(),slot);return new MenuSnapshot(1,id,2,title,9,slots);}
+ static final class Fake implements PestTrapRelease.Port {
+  AutomationContext ctx=new AutomationContext(1,true,true,Set.of());MenuSnapshot menu;PestTrapObservation observation=PestTrapObservation.parse(List.of("Full Traps: #1"));Set<UUID> pestIds=Set.of();int alive=0,opens,clicks,closes;boolean accepted=true,cursorReady=true;
+  public boolean cursorEmpty(){return cursorReady;}public AutomationContext context(){return ctx;}public MenuSnapshot menu(){return menu;}public PestTrapRelease.Facts facts(long now){return new PestTrapRelease.Facts(1,now,alive,observation,List.of(TARGET),pestIds);}
+  public PestTrapRelease.Open open(AutomationSession.Handle h,PestTrapTarget target,long now){opens++;return accepted?PestTrapRelease.Open.SENT:PestTrapRelease.Open.REJECTED;}
+  public boolean release(AutomationSession.Handle h,MenuContract c,MenuContract.Ticket t,long now){clicks++;return accepted;}
+  public void closeOwnedMenu(int id){closes++;if(menu!=null&&menu.containerId()==id)menu=null;}
+ }
+ static final class H {Fake f=new Fake();AutomationSession session=new AutomationSession(new AutomationCoordinator(),f::context,()->{},()->{});AutomationSession.Handle h=session.begin(AutomationFeature.PEST,0,120*S);PestTrapRelease task=new PestTrapRelease(session,f);void start(){check(task.begin(h,TARGET,0),"full native trap request under existing Pest lease");task.tick(0);}}
+ public static void main(String[]args){
+  H h=new H();h.start();check(h.f.opens==1&&h.task.active(),"one interaction, no click before verified menu");h.f.menu=menu(3,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.task.tick(S);check(h.f.clicks==1,"exact unique external release button, no blind slot number");
+  h.f.observation=PestTrapObservation.parse(List.of("Full Traps: None"));h.task.tick(2*S);check(h.task.active(),"full label disappearing alone not released-pest proof");h.f.alive=1;h.task.tick(3*S);check(h.task.state()==PestTrapRelease.State.COMPLETE&&h.f.closes==1&&h.session.isCurrent(h.h),"full gone plus spawned count, close own menu but root lease/Farm hold survives");
+  h=new H();h.start();h.f.menu=menu(4,"Purchase Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.task.tick(S);check(h.f.clicks==0&&h.task.state()==PestTrapRelease.State.FAILED&&h.f.closes==0,"wrong title never clicked or closed");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests")),new MenuSnapshot.Slot(5,button("Release All Pests"))));h.task.tick(S);check(h.f.clicks==0&&h.task.state()==PestTrapRelease.State.FAILED,"ambiguous role cannot pick first");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(10,button("Release All Pests"),true)));h.task.tick(S);check(h.f.clicks==0,"player lookalike cannot be release button");
+  h=new H();h.start();h.task.tick(5*S);check(h.task.state()==PestTrapRelease.State.TIMED_OUT&&h.f.opens==1,"no repeated interact or indefinite menu wait");
+  h=new H();h.start();h.session.invalidate();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.task.tick(S);check(h.task.state()==PestTrapRelease.State.CANCELLED&&h.f.clicks==0&&h.f.closes==0,"stale task cannot click/close a new user's menu");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.task.tick(S);h.task.cancel();check(h.f.closes==0&&h.f.menu!=null,"manual takeover leaves the now-user-owned menu untouched");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.f.pestIds=Set.of(new UUID(0,70));h.task.tick(S);h.f.observation=PestTrapObservation.parse(List.of("Full Traps: None"));h.task.tick(2*S);check(h.task.active(),"pre-existing known Pest UUID does not prove release");h.f.pestIds=Set.of(new UUID(0,70),new UUID(0,71));h.task.tick(3*S);check(h.task.state()==PestTrapRelease.State.COMPLETE,"full gone plus new server-observed Pest identity confirms release even when Tab counter does not rise");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.f.observation=PestTrapObservation.parse(List.of("Full Traps: None"));h.task.tick(S);check(h.f.clicks==0&&h.task.state()==PestTrapRelease.State.FAILED,"trap status must still authorize release immediately before the click, not only at request time");
+  h=new H();h.start();h.f.menu=menu(4,"Pest Trap",List.of(new MenuSnapshot.Slot(4,button("Release All Pests"))));h.task.tick(S);h.f.observation=PestTrapObservation.parse(List.of("Full Traps: None"));h.f.alive=1;h.f.cursorReady=false;h.task.tick(2*S);check(h.task.active()&&h.f.closes==0,"wait for the server to clear a predicted button cursor; never close or click with a carried item");h.f.cursorReady=true;h.task.tick(3*S);check(h.task.state()==PestTrapRelease.State.COMPLETE&&h.f.closes==1,"only empty cursor permits owned close and progression");
+  System.out.println("PestTrapReleaseTest: PASS (root lease only, exact role/shape/title, full-departure plus new alive proof, owned cleanup, no guessed slots/retry/stale close)");
+ }
+}
