@@ -30,6 +30,8 @@ public final class FlightCoreGuardTest {
   t.session.invalidate();t.owner=null;t.feature=AutomationFeature.COMPOSTER;h=t.session.begin(AutomationFeature.COMPOSTER,12,120_000_000_000L);
   check(t.allowed(h,13,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR,AutomationCoordinator.Resource.SCREEN,AutomationCoordinator.Resource.ATTACK)&&!t.allowed(h,13,AutomationCoordinator.Resource.USE),"Composter receives only its declared machine/menu capabilities, not Pest vacuum use");
   t.feature=AutomationFeature.PEST;check(!t.allowed(h,14,AutomationCoordinator.Resource.MOVEMENT),"Composter lease cannot move through Pest driver");
+  t.session.invalidate();t.owner=null;t.feature=AutomationFeature.VISITOR;h=t.session.begin(AutomationFeature.VISITOR,15,120_000_000_000L);
+  check(t.allowed(h,16,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR,AutomationCoordinator.Resource.SCREEN,AutomationCoordinator.Resource.USE)&&!t.allowed(h,16,AutomationCoordinator.Resource.ATTACK),"Visitor can legally fly/interact but never inherits harvest/attack authority");t.feature=AutomationFeature.PEST;check(!t.allowed(h,17,AutomationCoordinator.Resource.MOVEMENT),"Visitor cannot borrow Pest driver");
   System.out.println("FlightCoreGuardTest: PASS (actual guard body; fixed feature/current lease/world/Garden/flight/thread/physical/blocker/resource isolation)");
  }
 }
@@ -41,7 +43,7 @@ with tempfile.TemporaryDirectory() as temp:
  subprocess.run([str(jdk/'java'),'-cp',temp+':'+str(gson),'dev.kuan.kuanperion.FlightCoreGuardTest'],check=True)
 code=re.sub(r'/\*.*?\*/|//[^\n]*','',s,flags=re.S)
 for forbidden in ['.sendCommand(','.useItem(','.attack(','.handleContainerInput(','.setPos(','.setDeltaMovement(','.noPhysics','mayfly=','mayfly =','HttpClient']:assert forbidden not in code,forbidden
-assert 'feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER' in code
+assert 'feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER&&feature!=AutomationFeature.VISITOR' in code
 assert '!bounds.permits(from,to)' in code and 'hasChunkAt(' in code and 'noCollision(p,swept)' in code
 facade=(m/'PestFlightController.java').read_text()
 for call in ['flight.move(h,goal,tolerance,now)','flight.release(h)','flight.dispose(h)','flight.restore(h,flightAnchor(anchor),now)']:assert call in facade,call

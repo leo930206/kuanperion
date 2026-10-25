@@ -94,3 +94,5 @@ python3 "$ROOT/scripts/test-visitor-boundaries.py"
 python3 "$ROOT/scripts/test-jerry-global-stop.py"
 
 python3 "$ROOT/scripts/test-trap-close-boundaries.py"
+
+python3 "$ROOT/scripts/test-visitor-data-demand.py"

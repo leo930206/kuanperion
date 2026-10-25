@@ -14,7 +14,7 @@ public final class PestPlotTravel {
  private final AutomationFeature feature;private final AutomationSession session;private final PlayerPositionReceipts receipts;private final Port port;
  private State state=State.IDLE;private AutomationSession.Handle handle;private PestPlot plot;private PlayerPositionReceipts.Stamp stamp;private long started;
  public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port){this(session,receipts,port,AutomationFeature.PEST);}
- public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port,AutomationFeature feature){if(feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER)throw new IllegalArgumentException("Unsupported Garden travel owner");this.feature=feature;this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.port=Objects.requireNonNull(port);}
+ public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port,AutomationFeature feature){if(feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER&&feature!=AutomationFeature.VISITOR)throw new IllegalArgumentException("Unsupported Garden travel owner");this.feature=feature;this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.port=Objects.requireNonNull(port);}
  public State state(){return state;}
  public boolean begin(AutomationSession.Handle handle,PestPlot plot,long now){
   if(state!=State.IDLE)return false;

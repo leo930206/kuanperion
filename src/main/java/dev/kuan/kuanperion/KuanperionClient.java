@@ -258,7 +258,7 @@ public final class KuanperionClient implements ClientModInitializer {
             for(var entry:oldKeys.entrySet())bindings.get(entry.getKey()).setKey(InputConstants.getKey(entry.getValue()));
             KeyMapping.resetMapping();
         }catch(java.io.IOException|IllegalArgumentException error){LOGGER.warn("Legacy keybinding migration skipped",error);}
-        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> dev.kuan.kuanperion.renderer.NanoVGManager.destroy());
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {automation.shutdown();dev.kuan.kuanperion.renderer.NanoVGManager.destroy();});
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> {
             SCREEN_NOTIFICATIONS.clear();
             automation.worldChanged();
@@ -2894,8 +2894,9 @@ public final class KuanperionClient implements ClientModInitializer {
         var pestNotifications=uiNotificationGroup(NotificationType.PESTS);
         pestNotifications.getSettings().add(0,new ToggleSetting("啟用 Pest 通知",()->pestNotificationEnabled,v->setUiNotificationEnabled(NotificationType.PESTS,v)));
         var pestTab=dev.kuan.kuanperion.ui.PestModuleSettings.tab(automation.pest(),pestNotifications);
-        var visitorTab=new ModulesTab.SubTab("Visitor 通知", "訪客達門檻時通知",()->visitorNotificationEnabled,
-            v->setUiNotificationEnabled(NotificationType.VISITORS,v),List.of(uiNotificationGroup(NotificationType.VISITORS)));
+        var visitorNotifications=uiNotificationGroup(NotificationType.VISITORS);
+        visitorNotifications.getSettings().add(0,new ToggleSetting("啟用 Visitor 通知",()->visitorNotificationEnabled,v->setUiNotificationEnabled(NotificationType.VISITORS,v)));
+        var visitorTab=dev.kuan.kuanperion.ui.VisitorModuleSettings.tab(automation.visitor(),visitorNotifications);
         var jerry=SettingGroup.alwaysOn("Jerry 偵測", "分別選擇顏色、停止動作與 Farming 光柱期限");
         var jerryChoices=new ArrayList<ToggleSetting>();
         for(JerryColor color:JerryColor.values()) jerryChoices.add(new ToggleSetting(color.label+" Jerry",()->jerryColors.contains(color),v->{

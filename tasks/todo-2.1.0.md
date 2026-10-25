@@ -54,16 +54,17 @@
 ## 6 — Visitor/Supercraft
 - [x] Shared official item catalog: bounded strict JSON, unambiguous exact names/IDs, demand-only anonymous transport/receipt-time cache; no startup consumer or remote author lookup.
 - [x] Visitor exact selected-title/semantic-role offer parsing, explicit material IDs, protected main-inventory deficits and full opportunity-cost estimates; native43-slot fixtures.
-- [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; no runtime caller yet.
+- [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; runtime inventory-backed caller wired.
 - [x] Visitor bounded complete Tab queue and unique hologram/nearby non-listed-character identity snapshots; unknown/duplicate/missing/ambiguous facts cannot pick a target.
-- [ ] Visitor executable navigation/menu service/UI, budgeted acquisition, guarded submission -> original return; validate live formats.
-- [ ] Visitor UI rename/merge, independent automation and original notifications.
+- [x] Visitor inventory-only executable navigation/menu service/UI: typed server-confirmed Barn travel, dual identity, explicit rules, demand-only official data, one guarded submission, scoped applied-close and fresh cursor proofs, exact original return.
+- [ ] Visitor budgeted acquisition and current live offer/accepted-line/inventory/cursor/return validation.
+- [x] Visitor UI rename/merge, independent off-by-default automation and retained original notifications.
 - [ ] Supercraft recipe/amount/material/menu/deadline -> return, Other UI.
 
 ## 7 — release gate
 - [x] Trusted Jerry automatic sethome does not preempt held Farming; original independent stop toggle/message/beam order and subsequent manual-command priority verified with actual composed method bodies and a negative old-route mutation.
-- [x] Jerry stop applies to all six existing new services including standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
-- [ ] Extend global-stop/priority matrix to future Visitor/Supercraft/Pet Sell and full due-task handoffs before release.
+- [x] Jerry stop applies to all seven existing new services including standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
+- [ ] Extend global-stop/priority matrix to future Supercraft/Pet Sell and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.

@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -133,7 +133,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 24 -> org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1440,900);
                 case 25 -> {org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1100,760);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Discord Webhook")).findFirst().orElseThrow());}
                 case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
-                case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor 通知")).findFirst().orElseThrow());
+                case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor")).findFirst().orElseThrow());
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
                 case 30 -> {clickSidebar(3);assertGroup(3);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
                 case 31 -> clickSidebar(0);
@@ -168,7 +168,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest","Greenhouse","Visitor 通知","Composter"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
+        String[][] expected={{"Farming","Pest","Greenhouse","Visitor","Composter"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index+" actual="+sections.stream().map(s->s.subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList()).toList());
     }
@@ -301,6 +301,24 @@ public final class UiSmoke implements ClientModInitializer {
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.COMPOSTER)||saved.composterPolicy().materials().size()!=2||saved.composterPolicy().maxStacks()!=2||bridge.greenhouse().autoEnabled()||bridge.pest().autoEnabled())throw new AssertionError("Composter settings not independent/external");
         service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.composter.ComposterPolicy.defaults());clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_COMPOSTER_PASS real Farming module/callbacks, explicit machine/material/unit persistence, no offline flight/consume, safe default restoration");
+    }
+    private void testVisitorUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var service=bridge.visitor();
+        if(service.autoEnabled()||service.active()||service.policy().configured())throw new AssertionError("Visitor must default off/no material or visitor authority");
+        var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor")).findFirst().orElseThrow();ui.openModuleDetailFromCard(sub);var rows=sub.groups().get(0).getSettings();
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);if(service.autoEnabled())throw new AssertionError("notification/defaults cannot authorize Visitor");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(2)).setValue("Librarian; Farmer");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(3)).setValue("ENCHANTED_WHEAT");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(4)).setValue("2000");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(6)).setValue(2);
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(10)).execute();if(service.active()||rows.get(11).isVisible())throw new AssertionError("offline Visitor must not lookup/travel/interact/consume");
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.VISITOR)||!saved.visitorPolicy().rules().visitors().equals(java.util.Set.of("Librarian","Farmer"))||!saved.visitorPolicy().rules().materialIds().equals(java.util.Set.of("ENCHANTED_WHEAT"))||saved.visitorPolicy().rules().maximumOfferCoins()!=2000||saved.visitorPolicy().threshold()!=2||bridge.greenhouse().autoEnabled()||bridge.composter().autoEnabled())throw new AssertionError("Visitor UI settings not independent/external");
+        var controllerField=bridge.getClass().getDeclaredField("visitorFlight");controllerField.setAccessible(true);var controller=controllerField.get(bridge);for(String name:java.util.List.of("catalog","prices")){var f=controller.getClass().getDeclaredField(name);f.setAccessible(true);if(f.get(controller)!=null)throw new AssertionError("offline UI must not initialize public network client");}
+        byte[] before=java.nio.file.Files.readAllBytes(path);bridge.suspendForJerry();if(service.autoEnabled()||!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("idle Jerry Visitor suspension changes saved preferences");
+        service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.visitor.VisitorPolicy.defaults());clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_VISITOR_PASS real Farming module/callbacks, inventory-only explicit authority/external persistence, notification-independent, no offline network/gameplay, idle Jerry suspension");
     }
     private void testJerryHomeGuard(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);

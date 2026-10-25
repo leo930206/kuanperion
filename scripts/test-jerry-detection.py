@@ -45,8 +45,8 @@ public class JerryDetectionIntegrationTest {
   AutomationCoordinator coordinator=new AutomationCoordinator();
   AutomationSession session=new AutomationSession(coordinator,()->new AutomationContext(1,farmingEnabled,true,Set.of()),()->{},()->{farmingEnabled=false;});
   class Service {boolean suspended,active;void cancel(long n){}void onOutgoingCommand(){}void suspend(long n){suspended=true;if(active){active=false;session.cancel(n);}}void suspend(String reason){suspend(System.nanoTime());}}
-  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service();
-  List<Service> services(){return List.of(pest,greenhouse,composter,autoSell,junk,stash);}
+  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service(),visitor=new Service();
+  List<Service> services(){return List.of(pest,greenhouse,composter,autoSell,junk,stash,visitor);}
   // BRIDGE_METHODS
  }
  static AutomationClientBridge automation;
@@ -222,7 +222,7 @@ public class JerryDetectionIntegrationTest {
             handleReceivedMessage(Component.literal("You found a "+color.label+" Jerry!"));
             check(chat.equals(List.of(enabled?"發現 "+color.label+" Jerry，且已發送 /sethome":"已發送 /sethome。")),"exact two success formats for each color");
         }
-        for(var owner:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER))for(boolean stop:new boolean[]{false,true})for(boolean chatEnabled:new boolean[]{false,true}){
+        for(var owner:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR))for(boolean stop:new boolean[]{false,true})for(boolean chatEnabled:new boolean[]{false,true}){
             reset();farmingEnabled=farmingEnabledThisSession=true;jerryAutoSethomeEnabled=true;jerryStopActionsEnabled=stop;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,chatEnabled,false));automation=new AutomationClientBridge();
             check(automation.session.begin(owner,System.nanoTime(),120_000_000_000L)!=null,"new actor holds original Farming");handleReceivedMessage(Component.literal(APPEARED));
             check(commands.equals(List.of("sethome")),"one automatic sethome through actual bridge/event bodies");
@@ -230,9 +230,9 @@ public class JerryDetectionIntegrationTest {
             check(farmingEnabled==!stop&&automation.session.active()==!stop&&farmingMarkersCreated==(stop?1:0),"trusted auto command must preserve independent legacy stop toggle, active root and beam ordering: "+owner+stop);
             if(!stop){mc.player.connection.sendCommand("warp garden");check(!farmingEnabled&&!automation.session.active(),"a real subsequent manual command still preempts held work");}
         }
-        for(boolean stop:new boolean[]{false,true})for(int actor=0;actor<6;actor++){
+        for(boolean stop:new boolean[]{false,true})for(int actor=0;actor<7;actor++){
             reset();jerryStopActionsEnabled=stop;automation=new AutomationClientBridge();var service=automation.services().get(actor);service.active=true;
-            var owner=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.STASH).get(actor);
+            var owner=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.STASH,AutomationFeature.VISITOR).get(actor);
             if(owner!=AutomationFeature.STASH)check(automation.session.begin(owner,System.nanoTime(),120_000_000_000L)!=null,"standalone task fixture");
             handleReceivedMessage(Component.literal(APPEARED));
             check(service.active==!stop&&automation.services().stream().allMatch(v->v.suspended==stop)&&(!automation.session.active()||!stop)&&farmingMarkersCreated==0,"Jerry global stop must include all standalone/manual roots and separate Stash even without Farming: "+owner+stop);

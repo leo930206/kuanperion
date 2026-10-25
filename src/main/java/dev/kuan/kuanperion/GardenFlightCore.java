@@ -20,7 +20,7 @@ final class GardenFlightCore {
  private PestFlightBounds bounds;private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
  private long plannedAt,lastProgress;
  GardenFlightCore(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,AutomationFeature feature){
-  if(feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER)throw new IllegalArgumentException("No flight driver for this feature");this.coordinator=coordinator;this.session=session;this.observe=observe;this.feature=feature;
+  if(feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE&&feature!=AutomationFeature.COMPOSTER&&feature!=AutomationFeature.VISITOR)throw new IllegalArgumentException("No flight driver for this feature");this.coordinator=coordinator;this.session=session;this.observe=observe;this.feature=feature;
  }
  AutomationSession.Handle owner(){return owner;}Object levelIdentity(){return ownedLevel;}ItemSnapshot tool(){return preparedTool;}int slot(){return preparedSlot;}
  boolean prepare(AutomationSession.Handle h,int slot,ItemSnapshot tool,FlightAnchor anchor,int radius,long now){

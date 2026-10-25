@@ -1,11 +1,12 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Farming 的 Visitor 已合併原通知入口：明確白名單／估價授權、匿名需求查詢、驗證 Barn 抵達及 NPC 雙重身分、單次提交背包材料、伺服器三重回條與原位返回；預設關閉，缺料只略過，不自動購料。已納入 Jerry 七服務停止矩陣；連服驗收與購料仍待完成。
 - Pest trap release now distinguishes an actual delayed server menu close from manual/local disappearance, retaining the original Farming hold only for a scoped applied-close receipt.
-- Visitor discovery dependency: complete bounded Tab queues and exact hologram/NPC dual identities, with listed-player/duplicate/ambiguous-nearest rejection and loaded-only native snapshots; no automatic interaction exposed.
-- Shared item-catalog dependency: strict official resource projection and anonymous demand-only cached transport for future Visitor/Supercraft callers; no player/account fields or startup requests.
-- Jerry stop now also suspends standalone and idle automatic jobs across all six existing new services; manual re-enable is required and idle saved preferences are preserved.
-- Visitor development: bounded exact offer/material/reward parsing, conservative protected-inventory estimates and single-attempt server-proved submission protocol; native43-slot fixtures, no unfinished automation exposed.
+- Visitor discovery dependency: complete bounded Tab queues and exact hologram/NPC dual identities, with listed-player/duplicate/ambiguous-nearest rejection and loaded-only native snapshots; now used by the inventory-backed Visitor task.
+- Shared item-catalog dependency: strict official resource projection and anonymous demand-only cached transport for demand-only Visitor and future Supercraft callers; no player/account fields or startup requests.
+- Jerry stop now also suspends standalone and idle automatic jobs across all seven existing new services; manual re-enable is required and idle saved preferences are preserved.
+- Visitor development: bounded exact offer/material/reward parsing, conservative protected-inventory estimates and single-attempt server-proved submission protocol; native43-slot fixtures and inventory-only runtime integration; no buying exposed.
 - 修正新工作流程暫停接續 Farming 時，Jerry 自動 /sethome 被誤當成手動指令、提早停止 Farming 並跳過原有 Jerry 停止／光柱順序的衝突。只有這個自動紀錄指令例外，手動快捷鍵／指令仍優先。
 - Pest 可明確指定陷阱所在地塊，並在既有傳送上限內前往搜尋未載入的滿載陷阱；陷阱編號不當作地塊號碼，舊設定不會默默新增目的地。全程沿用同一 Farming 接續權限及返回驗證。
 - Farming 新增 Composter 指定背包材料補充：明確記錄機器與材料／單位值，確認材料扣除、資源增加與游標回條後才計數，返回原位才續耕。預設關閉；Sacks／採購與連服驗收仍待完成。

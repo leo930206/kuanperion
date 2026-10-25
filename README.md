@@ -14,7 +14,7 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 已接上安全任務底層、獨立外部設定與 Trade → Stash：自動開關預設關閉，收到可識別的伺服器待領訊息才排程；也可手動開始。領取有間隔／次數／逾時限制，背包滿、切換世界、Mining、回程、選取任務或手動指令會停止，其他選單／失焦時不發指令。不改動原 Farming／Mining 輸入或開關。只在可確認的 Hypixel SkyBlock 連線中允許 `/pickupstash`。
 
-開發線另已接上 NPC Auto Sell、Junk、Pest 核心（含可選地塊搜尋與已載入滿載陷阱）、Greenhouse 收割／返回，以及 Composter 指定背包材料補充／返回。各自預設關閉，使用同一個可撤銷的 Farming 暫停接續權限；手動停止或異常不重啟 Farming。Pest 擴充、Composter Sacks／採購、Visitor 自動化、其餘 Trade、Supercraft、跨工作流程排程及連服驗收仍未完成；Visitor 暫時保留原通知入口，不以空按鈕冒充完成。新工作流程設定位於 `config/kuanperion/automation.json`；舊 properties、外觀、快捷鍵與收藏不改位置。新設定格式損壞／來自較新版時不覆寫原檔且停用自動化。
+開發線另已接上 NPC Auto Sell、Junk、Pest 核心（含可選地塊搜尋與已載入滿載陷阱）、Greenhouse 收割／返回，Composter 指定背包材料補充／返回，以及 Visitor 背包材料接單／返回。各自預設關閉，使用同一個可撤銷的 Farming 暫停接續權限；手動停止或異常不重啟 Farming。Pest 擴充、Composter Sacks／採購、Visitor 購料、其餘 Trade、Supercraft、跨工作流程排程及連服驗收仍未完成；Visitor 現階段只提交主背包已有且明確允許的材料，不會自動購買或拒單。新工作流程設定位於 `config/kuanperion/automation.json`；舊 properties、外觀、快捷鍵與收藏不改位置。新設定格式損壞／來自較新版時不覆寫原檔且停用自動化。
 
 ## 穩定版安裝與更新
 
@@ -27,7 +27,7 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 ## 導覽
 
-開發線左側功能分成 **Farming**（Farming、Pest、Greenhouse、Visitor 通知、Composter）、**Mining**（Mining）、**Trade**（NPC Auto Sell、Junk、Stash）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
+開發線左側功能分成 **Farming**（Farming、Pest、Greenhouse、Visitor、Composter）、**Mining**（Mining）、**Trade**（NPC Auto Sell、Junk、Stash）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
 
 單一齒輪 **Setting** 頁籤順序為「介面／顏色／快捷鍵」，移除手動設定檔頁面。設定變更一律自動保存至遊戲資料夾：功能偏好在 `config/kuanperion.properties`、外觀在 `config/kuanperion-theme.json`、快捷鍵主鍵在 Minecraft `options.txt`（修飾鍵另存 properties），都不在 JAR 內。換 JAR 自動沿用；不需手動快照／載入，舊快照檔不會被刪除或自動套用。顏色頁保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
 
@@ -141,7 +141,7 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 
 ## 通知與 Jerry
 
-- Pest／Visitor 卡片勾選框是各自總開關；點主體可在關閉時調門檻與通道。
+- Pest／Visitor 卡片勾選框只控制自動動作；各自通知另有獨立開關，舊通知偏好不會授權消耗材料。
 - Pest 門檻 1～8；Visitor 1～5。Discord、聊天、螢幕通知獨立。
 - Discord URL 在「Discord 通知」共用設定；沒有 URL 時不允許新啟用 Discord 通道。
 - 螢幕通知的時間框與勾選框在同一行，時間框在勾選框左邊；輸入正小數秒數。留空顯示「顯示時間」，實際沿用預設 3 秒，空白狀態會保存。編輯時間不切換通道，勾選通道不改時間。Jerry 的光柱期限同樣支援正小數、預設 300 秒、不設使用者秒數上限。
@@ -175,3 +175,11 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 預設關閉且沒有白名單／丟棄位置。填入明確大寫 SkyBlock 物品 ID，設定保護 UUID、上下限，在 Garden 選定位置按「記錄目前丟棄位置」。只有在該位置半徑內、目前世界已明確授權時才會自動丟棄；不自行移動或傳送。換世界／重啟後需重新確認，舊啟用設定不等於授權在另一座 Garden 丟棄。
 
 只處理主背包，保護快捷列、裝備、副手、工具及鎖定／綁定／收藏物品。一次一疊，收到伺服器移出回條後才處理下一疊。逾時／native 結果不明會停止並停用自動丟棄，等待人工確認。此功能不在穩定版 2.0.17，也尚未進行 live 伺服器丟棄驗收。
+
+### Visitor（僅 2.1.0 開發線）
+
+預設關閉、允許訪客／材料清單皆空、估價上限 0。需明確填入 Visitor 完整英文名稱、可消耗的 SkyBlock 材料 ID（以分號分隔）與整單材料估價上限。只計主背包可用材料；同 ID 若出現在快捷列、裝備、副手、具有 UUID 或受保護的物品中，整單不提交。已有材料也按完整機會成本估價，不視為免費。
+
+執行時才匿名查詢 Hypixel 官方物品名稱與 Bazaar 深度價格，沒有玩家／帳號參數、作者伺服器或遙測。前往 Barn 需新的伺服器位置回條；以唯一的訪客名牌及 NPC 雙重身分確認目標，不選最近的同名實體。材料缺少、價格過期、超預算或報酬未達門檻時略過，不自動購料、不盲按拒單。
+
+每單只嘗試提交一次，須同時確認精確 GAME 接單訊息、全部材料的伺服器實際扣除與空游標回條。選單消失或訪客離開不等於成功；只有該提交流程所屬的伺服器實際關閉回條可移交選單作用域，且仍須新的游標回條。返回原地塊、原位／工具／視角後才釋放原 Farming 接續權限。任何手動接管、未知回條、逾時或世界變更均停止，不重試或猜測修復游標。仍需目前伺服器格式與實際互動驗收，尚未發佈或安裝。

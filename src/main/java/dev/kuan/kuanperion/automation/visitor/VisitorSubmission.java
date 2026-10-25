@@ -6,7 +6,7 @@ public final class VisitorSubmission {
  public enum State{IDLE,AWAITING,CONFIRMED,REJECTED,UNCERTAIN}
  private static final long DEADLINE=15_000_000_000L;
  private final InventoryReceipts receipts;private final CursorReceipts cursors;private final BooleanSupplier owns;
- private State state=State.IDLE;private VisitorOffer offer;private Map<Integer,ItemSnapshot> baseline;private InventoryReceipts.Stamp stamp;private CursorReceipts.Stamp cursorStamp;private long started;private boolean accepted;
+ private State state=State.IDLE;private VisitorOffer offer;private Map<Integer,ItemSnapshot> baseline;private InventoryReceipts.Stamp stamp;private CursorReceipts.Stamp cursorStamp;private long started;private boolean accepted,serverClosed;
  public VisitorSubmission(InventoryReceipts receipts,CursorReceipts cursors,BooleanSupplier owns){this.receipts=Objects.requireNonNull(receipts);this.cursors=Objects.requireNonNull(cursors);this.owns=Objects.requireNonNull(owns);}
  public State state(){return state;}
  /** Inventory0..35 plus pinned26.2 equipment36..42; the caller must snapshot all43 together. No purchase is performed. */
@@ -44,6 +44,11 @@ public final class VisitorSubmission {
    if(delta!=-need.quantity())return;
   }
   state=State.CONFIRMED;
+ }
+ /** Only the task's matching HEAD/TAIL close ticket may call this after vanilla applied the close. */
+ public boolean appliedServerClose(long world,int container,long now){
+  if(state!=State.AWAITING||serverClosed||!owns.getAsBoolean()||world!=offer.menu().worldId()||container!=offer.menu().containerId()||now-started<0||now-started>=DEADLINE)return false;
+  serverClosed=true;cursorStamp=cursors.stamp(world,0,now);return true;
  }
  public void cancel(){if(state==State.AWAITING)state=State.UNCERTAIN;else if(state==State.IDLE)state=State.REJECTED;}
  private static boolean complete(Map<Integer,ItemSnapshot> m){if(m==null||m.size()!=43)return false;for(int i=0;i<43;i++){var item=m.get(i);if(item==null||item.count()>64)return false;}return true;}

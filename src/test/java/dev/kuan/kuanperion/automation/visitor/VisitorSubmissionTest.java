@@ -34,6 +34,10 @@ public final class VisitorSubmissionTest {
   var world=new Fixture();world.begin();world.ledger.poll(2,world.initial,true,3);check(world.ledger.state()==VisitorSubmission.State.UNCERTAIN,"world change revokes pending proof");
   var moved=new Fixture();moved.begin();moved.chat();moved.cursor();var predicted=moved.removed(true);predicted.put(9,VisitorValuationTest.item("ENCHANTED_WHEAT",3,false));moved.poll(predicted);check(moved.ledger.state()==VisitorSubmission.State.AWAITING,"server receipt must equal current applied inventory, not borrow unrelated prediction");
   var window0=new Fixture();window0.begin();window0.chat();window0.cursor();var empty=window0.removed(false);for(int i=9;i<26;i++)window0.receipts.observe(1,0,i,EMPTY);window0.poll(empty);check(window0.ledger.state()==VisitorSubmission.State.CONFIRMED,"exact fresh vanilla window0 inventory updates also prove removals");
+  var closed=new Fixture();closed.begin();closed.chat();var closedItems=closed.removed(true);closed.cursors.observe(1,0,EMPTY,2);closed.poll(closedItems);check(closed.ledger.state()==VisitorSubmission.State.AWAITING,"foreign cursor scope cannot prove submission without applied scoped close");
+  check(!closed.ledger.appliedServerClose(2,7,3)&&!closed.ledger.appliedServerClose(1,8,3),"wrong world/container close denied");
+  check(closed.ledger.appliedServerClose(1,7,3),"caller proven applied matching close may change receipt scope once");closed.ledger.poll(1,closedItems,true,4);check(closed.ledger.state()==VisitorSubmission.State.AWAITING,"pre-close scope0 cursor cannot be borrowed");
+  check(!closed.ledger.appliedServerClose(1,7,4),"applied close cannot be replayed");closed.cursors.observe(1,0,EMPTY,5);closed.ledger.poll(1,closedItems,true,6);check(closed.ledger.state()==VisitorSubmission.State.CONFIRMED,"new scope0 server cursor after proven close plus all other proofs");
   System.out.println("VisitorSubmissionTest: PASS (explicit inventory-only rules, protected same-ID denial, single guarded attempt, exact accepted GAME line + all server removals + empty cursor, no prediction/replay/retry)");
  }
 }
