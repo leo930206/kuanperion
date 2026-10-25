@@ -131,6 +131,15 @@ public final class AutomationClientBridge {
   boolean garden=skyblock&&location.garden();
   return new AutomationContext(worldGeneration,flags.farmingArmed(),garden,blockers);
  }
+ /** Existing Jerry preference records a home only; it is not a manual movement/command takeover. */
+ public boolean sendAutomaticJerryHome(){
+  var mc=Minecraft.getInstance();if(!mc.isSameThread()||mc.player==null)return false;
+  boolean previousOwn=ownGameplayCommand,previousObserved=observedGameplayCommand;
+  ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand("sethome");return observedGameplayCommand;}
+  catch(RuntimeException failure){return false;}
+  finally{ownGameplayCommand=previousOwn;observedGameplayCommand=previousObserved;}
+ }
  private boolean sendPestTravel(AutomationSession.Handle handle,PestPlot plot,long now){
   if(plot==null||!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.PEST)return false;
   var context=observe();var mc=Minecraft.getInstance();

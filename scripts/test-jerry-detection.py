@@ -20,17 +20,35 @@ def extract(name):
         end += 1
     return client[start:end]
 methods = '\n'.join(extract(name) for name in [
-    'handleReceivedMessage', 'handleJerryMessage', 'stopFarming', 'clearActiveTarget',
+    'handleReceivedMessage', 'handleJerryMessage', 'sendJerryHomeCommand', 'sendHomeCommand', 'stopFarming', 'clearActiveTarget',
     'setAttackKey', 'releaseFarmingKeys', 'releaseFarmingMovementKeys',
     'shouldLockManualLook', 'shouldLockManualAttack'])
+bridge=(base/'AutomationClientBridge.java').read_text()
+def bridge_method(name):
+    match=re.search(r' (?:public|private) [^{}\n()]+ '+name+r'\(',bridge);assert match
+    a=match.start();b=bridge.index('{',a)+1;depth=1
+    while depth:
+        depth+=(bridge[b]=='{')-(bridge[b]=='}');b+=1
+    return bridge[a:b]
+bridge_methods='\n'.join(bridge_method(n) for n in ['sendAutomaticJerryHome','onOutgoingCommand'])
 assert 'p.setProperty("jerryStopActionsEnabled"' in client
 assert 'toggleMsg("Jerry 偵測"' not in client
 assert 'Component.literal("Jerry 偵測")' in client
 harness = r'''package dev.kuan.kuanperion;
 import java.util.*;
 import java.util.function.*;
+import dev.kuan.kuanperion.automation.*;
 public class JerryDetectionIntegrationTest {
- static void invalidateAutomationFarmSession(){}
+ static void invalidateAutomationFarmSession(){if(automation!=null)automation.session.invalidate();}
+ static class AutomationClientBridge {
+  boolean ownGameplayCommand,observedGameplayCommand;
+  AutomationCoordinator coordinator=new AutomationCoordinator();
+  AutomationSession session=new AutomationSession(coordinator,()->new AutomationContext(1,farmingEnabled,true,Set.of()),()->{},()->{farmingEnabled=false;});
+  static class Service {void cancel(long n){}void onOutgoingCommand(){}}
+  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service();
+  // BRIDGE_METHODS
+ }
+ static AutomationClientBridge automation;
     static boolean jerryStopActionsEnabled;
     static boolean farmingManualStartPending;
     static int farmingMarkersCreated;
@@ -47,7 +65,7 @@ public class JerryDetectionIntegrationTest {
     static String farmingRecoveryOrigin="";
     static final List<String> commands=new ArrayList<>();
     static boolean commandAccepted=true;
-    static boolean sendHomeCommand(Minecraft mc,String command,boolean announce){commands.add(command);return commandAccepted;}
+
     static NotificationChannels notificationChannels(NotificationType type){return NOTIFICATION_CHANNELS.getOrDefault(type,NotificationChannels.NONE);}
     static final List<String> chat=new ArrayList<>();
     static String plain(String s){return s;}static String warning(String s){return s;}static void say(Minecraft mc,String text){chat.add(text);}
@@ -65,6 +83,9 @@ public class JerryDetectionIntegrationTest {
     static class Minecraft {
         static final Minecraft INSTANCE = new Minecraft();
         Options options = new Options(); GameMode gameMode = new GameMode();
+        static class Player {Connection connection=new Connection();}
+        static class Connection {void sendCommand(String command){commands.add(command);if(!commandAccepted)throw new IllegalStateException("fixture send error");if(automation!=null)automation.onOutgoingCommand();}}
+        Player player=new Player();boolean isSameThread(){return true;}
         static Minecraft getInstance() { return INSTANCE; }
     }
     enum FarmingLocation { LIMBO }
@@ -90,7 +111,7 @@ public class JerryDetectionIntegrationTest {
                 "You located a hidden %s Jerry!");
     static final String APPEARED="§b ☺ §eA §aGreen Jerry§e appeared!";
     static void reset() {
-        farmingMarkersCreated=0;commandAccepted=true;jerryAutoSethomeEnabled=false;commands.clear();chat.clear();
+        automation=null;farmingMarkersCreated=0;commandAccepted=true;jerryAutoSethomeEnabled=false;commands.clear();chat.clear();
         FARMING_STALL_GUARD.reset();
         jerryColors=Set.of(JerryColor.values());
         NOTIFICATION_CHANNELS.clear();NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(true,false,false));jerryStopActionsEnabled=true;
@@ -200,14 +221,31 @@ public class JerryDetectionIntegrationTest {
             handleReceivedMessage(Component.literal("You found a "+color.label+" Jerry!"));
             check(chat.equals(List.of(enabled?"發現 "+color.label+" Jerry，且已發送 /sethome":"已發送 /sethome。")),"exact two success formats for each color");
         }
+        for(var owner:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER))for(boolean stop:new boolean[]{false,true})for(boolean chatEnabled:new boolean[]{false,true}){
+            reset();farmingEnabled=farmingEnabledThisSession=true;jerryAutoSethomeEnabled=true;jerryStopActionsEnabled=stop;NOTIFICATION_CHANNELS.put(NotificationType.JERRY,new NotificationChannels(false,chatEnabled,false));automation=new AutomationClientBridge();
+            check(automation.session.begin(owner,System.nanoTime(),120_000_000_000L)!=null,"new actor holds original Farming");handleReceivedMessage(Component.literal(APPEARED));
+            check(commands.equals(List.of("sethome")),"one automatic sethome through actual bridge/event bodies");
+            check(chat.equals(List.of(chatEnabled?"發現 Green Jerry，且已發送 /sethome":"已發送 /sethome。")),"no additional chat line while holding new work");
+            check(farmingEnabled==!stop&&automation.session.active()==!stop&&farmingMarkersCreated==(stop?1:0),"trusted auto command must preserve independent legacy stop toggle, active root and beam ordering: "+owner+stop);
+            if(!stop){mc.player.connection.sendCommand("warp garden");check(!farmingEnabled&&!automation.session.active(),"a real subsequent manual command still preempts held work");}
+        }
         System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/four colors/all 16 color switch combinations/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
     }
     // METHODS
 }
-'''.replace('    // METHODS',methods)
+'''.replace('    // METHODS',methods).replace('  // BRIDGE_METHODS',bridge_methods)
 java_home=Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as tmp:
     path=Path(tmp)/'JerryDetectionIntegrationTest.java'
     path.write_text(harness)
-    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-d',tmp,str(base/'JerryMessageMatcher.java'),str(base/'JerryColor.java'),str(base/'FarmingStallGuard.java'),str(base/'NotificationType.java'),str(base/'NotificationChannels.java'),str(path)],check=True)
-    subprocess.run([str(java_home/'bin/java'),'-cp',tmp,'dev.kuan.kuanperion.JerryDetectionIntegrationTest'],check=True)
+    gson=Path.home()/'Library/Application Support/PrismLauncher/libraries/com/google/code/gson/gson/2.14.0/gson-2.14.0.jar'
+    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-cp',str(gson),'-d',tmp,*map(str,(base/'automation').rglob('*.java')),str(base/'JerryMessageMatcher.java'),str(base/'JerryColor.java'),str(base/'FarmingStallGuard.java'),str(base/'NotificationType.java'),str(base/'NotificationChannels.java'),str(path)],check=True)
+    subprocess.run([str(java_home/'bin/java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.JerryDetectionIntegrationTest'],check=True)
+
+    mutated=harness.replace('boolean autoSethomeSent=jerryAutoSethomeEnabled&&sendJerryHomeCommand(mc);','boolean autoSethomeSent=jerryAutoSethomeEnabled&&sendHomeCommand(mc,"sethome",false);').replace('JerryDetectionIntegrationTest','JerryOriginMutationTest')
+    assert mutated!=harness
+    path=Path(tmp)/'JerryOriginMutationTest.java';path.write_text(mutated)
+    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-cp',tmp+':'+str(gson),'-d',tmp,str(path)],check=True)
+    result=subprocess.run([str(java_home/'bin/java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.JerryOriginMutationTest'],capture_output=True,text=True)
+    assert result.returncode!=0 and 'trusted auto command must preserve independent legacy stop toggle' in result.stderr,'Regression must reject the old manual-sender Jerry route'
+    print('JerryOriginMutationTest: PASS (old automatic-home route through manual command sender rejected by actual composed legacy/event/hold regression)')

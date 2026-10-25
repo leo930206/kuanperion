@@ -248,3 +248,12 @@ The corrected pinned26.2 isolated chat-only run passed 15:01:49 with UI_SMOKE_CO
 Composter inventory-source checkpoint 0d22a23cfd44c9f51e9cae9b7d67d4fb7b120a09 passed all five actual-project gates; production412-entry content matched the corrected isolated-client frozen JAR. No stable/main/tag/settings change. Sacks, purchases and live validation remain pending.
 
 The following staged Pest increment adds an independently configured trap plot, never an inferred trap-ID mapping. See pest-trap-travel-2.1.0.md. Tests cover full original plot24 -> Barn0 trap7 -> release/capture -> confirmed original segmented return, legacy defaults without new authority, and malformed independent preferences. Isolated current-client callbacks and actual-project gates are still required before that increment is backed up.
+
+
+## 2026-10-25 — Jerry automatic /sethome preserves the maintenance hold
+
+The existing Jerry automatic record-only command now has a typed, client-thread-only bridge sender. It sends only literal sethome through the normal connection and observes Fabric dispatch without classifying that single trusted command as manual takeover. Nested command-origin flags are restored even on refusal or exception; manual shortcuts and later manual commands retain priority. No lease, preference or additional command authority is granted.
+
+Actual legacy Jerry handler + sender + command observer bodies are composed with real AutomationSession/FarmingHandoff in tests for Pest, Greenhouse and Composter, both Jerry stop states and both chat-notification states. The prior manual-origin route is mutation-tested and rejected. Existing messages/beam ordering remain covered. This does not implement the still-pending global Jerry stop latch for standalone/idle jobs.
+
+Staging full test/build/UI/migration/native gates passed. Pinned26.2 isolated offline client passed 16:35:44, including UI_SMOKE_JERRY_HOME_GUARD_PASS, Pest/Greenhouse/Composter callbacks, applied Mixin probes, legacy settings and UI_SMOKE_PASS. It exercised no server command, gameplay or real account. The no-player native bridge refuses without changing preferences or acquiring a lease. Production payload is frozen for actual-project verification; no release or installation is claimed.

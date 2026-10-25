@@ -2287,10 +2287,14 @@ public final class KuanperionClient implements ClientModInitializer {
         if (scope != null) JERRY_FARMING_MARKERS.resumeNear(scope, mc.player.getX(), mc.player.getY(), mc.player.getZ());
     }
 
+    private static boolean sendJerryHomeCommand(Minecraft mc) {
+        return automation==null?sendHomeCommand(mc,"sethome",false):automation.sendAutomaticJerryHome();
+    }
+
     private static boolean handleJerryMessage(Minecraft mc, String text) {
         JerryColor color = JerryMessageMatcher.matchingColor(text, jerryColors);
         if (color == null) return false;
-        boolean autoSethomeSent=jerryAutoSethomeEnabled&&sendHomeCommand(mc,"sethome",false);
+        boolean autoSethomeSent=jerryAutoSethomeEnabled&&sendJerryHomeCommand(mc);
         // Stop first: missing/invalid webhooks must not keep automation running.
         if (jerryStopActionsEnabled && (miningEnabled || farmingEnabled || farmingAutoRecovering)) {
             boolean stoppedFarming = farmingEnabled;

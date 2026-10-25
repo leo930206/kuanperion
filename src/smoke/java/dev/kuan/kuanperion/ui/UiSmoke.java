@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -301,6 +301,13 @@ public final class UiSmoke implements ClientModInitializer {
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.COMPOSTER)||saved.composterPolicy().materials().size()!=2||saved.composterPolicy().maxStacks()!=2||bridge.greenhouse().autoEnabled()||bridge.pest().autoEnabled())throw new AssertionError("Composter settings not independent/external");
         service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.composter.ComposterPolicy.defaults());clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_COMPOSTER_PASS real Farming module/callbacks, explicit machine/material/unit persistence, no offline flight/consume, safe default restoration");
+    }
+    private void testJerryHomeGuard(Minecraft mc) throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");byte[] before=java.nio.file.Files.readAllBytes(path);
+        if(mc.player!=null||bridge.sendAutomaticJerryHome()||bridge.session().active()||bridge.holdsFarming())throw new AssertionError("offline trusted Jerry record-only command must not send or acquire work");
+        if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("record-only sender must not mutate persisted settings");
+        System.out.println("UI_SMOKE_JERRY_HOME_GUARD_PASS actual native bridge refuses no-player send without lease/preference side effects");
     }
     private void testStashUi(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);

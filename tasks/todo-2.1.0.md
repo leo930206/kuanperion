@@ -56,7 +56,8 @@
 - [ ] Supercraft recipe/amount/material/menu/deadline -> return, Other UI.
 
 ## 7 — release gate
-- [ ] Audit trusted Jerry automatic sethome versus manual-command cancellation; preserve independent Jerry stop toggle and pause-marker order while new tasks hold Farming.
+- [x] Trusted Jerry automatic sethome does not preempt held Farming; original independent stop toggle/message/beam order and subsequent manual-command priority verified with actual composed method bodies and a negative old-route mutation.
+- [ ] Global Jerry stop/standalone/manual-work priority when Farming is not armed; idle standalone timers and future due-task handoffs remain part of the release matrix.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.
