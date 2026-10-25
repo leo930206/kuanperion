@@ -13,6 +13,7 @@
 - [x] Atomic schema-aware preferences: defaults off, unknown keys retained, corrupt/future files not overwritten.
 - [x] Stash vertical slice: system signals, bounded attempts/deadline, cancellation, guarded actual command and local feedback (offline contracts/UI verified; live server results not yet verified).
 - [x] Trade navigation/Stash UI and real settings persistence, no no-op toggles for unfinished workflows.
+- [x] Server-applied cursor receipt path: exact active container/raw-applied state, bounded epoch/sequence/freshness, no local-prediction proof or cursor mutation; next item-transfer callers still pending.
 - [x] Guarded menu observations/actions and server-only receipt contracts (pinned26.2 Mixin + fixture/unit tests; workflow integrations continue in phase2).
 - [x] Existing Farming hold/resume token and stop/new-start/Mining/Jerry/world/death/disconnect/expected-menu invalidation paths; no task may arm Farming.
 
