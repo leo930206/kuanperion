@@ -275,3 +275,12 @@ All six currently executable new services now support explicit safety suspension
 Actual service regressions cover five threshold/interval/disposal services plus active/idle Stash without Farming. Composed actual legacy+bridge bodies cover six standalone actors, idle timers, three held-Farm owners and independent stop/chat states. Negative mutations reject both old manual-origin sethome and legacy-Farm-only stopping. A source guard requires future executable features to extend this matrix. Existing cancellation cleanup is reused, without new cursor repair or user-GUI close.
 
 Staging five gates passed. One UI-model invocation raced build/classes deletion because build and UI compilation were launched concurrently; its failed transcript is retained as jerry-global-ui-build-race.log. Corrected sequencing after build passed without an application-code workaround. Isolated pinned26.2 offline client passed with UI_SMOKE_JERRY_GLOBAL_STOP_PASS and all old native/UI proofs; no server gameplay or real account was used. See jerry-global-stop-2.1.0.md.
+
+
+## 2026-10-25 — anonymous on-demand official item catalog
+
+Added a strict bounded offline official-resource projection and a fixed anonymous demand-only client. Only unambiguous exact display names map to validated IDs; duplicates, malformed/oversized/deep JSON, invalid UTF8/schema/timestamps deny data. No scanner-button ID, fuzzy name service, account/backend or startup fetch fallback. Shared existing redirect-denying HTTP factory/stream bound,8s HTTP/10s future limits, coalescing, receipt-time24h cache,60s failure backoff, clock-reversal invalidation and real close cancellation are covered by fake transport tests. No network request was performed by these tests.
+
+A previously cached official5680-item/4.8MB source was parsed locally into5364 unambiguous names (SHA recorded in item-catalog-2.1.0.md); it is not bundled. No native or legacy consumer constructs/fetches the dependency yet. Future callers still require world/session/allowlist, independent GUI amount/cost proof and lifecycle shutdown.
+
+Staging five gates passed, including all original Jerry/global-stop and Visitor contracts. Isolated pinned26.2 offline client passed18:59:14 with existing real UI callbacks/native projections/Mixin proofs and no server gameplay. Frozen production payload is retained for actual-project equality verification, not release/installation.

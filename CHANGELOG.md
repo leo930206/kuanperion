@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Shared item-catalog dependency: strict official resource projection and anonymous demand-only cached transport for future Visitor/Supercraft callers; no player/account fields or startup requests.
 - Jerry stop now also suspends standalone and idle automatic jobs across all six existing new services; manual re-enable is required and idle saved preferences are preserved.
 - Visitor development: bounded exact offer/material/reward parsing, conservative protected-inventory estimates and single-attempt server-proved submission protocol; native43-slot fixtures, no unfinished automation exposed.
 - 修正新工作流程暫停接續 Farming 時，Jerry 自動 /sethome 被誤當成手動指令、提早停止 Farming 並跳過原有 Jerry 停止／光柱順序的衝突。只有這個自動紀錄指令例外，手動快捷鍵／指令仍優先。

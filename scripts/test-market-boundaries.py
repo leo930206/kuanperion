@@ -16,3 +16,12 @@ assert 'http.cancel(true)' in client and 'orTimeout(10,TimeUnit.SECONDS)' in cli
 for name in ['KuanperionClient.java','AutomationClientBridge.java']:
  assert 'new HypixelMarketClient' not in (r/name).read_text()
 print('MarketBoundariesTest: PASS (typed native purchase result/free-space guard, bounded anonymous endpoint, no startup fetching)')
+
+items=(r/'automation/HypixelItemCatalogClient.java').read_text()
+assert items.count('https://')==1 and 'https://api.hypixel.net/v2/resources/skyblock/items' in items
+assert 'HypixelMarketClient.newHttpClient()' in items and '.header("Accept","application/json")' in items
+assert 'new HypixelMarketClient.LimitedBodySubscriber(SkyblockItemCatalog.MAX_BYTES)' in items
+assert 'orTimeout(10,TimeUnit.SECONDS)' in items and 'http.cancel(true)' in items
+for name in ['KuanperionClient.java','AutomationClientBridge.java']:
+ assert 'new HypixelItemCatalogClient' not in (r/name).read_text()
+print('ItemCatalogBoundariesTest: PASS (fixed anonymous official endpoint, bounded shared transport, no player/account input or startup caller)')

@@ -51,6 +51,7 @@
 - [ ] Composter Sacks source, budgeted material purchases and current live menu/machine/receipt validation.
 
 ## 6 — Visitor/Supercraft
+- [x] Shared official item catalog: bounded strict JSON, unambiguous exact names/IDs, demand-only anonymous transport/receipt-time cache; no startup consumer or remote author lookup.
 - [x] Visitor exact selected-title/semantic-role offer parsing, explicit material IDs, protected main-inventory deficits and full opportunity-cost estimates; native43-slot fixtures.
 - [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; no runtime caller yet.
 - [ ] Visitor executable queue/navigation/menu service/UI, budgeted acquisition, guarded submission -> original return; validate live formats.
