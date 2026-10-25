@@ -105,6 +105,8 @@ public final class AutomationClientBridge {
  public boolean holdsFarming(){return session.holdsFarming();}
  public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
+ /** Unlike lifecycle cancellation, Jerry also suspends configured but idle automatic jobs. */
+ public void suspendForJerry(){long now=System.nanoTime();pest.suspend(now);greenhouse.suspend(now);composter.suspend(now);autoSell.suspend(now);junk.suspend(now);stash.suspend("Jerry 停止動作");}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());session.cancel(System.nanoTime());}
  public void onManualWorldInput(){onManualInventoryInput();}
  public void onManualInventoryInput(){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());session.cancel(System.nanoTime());}

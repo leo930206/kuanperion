@@ -59,7 +59,8 @@
 
 ## 7 — release gate
 - [x] Trusted Jerry automatic sethome does not preempt held Farming; original independent stop toggle/message/beam order and subsequent manual-command priority verified with actual composed method bodies and a negative old-route mutation.
-- [ ] Global Jerry stop/standalone/manual-work priority when Farming is not armed; idle standalone timers and future due-task handoffs remain part of the release matrix.
+- [x] Jerry stop applies to all six existing new services including standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
+- [ ] Extend global-stop/priority matrix to future Visitor/Supercraft/Pet Sell and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.

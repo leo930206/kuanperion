@@ -25,6 +25,8 @@ public final class AutoSellService {
   if(occupied*100<inventory.size()*p.thresholdPercent())return;
   if(request(false,now)){task.tick(now);report();}
  }
+ /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
+ public void suspend(long now){sessionSuspended=true;cancel(now);}
  public void cancel(long now){task.cancel(now);report();}
  public void onSystemMessage(String message,long now){
   if(!active()||!message.replaceAll("(?i)§[0-9a-fk-orx]","").strip().equals("You've reached the daily limit of coins you may earn from NPC shops."))return;

@@ -30,7 +30,7 @@ def bridge_method(name):
     while depth:
         depth+=(bridge[b]=='{')-(bridge[b]=='}');b+=1
     return bridge[a:b]
-bridge_methods='\n'.join(bridge_method(n) for n in ['sendAutomaticJerryHome','onOutgoingCommand'])
+bridge_methods='\n'.join(bridge_method(n) for n in ['sendAutomaticJerryHome','onOutgoingCommand','suspendForJerry'])
 assert 'p.setProperty("jerryStopActionsEnabled"' in client
 assert 'toggleMsg("Jerry 偵測"' not in client
 assert 'Component.literal("Jerry 偵測")' in client
@@ -44,8 +44,9 @@ public class JerryDetectionIntegrationTest {
   boolean ownGameplayCommand,observedGameplayCommand;
   AutomationCoordinator coordinator=new AutomationCoordinator();
   AutomationSession session=new AutomationSession(coordinator,()->new AutomationContext(1,farmingEnabled,true,Set.of()),()->{},()->{farmingEnabled=false;});
-  static class Service {void cancel(long n){}void onOutgoingCommand(){}}
-  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service();
+  class Service {boolean suspended,active;void cancel(long n){}void onOutgoingCommand(){}void suspend(long n){suspended=true;if(active){active=false;session.cancel(n);}}void suspend(String reason){suspend(System.nanoTime());}}
+  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service();
+  List<Service> services(){return List.of(pest,greenhouse,composter,autoSell,junk,stash);}
   // BRIDGE_METHODS
  }
  static AutomationClientBridge automation;
@@ -229,6 +230,14 @@ public class JerryDetectionIntegrationTest {
             check(farmingEnabled==!stop&&automation.session.active()==!stop&&farmingMarkersCreated==(stop?1:0),"trusted auto command must preserve independent legacy stop toggle, active root and beam ordering: "+owner+stop);
             if(!stop){mc.player.connection.sendCommand("warp garden");check(!farmingEnabled&&!automation.session.active(),"a real subsequent manual command still preempts held work");}
         }
+        for(boolean stop:new boolean[]{false,true})for(int actor=0;actor<6;actor++){
+            reset();jerryStopActionsEnabled=stop;automation=new AutomationClientBridge();var service=automation.services().get(actor);service.active=true;
+            var owner=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.STASH).get(actor);
+            if(owner!=AutomationFeature.STASH)check(automation.session.begin(owner,System.nanoTime(),120_000_000_000L)!=null,"standalone task fixture");
+            handleReceivedMessage(Component.literal(APPEARED));
+            check(service.active==!stop&&automation.services().stream().allMatch(v->v.suspended==stop)&&(!automation.session.active()||!stop)&&farmingMarkersCreated==0,"Jerry global stop must include all standalone/manual roots and separate Stash even without Farming: "+owner+stop);
+        }
+        reset();jerryStopActionsEnabled=true;automation=new AutomationClientBridge();handleReceivedMessage(Component.literal(APPEARED));check(automation.services().stream().allMatch(v->v.suspended)&&!automation.session.active()&&farmingMarkersCreated==0,"Jerry global stop must suspend idle enabled timers, not wait for an active legacy Farm");
         System.out.println("JerryDetectionIntegrationTest: PASS (seven message variants/four colors/all 16 color switch combinations/prefix/suffix, action combinations, cleanup, recovery, no master, independent channels)");
     }
     // METHODS
@@ -249,3 +258,11 @@ with tempfile.TemporaryDirectory() as tmp:
     result=subprocess.run([str(java_home/'bin/java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.JerryOriginMutationTest'],capture_output=True,text=True)
     assert result.returncode!=0 and 'trusted auto command must preserve independent legacy stop toggle' in result.stderr,'Regression must reject the old manual-sender Jerry route'
     print('JerryOriginMutationTest: PASS (old automatic-home route through manual command sender rejected by actual composed legacy/event/hold regression)')
+
+    stopped=harness.replace('if(jerryStopActionsEnabled&&automation!=null)automation.suspendForJerry();','if(jerryStopActionsEnabled&&(miningEnabled||farmingEnabled||farmingAutoRecovering)&&automation!=null)automation.suspendForJerry();').replace('JerryDetectionIntegrationTest','JerryGlobalStopMutationTest')
+    assert stopped!=harness
+    path=Path(tmp)/'JerryGlobalStopMutationTest.java';path.write_text(stopped)
+    subprocess.run([str(java_home/'bin/javac'),'--release','21','-encoding','UTF-8','-cp',tmp+':'+str(gson),'-d',tmp,str(path)],check=True)
+    result=subprocess.run([str(java_home/'bin/java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.JerryGlobalStopMutationTest'],capture_output=True,text=True)
+    assert result.returncode!=0 and 'Jerry global stop must include' in result.stderr,'Regression must reject legacy-only global stop'
+    print('JerryGlobalStopMutationTest: PASS (legacy-Farm-only stop rejected by composed standalone/idle regression)')

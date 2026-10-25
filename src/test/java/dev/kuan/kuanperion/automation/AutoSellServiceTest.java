@@ -19,6 +19,7 @@ public final class AutoSellServiceTest {
    service.setEnabled(false);check(!service.active()&&stops[0]==1,"disable cancels safe hold");
    check(service.manualRequest(5000000000L),"manual start possible with auto off");service.tick(5000000000L);check(fake.commands==2,"manual start dispatches typed command");
    service.cancel(6000000000L);int count=notices.size();service.tick(7000000000L);check(notices.size()==count,"terminal feedback only once");
+   service.setEnabled(true);var pausedBytes=Files.readString(root.resolve("automation.json"));service.suspend(8_000_000_000L);check(!service.autoEnabled()&&!service.active()&&reopened.enabled(AutomationFeature.AUTO_SELL)&&pausedBytes.equals(Files.readString(root.resolve("automation.json"))),"Jerry idle suspension does not overwrite enabled preferences");service.tick(100_000_000_000L);check(fake.commands==2,"suspended idle auto never restarts on due inventory");service.setEnabled(true);check(service.autoEnabled(),"explicit re-enable acknowledges suspension");
    System.out.println("AutoSellServiceTest: PASS (external policy/IDs, independent defaults, GUI/user priority, auto/manual dispatch and cancellation)");
   }finally{try(var files=Files.walk(root)){for(var p:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
  }

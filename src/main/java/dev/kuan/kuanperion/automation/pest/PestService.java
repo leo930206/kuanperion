@@ -22,6 +22,8 @@ public final class PestService {
   polled=true;lastPoll=now;if(attempted&&now-lastAttempt>=0&&now-lastAttempt<policy().cooldownSeconds()*SECOND)return;
   if(request(false,now)){task.tick(now);report();}
  }
+ /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
+ public void suspend(long now){suspended=true;cancel(now);}
  public void cancel(long now){if(!active())return;suspended=true;task.cancel(now);report();}
  private void report(){
   var state=task.state();if(state==reported||task.active()||state==PestTask.State.IDLE)return;reported=state;

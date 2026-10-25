@@ -20,6 +20,8 @@ public final class JunkService {
   var inventory=port.inventory();if(inventory.isEmpty()||inventory.stream().filter(i->i.count()>0).count()*100<inventory.size()*p.thresholdPercent())return;
   if(request(false,now)){task.tick(now);report();}
  }
+ /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
+ public void suspend(long now){suspended=true;cancel(now);}
  public void cancel(long now){task.cancel(now);report();}
  private void report(){var state=task.state();if(state==reported||task.active()||state==JunkTask.State.IDLE)return;reported=state;
   if(state==JunkTask.State.FAILED||state==JunkTask.State.TIMED_OUT){suspended=true;try{settings.setEnabled(AutomationFeature.JUNK,false);}catch(IOException ignored){}}

@@ -60,6 +60,8 @@ public final class StashService {
  }
  /** The host's outbound-command event gives manual/legacy commands priority. */
  public void onOutgoingCommand(){if(!sendingOwnCommand)cancel("手動或原有指令優先");}
+ /** Jerry safety stop applies even when no Stash signal/task is active. */
+ public void suspend(String reason){sessionSuspended=true;cancel(reason);}
  public void cancel(String reason){if(!active())return;task.cancel();reported=task.state();feedback.accept(new Notice("Stash 已停止（"+reason+"）。",false));}
  private void reportTerminal(){
   var state=task.state();if(state==reported||state==StashTask.State.WAITING||state==StashTask.State.IDLE)return;reported=state;

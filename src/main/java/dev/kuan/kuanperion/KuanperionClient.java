@@ -2305,6 +2305,7 @@ public final class KuanperionClient implements ClientModInitializer {
             if (stoppedFarming) markJerryFarmingPause(mc);
             saveConfig();
         }
+        if(jerryStopActionsEnabled&&automation!=null)automation.suspendForJerry();
         String announcement = "發現 " + color.label + " Jerry！";
         String content="Jerry 通知："+announcement;
         String homeFeedback=jerryAutoSethomeEnabled?(autoSethomeSent?"已發送 /sethome。":"無法發送 /sethome，請檢查連線。"):"";

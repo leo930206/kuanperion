@@ -22,6 +22,8 @@ public final class GreenhouseService {
   if(now-lastScheduled<policy().intervalSeconds()*SECOND||!automaticAllowed.getAsBoolean()||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }
+ /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
+ public void suspend(long now){suspended=true;cancel(now);}
  public void cancel(long now){if(!active())return;suspended=true;task.cancel(now);report();}
  private void report(){
   var state=task.state();if(state==reported||task.active()||state==GreenhouseTask.State.IDLE)return;reported=state;
