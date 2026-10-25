@@ -16,7 +16,7 @@ import org.lwjgl.glfw.GLFW;
 /** Fixed-feature legal flight primitive: one lease, one owned key overlay, no gameplay use/attack or global macro state. */
 final class GardenFlightCore {
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final AutomationFeature feature;
- private AutomationSession.Handle owner;private Object ownedLevel;private final Set<KeyMapping> pressed=new HashSet<>();private ItemSnapshot preparedTool;private int preparedSlot;
+ private AutomationSession.Handle owner,retiredOwner;private Object ownedLevel,retiredLevel;private final Set<KeyMapping> pressed=new HashSet<>();private ItemSnapshot preparedTool;private int preparedSlot;
  private PestFlightBounds bounds;private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
  private long plannedAt,lastProgress;
  GardenFlightCore(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,AutomationFeature feature){
@@ -26,7 +26,7 @@ final class GardenFlightCore {
  boolean prepare(AutomationSession.Handle h,int slot,ItemSnapshot tool,FlightAnchor anchor,int radius,long now){
   if(slot<0||slot>8||tool==null||!allowed(h,now,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR))return false;
   var mc=mc();var p=mc.player;if(p.isPassenger()||p.isSleeping()||p.isUsingItem()||!PestIdentity.sameTool(tool,AutomationGameView.item(p.getInventory().getItem(slot),true)))return false;
-  owner=h;ownedLevel=mc.level;preparedTool=tool;preparedSlot=slot;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;
+  owner=h;ownedLevel=mc.level;retiredOwner=null;retiredLevel=null;preparedTool=tool;preparedSlot=slot;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;
   p.getInventory().setSelectedSlot(slot);if(!p.getAbilities().flying){p.getAbilities().flying=true;p.onUpdateAbilities();}return true;
  }
 public AutomationContext context(){return observe.get();}
@@ -50,11 +50,19 @@ public AutomationContext context(){return observe.get();}
   return unknown; // Unsupported scancodes fail closed, never mistake our injected isDown for a human.
  }
  public void dispose(AutomationSession.Handle h){
-  if(h==null||owner==null||!owner.equals(h))return;
-  release(h);
-  // Legacy safe-stop may have cleared these after release; honor real physical input last.
-  var mc=mc();if(mc.options!=null&&mc.getWindow()!=null)for(var key:List.of(mc.options.keyUp,mc.options.keyDown,mc.options.keyLeft,mc.options.keyRight,mc.options.keyJump,mc.options.keyShift))key.setDown(mc.gui.screen()==null&&physical(key,false));
-  owner=null;ownedLevel=null;preparedTool=null;bounds=null;search=null;searchGoal=null;route=List.of();
+  if(h==null||owner==null||!owner.equals(h))return;var mc=mc();if(!mc.isSameThread())throw new IllegalStateException("Client thread required");
+  retiredOwner=h;retiredLevel=ownedLevel;
+  try{
+   release(h);
+   if(mc.options!=null&&mc.getWindow()!=null)for(var key:List.of(mc.options.keyUp,mc.options.keyDown,mc.options.keyLeft,mc.options.keyRight,mc.options.keyJump,mc.options.keyShift))key.setDown(mc.gui.screen()==null&&physical(key,false));
+  }finally{owner=null;ownedLevel=null;preparedTool=null;bounds=null;search=null;searchGoal=null;route=List.of();pressed.clear();}
+ }
+ /** Called only after unsuccessful session completion: legacy stop may have cleared the physical keys restored during disposal. */
+ public void afterStop(AutomationSession.Handle h){
+  var mc=mc();if(h==null||!h.equals(retiredOwner)||mc==null||!mc.isSameThread())return;
+  var level=retiredLevel;retiredOwner=null;retiredLevel=null;
+  if(owner!=null||session.active()||mc.level==null||mc.level!=level||mc.options==null||mc.getWindow()==null)return;
+  for(var key:List.of(mc.options.keyUp,mc.options.keyDown,mc.options.keyLeft,mc.options.keyRight,mc.options.keyJump,mc.options.keyShift))key.setDown(mc.gui.screen()==null&&physical(key,false));
  }
  private void keys(boolean forward,boolean back,boolean up,boolean down){
   var o=mc().options;set(o.keyUp,forward);set(o.keyDown,back);set(o.keyLeft,false);set(o.keyRight,false);set(o.keyJump,up);set(o.keyShift,down);

@@ -14,6 +14,8 @@ public final class ComposterTask {
   boolean deposit(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection protection,long now);
   void closeOwnedMenu(int id);FlightMotion restore(AutomationSession.Handle handle,FlightAnchor original,long now);
   default void dispose(AutomationSession.Handle handle){release(handle);}
+  /** Failure-only physical input reconciliation; never sends gameplay or re-arms Farming. */
+  default void afterStop(AutomationSession.Handle handle){}
  }
  private static final long SECOND=1_000_000_000L;private static final MenuContract MENU=new MenuContract(Set.of("Composter"),Set.of(45,54));
  private final AutomationSession session;private final InventoryReceipts inventory;private final CursorReceipts cursor;private final Port port;private final PestPlotTravel travel;
@@ -98,9 +100,7 @@ public final class ComposterTask {
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
  private void finish(State terminal,long now){
   var done=handle;handle=null;state=terminal;travel.reset();
-  // Never guess cursor repair or close a manually taken-over menu on any failure/cancel path.
-  try{port.release(done);}catch(RuntimeException cleanup){state=State.FAILED;}
-  try{boolean success=(terminal==State.COMPLETE||terminal==State.PARTIAL)&&state==terminal;boolean finished=session.finish(done,success,now);if(success&&!finished&&state==terminal)state=State.FAILED;}catch(RuntimeException cleanup){state=State.FAILED;}
-  finally{try{port.dispose(done);}catch(RuntimeException cleanup){state=State.FAILED;}}
+  var result=AutomationCompletion.finish(session,done,(terminal==State.COMPLETE||terminal==State.PARTIAL),now,()->{port.release(done);},()->port.dispose(done),()->port.afterStop(done));
+  if(result.failed())state=State.FAILED;
  }
 }

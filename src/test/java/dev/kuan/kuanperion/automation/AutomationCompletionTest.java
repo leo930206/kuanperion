@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-only
+package dev.kuan.kuanperion.automation;
+import java.util.*;
+public final class AutomationCompletionTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ static final class H {boolean failRelease,failDispose,failPhysical,brokenObservation;List<String> order=new ArrayList<>();AutomationContext ctx=new AutomationContext(1,true,true,Set.of());AutomationSession session=new AutomationSession(new AutomationCoordinator(),()->{if(brokenObservation)throw new IllegalStateException("native context unavailable");return ctx;},()->order.add("hold"),()->order.add("stop"));AutomationSession.Handle handle=session.begin(AutomationFeature.VISITOR,1,1_000_000_000L);
+  AutomationCompletion.Result finish(boolean success,long now){return AutomationCompletion.finish(session,handle,success,now,()->{order.add("release");check(session.holdsFarming(),"release inside original hold");if(failRelease)throw new IllegalStateException("release");},()->{order.add("dispose");check(session.holdsFarming(),"all data/input disposal must finish before successful release");if(failDispose)throw new IllegalStateException("dispose");},()->{order.add("physical");check(!session.active(),"physical input reconciliation must follow legacy safe-stop/session clearing");if(failPhysical)throw new IllegalStateException("physical");});}
+ }
+ public static void main(String[]args){
+  var good=new H();var r=good.finish(true,2);check(r.completed()&&!r.failed()&&!good.session.active()&&good.order.equals(List.of("hold","release","dispose")),"success cleans before hold release, with no late cleanup that could fail after resuming");
+  var release=new H();release.failRelease=true;r=release.finish(true,2);check(!r.completed()&&r.failed()&&release.order.equals(List.of("hold","release","dispose","stop","physical")),"release failure still disposes, never resumes, honors physical state after stop");
+  var dispose=new H();dispose.failDispose=true;r=dispose.finish(true,2);check(!r.completed()&&r.failed()&&dispose.order.equals(List.of("hold","release","dispose","stop","physical")),"disposal failure cannot mark complete/release Farming first");
+  var cancel=new H();r=cancel.finish(false,2);check(!r.completed()&&!r.failed()&&cancel.order.equals(List.of("hold","release","dispose","stop","physical")),"ordinary cancellation remains cancellation, not false failure");
+  var expired=new H();r=expired.finish(true,2_000_000_000L);check(!r.completed()&&r.failed()&&expired.order.equals(List.of("hold","release","dispose","stop","physical")),"expired success claim stops and reconciles physical keys after the stop even though native disposal has run");
+  var physical=new H();physical.failPhysical=true;r=physical.finish(false,2);check(!r.completed()&&r.failed()&&!physical.session.active()&&physical.order.contains("stop"),"post-stop failure cannot resurrect original Farming");
+  var newer=new H();newer.session.invalidate();var current=newer.session.begin(AutomationFeature.PEST,2,1_000_000_000L);int stops=Collections.frequency(newer.order,"stop");r=AutomationCompletion.finish(newer.session,newer.handle,true,3,()->{},()->{},()->{});check(!r.completed()&&r.failed()&&newer.session.isCurrent(current)&&Collections.frequency(newer.order,"stop")==stops,"stale completion cannot finish or stop a later root");
+  var broken=new H();broken.brokenObservation=true;r=broken.finish(true,2);check(!r.completed()&&r.failed()&&!broken.session.active()&&!broken.session.holdsFarming()&&broken.order.equals(List.of("hold","release","dispose","stop","physical")),"unavailable native context must revoke root/hold and stop the original Farm before physical reconciliation");
+  System.out.println("AutomationCompletionTest: PASS (dispose before any successful hold release; release/dispose/expiry/cancel failures stop first then physical-only reconciliation; no late success cleanup or stale-root stop)");
+ }
+}

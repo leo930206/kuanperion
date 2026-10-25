@@ -20,6 +20,8 @@ public final class GreenhouseTask {
   Attack harvest(AutomationSession.Handle handle,GreenhouseTarget target,Tool tool,long now);
   FlightMotion restore(AutomationSession.Handle handle,FlightAnchor original,long now);
   default void dispose(AutomationSession.Handle handle){release(handle);}
+  /** Failure-only physical input reconciliation; never sends gameplay or re-arms Farming. */
+  default void afterStop(AutomationSession.Handle handle){}
  }
  private static final long SECOND=1_000_000_000L;
  private final AutomationSession session;private final HarvestReceipts harvests;private final Port port;private final PestPlotTravel travel;
@@ -108,8 +110,7 @@ public final class GreenhouseTask {
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
  private void finish(State terminal,long now){
   var done=handle;handle=null;state=terminal;harvests.clear();travel.reset();
-  try{port.release(done);}catch(RuntimeException cleanup){state=State.FAILED;}
-  try{boolean success=(terminal==State.COMPLETE||terminal==State.PARTIAL)&&state==terminal;boolean completed=session.finish(done,success,now);if(success&&!completed&&state==terminal)state=State.FAILED;}catch(RuntimeException cleanup){state=State.FAILED;}
-  finally{try{port.dispose(done);}catch(RuntimeException cleanup){state=State.FAILED;}}
+  var result=AutomationCompletion.finish(session,done,(terminal==State.COMPLETE||terminal==State.PARTIAL),now,()->{port.release(done);},()->port.dispose(done),()->port.afterStop(done));
+  if(result.failed())state=State.FAILED;
  }
 }

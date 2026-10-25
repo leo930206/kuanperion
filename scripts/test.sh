@@ -100,3 +100,6 @@ python3 "$ROOT/scripts/test-visitor-data-demand.py"
 python3 "$ROOT/scripts/test-supercraft-boundaries.py"
 
 python3 "$ROOT/scripts/test-supercraft-native.py"
+
+python3 "$ROOT/scripts/test-completion-boundaries.py"
+python3 "$ROOT/scripts/test-completion-input.py"

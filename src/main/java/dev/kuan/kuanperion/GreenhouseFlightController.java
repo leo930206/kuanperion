@@ -25,6 +25,7 @@ public final class GreenhouseFlightController implements GreenhouseTask.Port {
  public FlightMotion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return flight.move(h,goal,tolerance,now);}
  public FlightMotion restore(AutomationSession.Handle h,FlightAnchor original,long now){return flight.restore(h,original,now);}
  public void release(AutomationSession.Handle h){flight.release(h);}
+ public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
  public void dispose(AutomationSession.Handle h){flight.dispose(h);}
  public boolean travel(AutomationSession.Handle h,PestPlot plot,long now){return plot!=null&&flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plot,now);}
  public GreenhouseTask.Attack harvest(AutomationSession.Handle h,GreenhouseTarget target,GreenhouseTask.Tool tool,long now){

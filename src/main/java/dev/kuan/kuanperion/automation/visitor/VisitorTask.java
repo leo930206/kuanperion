@@ -17,6 +17,8 @@ public final class VisitorTask {
   GuardedMenuAction.Result submit(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,long now);
   void closeOwnedMenu(int id);FlightMotion restore(AutomationSession.Handle handle,FlightAnchor original,long now);
   default void dispose(AutomationSession.Handle handle){release(handle);}
+  /** Failure-only physical input reconciliation; never sends gameplay or re-arms Farming. */
+  default void afterStop(AutomationSession.Handle handle){}
  }
  /** Issued while vanilla still displays the precise pending submission menu; consumed by one TAIL only. */
  public static final class CloseTicket{private final AutomationSession.Handle handle;private final int container;private final VisitorSubmission submission;private CloseTicket(AutomationSession.Handle h,int id,VisitorSubmission s){handle=h;container=id;submission=s;}}
@@ -109,5 +111,9 @@ public final class VisitorTask {
  }
  private void beginReturn(long now){if(!closeMenu(now))return;port.release(handle);travel.reset();if(!travel.begin(handle,home,now)){finish(State.FAILED,now);return;}state=State.TRAVEL_BACK;phaseStart=now;returnGoal=null;}
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
- private void finish(State terminal,long now){var done=handle;handle=null;state=terminal;closeTicket=null;travel.reset();if(submission!=null)submission.cancel();try{port.release(done);}catch(RuntimeException cleanup){state=State.FAILED;}try{boolean success=(terminal==State.COMPLETE||terminal==State.PARTIAL)&&state==terminal;if(success&&!session.finish(done,true,now))state=State.FAILED;else if(!success)session.finish(done,false,now);}catch(RuntimeException cleanup){state=State.FAILED;}finally{try{port.dispose(done);}catch(RuntimeException cleanup){state=State.FAILED;}}}
+ private void finish(State terminal,long now){
+  var done=handle;handle=null;state=terminal;closeTicket=null;travel.reset();if(submission!=null)submission.cancel();
+  var result=AutomationCompletion.finish(session,done,(terminal==State.COMPLETE||terminal==State.PARTIAL),now,()->port.release(done),()->port.dispose(done),()->port.afterStop(done));
+  if(result.failed())state=State.FAILED;
+ }
 }

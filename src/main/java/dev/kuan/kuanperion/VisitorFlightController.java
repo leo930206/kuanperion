@@ -28,10 +28,19 @@ public final class VisitorFlightController implements VisitorTask.Port {
  }
  public boolean prepare(AutomationSession.Handle h,FlightAnchor original,FlightAnchor region,long now){return flight.prepare(h,original.slot(),original.item(),region,64,now);}
  public FlightMotion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return flight.move(h,goal,tolerance,now);}public FlightMotion restore(AutomationSession.Handle h,FlightAnchor original,long now){return flight.restore(h,original,now);}public void release(AutomationSession.Handle h){flight.release(h);}
- public void dispose(AutomationSession.Handle h){flight.dispose(h);if(h==null||!h.equals(dataOwner))return;dataOwner=null;dataLevel=null;
-  if(catalogRequest!=null&&!catalogRequest.isDone()){catalog.close();catalog=null;}if(priceRequest!=null&&!priceRequest.isDone()){prices.close();prices=null;}catalogRequest=null;priceRequest=null;
+ public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
+ public void dispose(AutomationSession.Handle h){
+  try{flight.dispose(h);}finally{if(h!=null&&h.equals(dataOwner)){
+   dataOwner=null;dataLevel=null;
+   var pendingCatalog=catalogRequest!=null&&!catalogRequest.isDone()?catalog:null;var pendingPrices=priceRequest!=null&&!priceRequest.isDone()?prices:null;
+   if(pendingCatalog!=null)catalog=null;if(pendingPrices!=null)prices=null;catalogRequest=null;priceRequest=null;
+   try{if(pendingCatalog!=null)pendingCatalog.close();}finally{if(pendingPrices!=null)pendingPrices.close();}
+  }}
  }
- public void shutdownData(){if(catalog!=null)catalog.close();if(prices!=null)prices.close();catalog=null;prices=null;catalogRequest=null;priceRequest=null;dataOwner=null;dataLevel=null;}
+ public void shutdownData(){
+  var oldCatalog=catalog;var oldPrices=prices;catalog=null;prices=null;catalogRequest=null;priceRequest=null;dataOwner=null;dataLevel=null;
+  try{if(oldCatalog!=null)oldCatalog.close();}finally{if(oldPrices!=null)oldPrices.close();}
+ }
  public boolean travel(AutomationSession.Handle h,PestPlot plot,long now){return plot!=null&&flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plot,now);}
  public VisitorTask.Open open(AutomationSession.Handle h,VisitorTargets.Target target,long now){
   release(h);if(target==null||!flight.allowed(h,now,AutomationCoordinator.Resource.USE,AutomationCoordinator.Resource.LOOK,AutomationCoordinator.Resource.HOTBAR)||flight.owner()==null)return VisitorTask.Open.REJECTED;

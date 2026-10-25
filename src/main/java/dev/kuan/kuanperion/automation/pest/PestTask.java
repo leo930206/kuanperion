@@ -30,6 +30,8 @@ public final class PestTask {
   /** Release only this handle's overlay, including after revocation; never change user's look/tool. */
   void release(AutomationSession.Handle handle);
   default void dispose(AutomationSession.Handle handle){release(handle);}
+  /** Failure-only physical input reconciliation; never sends gameplay or re-arms Farming. */
+  default void afterStop(AutomationSession.Handle handle){}
  }
  private static final long SECOND=1_000_000_000L;
  private final AutomationSession session;private final Port port;private State state=State.IDLE;private AutomationSession.Handle handle;
@@ -191,8 +193,8 @@ public final class PestTask {
  }
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
  private void finish(State terminal,long now){
-  state=terminal;
-  try{trap.cancel();port.release(handle);}catch(RuntimeException cleanup){state=State.FAILED;}
-  finally{try{boolean completed=session.finish(handle,state==State.COMPLETE,now);if(state==State.COMPLETE&&!completed)state=State.FAILED;}finally{try{port.dispose(handle);}catch(RuntimeException cleanup){state=State.FAILED;}handle=null;target=null;travel.reset();}}
+  var done=handle;handle=null;state=terminal;target=null;travel.reset();
+  var result=AutomationCompletion.finish(session,done,terminal==State.COMPLETE,now,()->{trap.cancel();port.release(done);},()->port.dispose(done),()->port.afterStop(done));
+  if(result.failed())state=State.FAILED;
  }
 }

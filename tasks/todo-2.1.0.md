@@ -72,7 +72,7 @@
 - [ ] Extend global-stop/priority matrix to future Supercraft/Pet Sell and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
-- [ ] Audit terminal cleanup exceptions before successful Farming release across existing flight/menu tasks, while retaining post-safe-stop physical-key restoration priority (new Supercraft data-only port already cleans before release).
+- [x] Pest/Greenhouse/Composter/Visitor terminal cleanup now precedes successful original Farming release; failed release/disposal/context/expiry stops first, then an exact one-use same-level/no-new-root physical-input token reconciles legacy key clearing. Actual finish/native bodies plus full Visitor failure path tested; other release gates remain open.
 - [ ] Audit own-settings GUI coexistence with claimed server menus; never silently replace the user's settings screen or claim uninterrupted operation without proof.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.
 - [ ] Isolated runtime/UI checks and explicit server-test limitations.

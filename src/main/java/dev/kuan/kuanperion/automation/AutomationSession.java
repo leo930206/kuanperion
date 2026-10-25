@@ -50,7 +50,13 @@ public final class AutomationSession {
   }
  }
  public boolean finish(Handle handle,boolean success,long now){
-  if(handle==null||!handle.equals(active))return false;var context=observe.get();boolean owns=coordinator.isOwner(handle.lease(),context,now);
+  if(handle==null||!handle.equals(active))return false;AutomationContext context;
+  try{context=java.util.Objects.requireNonNull(observe.get());}catch(RuntimeException unavailable){
+   // Same root/generation only: an unavailable native context cannot leave an invisible Farming hold or lease alive.
+   active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;coordinator.release(handle.lease());farm.invalidate();
+   if(handle.hold()!=null&&handle.generation()==generation)safeStopFarm.run();return false;
+  }
+  boolean owns=coordinator.isOwner(handle.lease(),context,now);
   active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;coordinator.release(handle.lease());
   boolean resume=handle.hold()==null||farm.finish(handle.hold(),context.worldId(),generation,context.farmingActive());
   boolean completed=success&&owns&&resume;

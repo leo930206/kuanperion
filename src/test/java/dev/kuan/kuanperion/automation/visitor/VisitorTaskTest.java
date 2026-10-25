@@ -6,7 +6,7 @@ public final class VisitorTaskTest {
  static final VisitorPolicy POLICY=new VisitorPolicy(VisitorValuationTest.rules(),1,5,240,60,true);
  static final VisitorTargets.Target NPC=new VisitorTargets.Target("Librarian",11,new UUID(1,11),new PestTargets.Point(0,72,0),12,new UUID(1,12),new PestTargets.Point(0,73,0));
  static final class Fake implements VisitorTask.Port {
-  AutomationContext ctx=new AutomationContext(1,true,true,Set.of());FlightAnchor pose=new FlightAnchor(new PestTargets.Point(100,70,0),10,20,0,TOOL,false);boolean mayFly=true,manual,cursorEmpty=true,accept=true,dataReady=true,blocked;MenuSnapshot menu;Map<Integer,ItemSnapshot> inventory=VisitorSubmissionTest.before();List<VisitorTargets.Target> targets=List.of(NPC);VisitorQueue queue=VisitorQueue.parse(List.of("Visitors: (1)","Librarian"));
+  AutomationContext ctx=new AutomationContext(1,true,true,Set.of());FlightAnchor pose=new FlightAnchor(new PestTargets.Point(100,70,0),10,20,0,TOOL,false);boolean mayFly=true,manual,cursorEmpty=true,accept=true,dataReady=true,blocked,failDispose;MenuSnapshot menu;Map<Integer,ItemSnapshot> inventory=VisitorSubmissionTest.before();List<VisitorTargets.Target> targets=List.of(NPC);VisitorQueue queue=VisitorQueue.parse(List.of("Visitors: (1)","Librarian"));
   int prepares,opens,clicks,restores,releases,disposes,closes,stops,pauses,dataRequests;List<PestPlot> commands=new ArrayList<>();
   public AutomationContext context(){return ctx;}public PestTargets.Point position(){return pose.position();}
   public VisitorTask.Frame frame(long now){return new VisitorTask.Frame(ctx.worldId(),now,pose,new PestTargets.Point(pose.position().x(),pose.position().y()+1.62,pose.position().z()),mayFly,manual,cursorEmpty,true);}
@@ -20,7 +20,7 @@ public final class VisitorTaskTest {
   public GuardedMenuAction.Result submit(AutomationSession.Handle h,MenuContract contract,MenuContract.Ticket ticket,long now){clicks++;check(ticket.slot()==VisitorSubmissionTest.offer(inventory).acceptSlot(),"semantic offer slot only");return accept?GuardedMenuAction.Result.SENT:GuardedMenuAction.Result.REJECTED;}
   public void closeOwnedMenu(int id){closes++;menu=null;ctx=new AutomationContext(ctx.worldId(),ctx.farmingActive(),true,Set.of());}
   public FlightMotion restore(AutomationSession.Handle h,FlightAnchor original,long now){restores++;pose=original;return FlightMotion.ARRIVED;}
-  public void release(AutomationSession.Handle h){releases++;}public void dispose(AutomationSession.Handle h){disposes++;}
+  public void release(AutomationSession.Handle h){releases++;}public void dispose(AutomationSession.Handle h){disposes++;if(failDispose)throw new IllegalStateException("native data disposal failed");}
   void show(){menu=VisitorSubmissionTest.offer(inventory).menu();ctx=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU));}
  }
  static final class H {
@@ -44,6 +44,7 @@ public final class VisitorTaskTest {
   h=new H();h.submit();h.prove(true);h.f.manual=true;h.tick();check(h.task.confirmed()==0&&!h.task.active()&&h.f.restores==0,"manual input wins over complete receipts");
   h=new H();h.submit();h.task.onSystemMessage(2,"OFFER ACCEPTED with Librarian (UNCOMMON)");h.f.queue=VisitorQueue.parse(List.of("Visitors: (0)"));for(int i=0;i<160&&h.task.active();i++)h.tick();check(h.task.state()==VisitorTask.State.TIMED_OUT&&h.task.confirmed()==0&&h.f.clicks==1&&h.f.closes==0,"NPC/queue disappearance is not submission proof and no timeout repair");
   h=new H();h.f.inventory.put(9,VisitorSubmissionTest.EMPTY);h.start();h.arrive(0);for(int i=0;i<20&&h.f.opens==0;i++)h.tick();h.f.show();for(int i=0;i<20&&h.f.commands.size()<2;i++)h.tick();check(h.f.clicks==0&&h.task.skipped()==1&&h.f.commands.size()==2,"missing materials do not buy/consume: explicit partial safe return");h.task.cancel(h.now);
+  h=new H();h.submit();h.prove(true);h.f.queue=VisitorQueue.parse(List.of("Visitors: (0)"));h.tick();for(int i=0;i<10&&h.f.commands.size()<2;i++)h.tick();h.f.failDispose=true;h.arrive(1);for(int i=0;i<20&&h.task.active();i++)h.tick();check(h.task.state()==VisitorTask.State.FAILED&&h.f.disposes==1&&h.f.stops==1&&!h.session.active()&&!h.session.holdsFarming(),"successful server submission/return still must not resume Farming if native data disposal fails");
   System.out.println("VisitorTaskTest: PASS (demand data, typed Barn trip, dual identity, inventory-only single submit, server proof/scoped close, exact return and manual/timeout safety)");
  }
 }

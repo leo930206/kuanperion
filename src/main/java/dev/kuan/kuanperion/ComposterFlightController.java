@@ -19,7 +19,8 @@ public final class ComposterFlightController implements ComposterTask.Port {
  public MenuSnapshot menu(){return AutomationGameView.menu(mc(),context().worldId());}
  public FlightMotion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return flight.move(h,goal,tolerance,now);}
  public FlightMotion restore(AutomationSession.Handle h,FlightAnchor original,long now){return flight.restore(h,original,now);}
- public void release(AutomationSession.Handle h){flight.release(h);}public void dispose(AutomationSession.Handle h){flight.dispose(h);}
+ public void release(AutomationSession.Handle h){flight.release(h);}public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
+ public void dispose(AutomationSession.Handle h){flight.dispose(h);}
  public boolean travel(AutomationSession.Handle h,PestPlot plot,long now){return plot!=null&&flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plot,now);}
  public ComposterTask.Open open(AutomationSession.Handle h,ComposterPolicy.Anchor machine,long now){
   release(h);if(machine==null||!flight.allowed(h,now,AutomationCoordinator.Resource.ATTACK,AutomationCoordinator.Resource.LOOK,AutomationCoordinator.Resource.HOTBAR)||flight.owner()==null||!ComposterGameView.valid(mc(),context(),machine))return ComposterTask.Open.REJECTED;

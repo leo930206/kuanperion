@@ -25,6 +25,7 @@ public final class PestFlightController implements PestTask.Port {
   if(tool==null||!allowed(h,now,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR)||!PestIdentity.sameVacuum(tool,AutomationGameView.item(mc().player.getInventory().getItem(tool.slot()),true)))return false;
   if(!flight.prepare(h,tool.slot(),tool.item(),flightAnchor(anchor),radius,now))return false;preparedTool=tool;used=false;return true;
  }
+ public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
  public void dispose(AutomationSession.Handle h){if(h==null||flight.owner()==null||!flight.owner().equals(h))return;flight.dispose(h);latestFacts=null;preparedTool=null;}
  public void release(AutomationSession.Handle h){flight.release(h);}
  public PestTask.Motion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return pestMotion(flight.move(h,goal,tolerance,now));}
