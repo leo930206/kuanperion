@@ -47,8 +47,9 @@ public final class PestTask {
   try{
    var context=port.context();var f=port.frame(now);
    boolean trapReady=policy.clearTraps()&&trapCandidates(port.facts(now),f.position(),policy.radius(),now,context.worldId()).size()>0;
-   boolean plotTravel=policy.travelPlots()>0&&f.plotsKnown()&&!f.plots().isEmpty()&&PestPlot.at(f.position().x(),f.position().z()).isPresent();
-   if(!context.canIssueCommand()||!context.garden()||!f.fresh(context.worldId(),now)||f.manualInput()||!f.mayFly()||f.alive()<policy.threshold()&&!trapReady||f.targets().isEmpty()&&!policy.sweep()&&!plotTravel&&!trapReady||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
+   var trapFacts=port.facts(now);boolean trapTravel=policy.clearTraps()&&policy.trapPlot()>=0&&policy.travelPlots()>0&&trapFacts.fresh(context.worldId(),now)&&trapFacts.traps().fullKnown()&&!trapFacts.traps().full().isEmpty()&&PestPlot.at(f.position().x(),f.position().z()).isPresent();
+   boolean plotTravel=(policy.travelPlots()>0&&f.plotsKnown()&&!f.plots().isEmpty()&&PestPlot.at(f.position().x(),f.position().z()).isPresent())||trapTravel;
+   if(!context.canIssueCommand()||!context.garden()||!f.fresh(context.worldId(),now)||f.manualInput()||!f.mayFly()||f.alive()<policy.threshold()&&!trapReady&&!trapTravel||f.targets().isEmpty()&&!policy.sweep()&&!plotTravel&&!trapReady||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
    var best=f.tools().stream().filter(t->PestIdentity.vacuum(t.slot(),t.item()).filter(v->v.equals(t)).isPresent()).max(Comparator.comparingDouble(PestIdentity.Vacuum::range).thenComparingInt(t->-t.slot())).orElse(null);
    if(best==null||!policy.sweep()&&!plotTravel&&!trapReady&&f.targets().stream().noneMatch(t->f.position().distanceSquared(t.position())<=policy.radius()*policy.radius()))return false;
    var next=session.begin(AutomationFeature.PEST,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
@@ -122,6 +123,10 @@ public final class PestTask {
    if(f.alive()==0){if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;}
    target=f.targets().stream().filter(t->region.position().distanceSquared(t.position())<=policy.radius()*policy.radius()).min(Comparator.comparingDouble(t->f.position().distanceSquared(t.position()))).orElse(null);
    if(target==null){
+    if(policy.clearTraps()){
+     var facts=port.facts(now);boolean knownFull=facts.fresh(world,now)&&facts.traps().fullKnown()&&!facts.traps().full().isEmpty();
+     if(knownFull&&(!trapCandidates(facts,region.position(),policy.radius(),now,world).isEmpty()||policy.trapPlot()>=0&&policy.travelPlots()>0)&&beginTrap(f,now))return;
+    }
     if(policy.sweep()){if(sweepIndex<SWEEP.length){sweepArrived=false;state=State.SWEEPING;}else if(!nextPlot(f,now)){incomplete=true;beginReturn(now);}}
     else if(!nextPlot(f,now)&&now-phaseStart>=5*SECOND){if(policy.travelPlots()>0){incomplete=true;beginReturn(now);}else finish(State.FAILED,now);}return;
    }
@@ -156,7 +161,17 @@ public final class PestTask {
   if(!facts.fresh(world,now)||!facts.traps().fullKnown()){incomplete=true;beginReturn(now);return true;}
   if(facts.traps().full().isEmpty())return false;
   var next=trapCandidates(facts,region.position(),policy.radius(),now,world).stream().filter(t->!handledTraps.contains(t.trapId())).min(Comparator.comparingDouble(t->frame.position().distanceSquared(t.position())));
-  if(next.isEmpty()||handledTraps.size()>=24){incomplete=true;beginReturn(now);return true;}
+  if(next.isEmpty()){
+   if(policy.trapPlot()>=0&&policy.travelPlots()>0&&homePlot!=null){
+    int destination=policy.trapPlot();
+    if(!visited.contains(destination)&&visited.size()<policy.travelPlots()){
+     var plot=PestPlot.of(destination);visited.add(destination);travel.reset();if(!travel.begin(handle,plot,now)){finish(State.FAILED,now);return true;}traveled=true;state=State.TRAVEL_OUT;return true;
+    }
+    if(visited.contains(destination)&&PestPlot.of(destination).contains(frame.position().x(),frame.position().z())&&now-phaseStart<5*SECOND)return true;
+   }
+   incomplete=true;beginReturn(now);return true;
+  }
+  if(handledTraps.size()>=24){incomplete=true;beginReturn(now);return true;}
   trapTarget=next.get();handledTraps.add(trapTarget.trapId());state=State.TRAP_APPROACH;phaseStart=now;port.release(handle);return true;
  }
  private boolean nextPlot(Frame frame,long now){

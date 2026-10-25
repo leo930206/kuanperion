@@ -37,7 +37,8 @@
 - [ ] Complete Garden search/cleanup behavior and current server formats; validate actual server flight/capture/return behavior before release.
 - [x] Pest UI rename/merge, independent automation and original notifications.
 - [x] Explicit opt-in loaded full-trap release -> normal Pest capture -> exact return under one original Farm hold; strict Tab/marker/menu/proof and manual/cursor safety, offline verified.
-- [ ] Unloaded trap destination/travel, bait replenishment and current live trap formats.
+- [x] Explicit independently configured trap plot, bounded shared travel budget/server arrival/loading observation, no trap-ID/plot-ID inference, release/capture/original return.
+- [ ] Bait replenishment and current live trap formats.
 - [ ] Exchange/spray.
 - [ ] Event/crop strategies and due-task scheduling.
 
@@ -55,6 +56,7 @@
 - [ ] Supercraft recipe/amount/material/menu/deadline -> return, Other UI.
 
 ## 7 — release gate
+- [ ] Audit trusted Jerry automatic sethome versus manual-command cancellation; preserve independent Jerry stop toggle and pause-marker order while new tasks hold Farming.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.

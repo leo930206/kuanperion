@@ -45,5 +45,5 @@ assert 'allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plo
 assert 'travel.arrival(handle,now)' in task and 'visited.size()>=policy.travelPlots()' in task
 assert 'withTravelPlots(Math.round(value))' in ui
 for line in ui.splitlines():
- if 'new PestPolicy(' in line:assert 'p.travelPlots()' in line,'other policy edits must not erase explicit authority'
+ if 'new PestPolicy(' in line:assert 'p.travelPlots()' in line and 'p.trapPlot()' in line,'other policy edits must not erase explicit travel/trap authority'
 print('PestTravelWiringTest: PASS (native guarded adapter + shared server receipt cache, observed plots, explicit persistent opt-in, bounded visits)')
