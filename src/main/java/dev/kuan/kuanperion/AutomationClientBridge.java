@@ -3,6 +3,7 @@ package dev.kuan.kuanperion;
 
 import dev.kuan.kuanperion.automation.*;
 import dev.kuan.kuanperion.automation.pest.*;
+import dev.kuan.kuanperion.automation.greenhouse.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.*;
@@ -19,6 +20,7 @@ public final class AutomationClientBridge {
  private final CursorReceipts cursors=new CursorReceipts();
  private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
+ private final GreenhouseService greenhouse;private final GreenhouseFlightController greenhouseFlight;
  private final PestService pest;private final PestFlightController flight;
  private final JunkService junk;private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
  private final StashService stash;private Object levelIdentity;private long worldGeneration;
@@ -29,6 +31,8 @@ public final class AutomationClientBridge {
   session=new AutomationSession(coordinator,this::observe,pauseFarm,safeStopFarm);
   flight=new PestFlightController(coordinator,session,this::observe,this::sendPestTravel);
   pest=new PestService(settings,session,flight,positions,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  greenhouseFlight=new GreenhouseFlightController(coordinator,session,this::observe,this::sendGreenhouseTravel);
+  greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->Minecraft.getInstance().gui.screen()==null,feedback);
   autoSell=new AutoSellService(settings,session,receipts,new AutoSellTask.Port(){
    public AutomationContext context(){return observe();}
    public MenuSnapshot menu(){return AutomationGameView.menu(Minecraft.getInstance(),currentWorldId());}
@@ -51,12 +55,13 @@ public final class AutomationClientBridge {
   },()->Minecraft.getInstance().gui.screen()==null,feedback);
  }
  public PestService pest(){return pest;}
- public void beforeMovementTick(){if(pest.active()&&(!observe().canIssueCommand()&&!pest.ownsMenu()||flight.manualInput()))pest.cancel(System.nanoTime());}
- public void onManualLook(){if(pest.active()&&Minecraft.getInstance().gui.screen()==null)pest.cancel(System.nanoTime());}
+ public GreenhouseService greenhouse(){return greenhouse;}
+ public void beforeMovementTick(){if(pest.active()&&(!observe().canIssueCommand()&&!pest.ownsMenu()||flight.manualInput()))pest.cancel(System.nanoTime());if(greenhouse.active()&&(!observe().canIssueCommand()||!observe().garden()||greenhouseFlight.manualInput()))greenhouse.cancel(System.nanoTime());}
+ public void onManualLook(){if(Minecraft.getInstance().gui.screen()==null){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());}}
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}
  public JunkService junk(){return junk;}
- public void tick(){long now=System.nanoTime();pest.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
+ public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
  public dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts harvestReceipts(){return harvests;}
  public void serverHarvestPacket(net.minecraft.network.protocol.Packet<?> packet){
@@ -86,12 +91,12 @@ public final class AutomationClientBridge {
  public AutomationSession session(){return session;}
  public AutomationCoordinator coordinator(){return coordinator;}
  public boolean holdsFarming(){return session.holdsFarming();}
- public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
- public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
+ public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());session.cancel(System.nanoTime());}
  public void onManualWorldInput(){onManualInventoryInput();}
- public void onManualInventoryInput(){pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();cursors.clear();harvests.clear();}
+ public void onManualInventoryInput(){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());session.cancel(System.nanoTime());}
+ public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();cursors.clear();harvests.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);
@@ -120,6 +125,13 @@ public final class AutomationClientBridge {
   if(!mc.isSameThread()||mc.player==null||mc.level==null||!context.garden()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
   ownGameplayCommand=true;observedGameplayCommand=false;
   try{mc.player.connection.sendCommand(plot.command());if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /"+plot.command(),false,"Pest"));return true;}finally{ownGameplayCommand=false;}
+ }
+ private boolean sendGreenhouseTravel(AutomationSession.Handle handle,PestPlot plot,long now){
+  if(plot==null||!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.GREENHOUSE)return false;
+  var context=observe();var mc=Minecraft.getInstance();
+  if(!mc.isSameThread()||mc.player==null||mc.level==null||!context.garden()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
+  ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand(plot.command());if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /"+plot.command(),false,"Greenhouse"));return true;}finally{ownGameplayCommand=false;}
  }
  private boolean sendGameplay(AutomationSession.Handle handle,AutomationCommand command){
   if(!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.AUTO_SELL||command!=AutomationCommand.BOOSTER_COOKIE)return false;

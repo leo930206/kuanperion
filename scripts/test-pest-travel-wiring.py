@@ -3,7 +3,10 @@
 from pathlib import Path
 import re,subprocess,tempfile
 r=Path(__file__).resolve().parent.parent;m=r/'src/main/java/dev/kuan/kuanperion'
-s=(m/'AutomationClientBridge.java').read_text();a=s.index(' private boolean sendPestTravel(');b=s.index(' private boolean sendGameplay(',a);method=s[a:b]
+s=(m/'AutomationClientBridge.java').read_text();a=s.index(' private boolean sendPestTravel(');b=s.index('{',a)+1;depth=1
+while depth:
+ depth+=(s[b]=='{')-(s[b]=='}');b+=1
+method=s[a:b]
 java='''package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import dev.kuan.kuanperion.automation.pest.*;import java.util.*;import java.util.function.*;
 public final class PestTravelAdapterTest {

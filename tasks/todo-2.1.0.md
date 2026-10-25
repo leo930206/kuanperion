@@ -44,7 +44,8 @@
 ## 5 — farm maintenance
 - [x] Greenhouse read-only exact crop identities, bounded no-load native discovery, typed entity/block targets and watched server-applied harvest update receipts; no local prediction proof or unfinished toggle.
 - [x] Shared fixed-owner legal-flight primitive extracted without widening Pest/Garden authority; original Pest vacuum/return facade behavior and method bodies verified.
-- [ ] Greenhouse configured plots/tools/targets executable harvest -> return, native flight integration and live validation.
+- [x] Greenhouse configured plots/kinds/exact tool, bounded harvest -> server-confirmed original return, fixed-feature native flight/attack integration, independent persistent opt-in and actual Farming settings callbacks.
+- [ ] Greenhouse live validation; offline native/gameplay fixtures are not a server success claim.
 - [ ] Composter inspect/source/purchase/fill -> return.
 
 ## 6 — Visitor/Supercraft

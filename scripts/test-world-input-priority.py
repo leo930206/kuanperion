@@ -32,6 +32,6 @@ with tempfile.TemporaryDirectory() as temp:
  q=Path(temp);(q/'WorldInputPriorityTest.java').write_text(java);sources=[str(f) for f in (m/'automation').rglob('*.java')]
  subprocess.run([str(jdk/'javac'),'--release','21','-cp',str(gson),'-d',temp,*sources,str(q/'WorldInputPriorityTest.java')],check=True)
  subprocess.run([str(jdk/'java'),'-cp',temp+':'+str(gson),'dev.kuan.kuanperion.WorldInputPriorityTest'],check=True)
-for file in ['PestFlightController.java','GardenFlightCore.java']:
+for file in ['PestFlightController.java','GreenhouseFlightController.java','GardenFlightCore.java']:
  code=(m/file).read_text();assert '.startAttack(' not in code and '.startUseItem(' not in code,'owned direct game-mode actions must not re-enter vanilla input hooks'
 print('WorldInputWiringTest: PASS (two vanilla-only HEAD hooks, no GUI/key polling dependency, direct task actions isolated, old Mining lock untouched)')

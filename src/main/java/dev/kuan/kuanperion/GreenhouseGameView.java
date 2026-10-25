@@ -36,6 +36,32 @@ public final class GreenhouseGameView {
    return packet instanceof ClientboundBlockEntityDataPacket&&mc.level.getBlockState(pos).getBlock() instanceof AbstractSkullBlock&&chunk.getBlockEntities().get(pos) instanceof SkullBlockEntity;
   }catch(RuntimeException unavailable){return false;}
  }
+ private static GreenhouseTask.TargetStatus status(GreenhouseTask.TargetState state){return new GreenhouseTask.TargetStatus(state,null);}
+ static GreenhouseTask.TargetStatus headStatus(GreenhouseTarget expected,ItemStack head,Point point){
+  if(head==null||head.has(DataComponents.CUSTOM_NAME))return status(GreenhouseTask.TargetState.UNKNOWN);
+  if(head.isEmpty()||!head.is(Items.PLAYER_HEAD))return status(GreenhouseTask.TargetState.CHANGED);
+  var hash=hash(head.get(DataComponents.PROFILE));if(hash.isEmpty())return status(GreenhouseTask.TargetState.UNKNOWN);
+  return hash.flatMap(GreenhouseIdentity::kindHash).filter(expected.kind()::equals).isPresent()?new GreenhouseTask.TargetStatus(GreenhouseTask.TargetState.MATURE,new GreenhouseTarget(expected.ref(),expected.kind(),point)):status(GreenhouseTask.TargetState.CHANGED);
+ }
+ /** Local disappearance alone never proves success: the task separately requires its watched new server receipt. */
+ public static GreenhouseTask.TargetStatus target(Minecraft mc,GreenhouseTarget expected){
+  if(mc==null||expected==null||!mc.isSameThread()||mc.level==null||mc.player==null)return status(GreenhouseTask.TargetState.UNKNOWN);
+  try{
+   var position=expected.position();var pos=BlockPos.containing(position.x(),position.y(),position.z());
+   if(mc.level.getChunkSource().getChunk(pos.getX()>>4,pos.getZ()>>4,ChunkStatus.FULL,false)==null)return status(GreenhouseTask.TargetState.UNKNOWN);
+   if(expected.ref() instanceof GreenhouseTarget.EntityRef ref){
+    var entity=mc.level.getEntity(ref.id());if(entity==null||entity.isRemoved()||!entity.getUUID().equals(ref.uuid()))return status(GreenhouseTask.TargetState.CHANGED);
+    if(!(entity instanceof ArmorStand stand))return status(GreenhouseTask.TargetState.UNKNOWN);
+    var current=BlockPos.containing(stand.getX(),stand.getY(),stand.getZ());if(mc.level.getChunkSource().getChunk(current.getX()>>4,current.getZ()>>4,ChunkStatus.FULL,false)==null)return status(GreenhouseTask.TargetState.UNKNOWN);
+    return headStatus(expected,stand.getItemBySlot(EquipmentSlot.HEAD),new Point(stand.getX(),stand.getY()+stand.getEyeHeight(),stand.getZ()));
+   }
+   var ref=(GreenhouseTarget.BlockRef)expected.ref();pos=new BlockPos(ref.x(),ref.y(),ref.z());var chunk=mc.level.getChunkSource().getChunk(ref.x()>>4,ref.z()>>4,ChunkStatus.FULL,false);if(chunk==null)return status(GreenhouseTask.TargetState.UNKNOWN);
+   if(!(mc.level.getBlockState(pos).getBlock() instanceof AbstractSkullBlock))return status(GreenhouseTask.TargetState.CHANGED);
+   var entity=chunk.getBlockEntities().get(pos);if(!(entity instanceof SkullBlockEntity skull)||skull.isRemoved())return status(GreenhouseTask.TargetState.UNKNOWN);
+   var hash=hash(skull.getOwnerProfile());if(hash.isEmpty())return status(GreenhouseTask.TargetState.UNKNOWN);
+   return hash.flatMap(GreenhouseIdentity::kindHash).filter(expected.kind()::equals).isPresent()?new GreenhouseTask.TargetStatus(GreenhouseTask.TargetState.MATURE,expected):status(GreenhouseTask.TargetState.CHANGED);
+  }catch(RuntimeException unavailable){return status(GreenhouseTask.TargetState.UNKNOWN);}
+ }
  /** Empty Optional means unavailable/unknown, never an empty completed greenhouse. No chunk is loaded here. */
  public static Optional<GreenhouseScan> scan(Minecraft mc,AutomationContext context,Point center,int radius,Set<Integer> plots,Set<GreenhouseIdentity.Kind> kinds,long now){
   if(mc==null||context==null||!context.garden()||context.hardBlocked()||mc.player==null||mc.level==null||!mc.isSameThread())return Optional.empty();

@@ -1,0 +1,14 @@
+# Greenhouse executable slice (2.1.0 development)
+
+- Farming module; automation defaults off, plots/crops/tool unset. No old flag grants permission. Explicit plots 1–24, three curated mature identities, exact tool SkyBlock ID and UUID selected from the hotbar.
+- One GREENHOUSE lease and revocable original Farming token. Only the separate fixed-feature native adapter receives ATTACK; sharing the flight primitive does not add Pest USE/SCREEN rights. No imported global macro state or worker thread.
+- Typed `tptoplot N` commands (original plot 0 uses `barn`) require a new absolute server position receipt, expected plot and matching current pose before reanchoring. No command retries, teleport packets, predicted-position proof or chunk loading.
+- Incremental scan: 64 reads/tick, 10-second deadline, current configured plot/kinds and radius (4–25), height ±10. Missing chunks/profiles are unknown, not a successfully empty greenhouse.
+- Revalidate exact live target/tool/reach/clip/body/flight authority before a normal native block/entity left-click. One attempt, no repeated attack while waiting. Both a fresh watched server-applied update and changed mature identity are required to increment harvest count. Local break prediction alone cannot succeed.
+- Stop new work at the configured count or 45 seconds before the global 90–300-second deadline; report PARTIAL honestly. Return by confirmed original plot, then bounded flight legs to the exact fractional original position and original tool/view/flight state before releasing the same Farming token. PARTIAL may resume only after that verified return; it does not claim all plots cleared.
+- Manual input/look/tool/command, Mining, Jerry/Farming stop, foreign menu, focus/world change, timeout or unknown evidence cancels and releases owned keys. Do not overwrite user look/tool on cancellation, force landing midair or restart an inactive Farming session.
+- External atomic automation.json stores only preferences (strict arrays, typed limits, preserved unknown fields). Runtime tasks/receipts/holds never persist. Enabling/restarting an interval does not replay a startup job; default interval 600 seconds. Failure disables Greenhouse only and requires explicit re-enable.
+
+## Verification boundary
+
+Pure policy/task/service/config tests cover normal harvest + dual evidence + return, prediction without receipt, packet without changed target, timeout, every context blocker, manual/invalidation, unavailable scan and bounded partial return. Pinned26.2 native fixtures test real head/profile/packet projections and source adapters; an isolated offline client tests actual Farming settings callbacks and applied Mixins. These are **not** live Hypixel travel/physics/harvest validation. 2.1.0 remains unpublished; installed stable2.0.17 and existing user preferences remain untouched.

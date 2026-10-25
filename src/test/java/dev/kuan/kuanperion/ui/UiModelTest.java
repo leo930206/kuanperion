@@ -3,6 +3,10 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(GreenhouseModuleSettings.parsePlots("1, 24, 2").equals(Set.of(1,2,24)),"Greenhouse explicit bounded plot parser");
+        require(GreenhouseModuleSettings.parsePlots(" ").isEmpty(),"blank plots is unconfigured, not all plots");
+        for(String bad:List.of("0","25","1,1","1,","1; barn","1\n2","-1"))try{GreenhouseModuleSettings.parsePlots(bad);throw new AssertionError("invalid plot input accepted");}catch(IllegalArgumentException expected){}
+
         require(java.util.Arrays.equals(MainGUISettingsPages.IDS,new int[]{4,1,3}),"only Interface Colors Keybinds remain");
         require(MainGUISettingsPages.normalize(2)==4,"old profile route goes to interface");
         for(float width:new float[]{350,600,900}){

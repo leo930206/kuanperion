@@ -4,7 +4,7 @@ import java.util.Set;
 
 /** Client-thread exclusive task lease. Preemption must cancel/clean up the old task first. */
 public final class AutomationCoordinator {
- public enum Resource {COMMAND,MOVEMENT,LOOK,HOTBAR,SCREEN,USE}
+ public enum Resource {COMMAND,MOVEMENT,LOOK,HOTBAR,SCREEN,USE,ATTACK}
  public record Lease(long token,AutomationFeature owner,long worldId,long started,long lifetime,Set<Resource> resources) {
   public Lease {resources=Set.copyOf(resources);}
  }

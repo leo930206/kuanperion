@@ -11,9 +11,10 @@ public final class PestPlotTravel {
   void release(AutomationSession.Handle handle);
  }
  private static final long TIMEOUT=15_000_000_000L;
- private final AutomationSession session;private final PlayerPositionReceipts receipts;private final Port port;
+ private final AutomationFeature feature;private final AutomationSession session;private final PlayerPositionReceipts receipts;private final Port port;
  private State state=State.IDLE;private AutomationSession.Handle handle;private PestPlot plot;private PlayerPositionReceipts.Stamp stamp;private long started;
- public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port){this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.port=Objects.requireNonNull(port);}
+ public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port){this(session,receipts,port,AutomationFeature.PEST);}
+ public PestPlotTravel(AutomationSession session,PlayerPositionReceipts receipts,Port port,AutomationFeature feature){if(feature!=AutomationFeature.PEST&&feature!=AutomationFeature.GREENHOUSE)throw new IllegalArgumentException("Unsupported Garden travel owner");this.feature=feature;this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.port=Objects.requireNonNull(port);}
  public State state(){return state;}
  public boolean begin(AutomationSession.Handle handle,PestPlot plot,long now){
   if(state!=State.IDLE)return false;
@@ -25,7 +26,7 @@ public final class PestPlotTravel {
   state=State.WAITING;return true;
  }
  private boolean allowed(long now){
-  var context=port.context();return session.isCurrent(handle)&&handle.lease().owner()==AutomationFeature.PEST&&handle.lease().worldId()==context.worldId()&&now>=started&&now-handle.lease().started()<handle.lease().lifetime()&&context.garden()&&context.canIssueCommand();
+  var context=port.context();return session.isCurrent(handle)&&handle.lease().owner()==feature&&handle.lease().worldId()==context.worldId()&&now>=started&&now-handle.lease().started()<handle.lease().lifetime()&&context.garden()&&context.canIssueCommand();
  }
  public void tick(long now){
   if(state!=State.WAITING&&state!=State.ARRIVED)return;

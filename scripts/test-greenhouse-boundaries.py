@@ -16,10 +16,10 @@ for path in m.rglob('*.java'):
  if path.name!='AutomationReceiptMixin.java':assert 'KuanperionClient.observeAutomationHarvest(' not in code,path
  if path.name!='AutomationClientBridge.java':assert 'harvests.entityChanged(' not in code and 'harvests.blockChanged(' not in code,path
  if path.name!='AutomationClientBridge.java':assert 'GreenhouseGameView.applied(' not in code,path
- if path.name!='GreenhouseGameView.java':assert 'GreenhouseGameView.scan(' not in code,'Discovery has no executable task caller until its module is wired'
+ if path.name not in {'GreenhouseGameView.java','GreenhouseFlightController.java'}:assert 'GreenhouseGameView.scan(' not in code,'Only fixed-owner Greenhouse driver may request discovery'
 identity=(m/'automation/greenhouse/GreenhouseIdentity.java').read_text();pest=(m/'automation/pest/PestIdentity.java').read_text()
 hashes=set(re.findall(r'"([0-9a-f]{64})"',identity));catalog=json.loads((r/'docs/data/greenhouse-textures.json').read_text())
 assert hashes==set(catalog['textures'].values()) and len(hashes)==3
 assert not hashes.intersection(re.findall(r'"([0-9a-f]{32,64})"',pest)),'Greenhouse/Pest identity sets must not overlap'
 assert 'TextureIdentity.hash(encoded).filter(TEXTURES::contains)' in pest
-print('GreenhouseBoundariesTest: PASS (strict disjoint identities, no-load bounded discovery, exact server TAIL/watch signals only, no attack/movement/network/prediction/unfinished UI caller)')
+print('GreenhouseBoundariesTest: PASS (strict disjoint identities, no-load bounded discovery, exact server TAIL/watch signals only, read-only observations; only fixed-owner native driver may request discovery)')
