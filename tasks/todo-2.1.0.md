@@ -62,6 +62,7 @@
 - [x] Supercraft read-only exact-batch preflight: explicit output/ingredient/consumption/craft caps, complete protected43-slot inventory and capacity, immutable baseline; recipe data does not authorize a GUI action.
 - [x] Supercraft single-attempt receipt contract: current complete baseline, guarded-result window, exact requested input/output deltas backed by every affected server slot and empty cursor, no replay/prediction/manual/world/clock/timeout success. No native caller or placeholder toggle.
 - [x] Historical official advanced-preview read-only contract: complete exact recipe/output/selected amount/material/source/destination facts, inventory-only allocation, no fixed slots or unknown-cost skipping; current2026 live compatibility remains unverified.
+- [x] Supercraft abstract exact-selected-batch task: one root/catalog/typed recipe/guarded-attempt, strict preview -> server proof -> unchanged original pose/tool and owned close before valid Farming release; native adapter/service/UI still absent.
 - [ ] Supercraft authoritative current recipe/quantity/cost/native menu driver, lifecycle/service/Other UI and live receipt/return validation.
 
 ## 7 — release gate
@@ -70,6 +71,7 @@
 - [ ] Extend global-stop/priority matrix to future Supercraft/Pet Sell and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
+- [ ] Audit terminal cleanup exceptions before successful Farming release across existing flight/menu tasks, while retaining post-safe-stop physical-key restoration priority (new Supercraft data-only port already cleans before release).
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.
 - [ ] Isolated runtime/UI checks and explicit server-test limitations.
 - [ ] Build payload equality, source/JAR backup, settings and unrelated mods preserved.
