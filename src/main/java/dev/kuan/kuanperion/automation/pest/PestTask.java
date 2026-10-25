@@ -37,6 +37,8 @@ public final class PestTask {
  private final PestPlotTravel travel;private PestPolicy policy;private Anchor anchor,region;private PestPlot homePlot;private boolean traveled;private int returnLegs;private PestTargets.Point returnGoal;private final Set<Integer> visited=new HashSet<>();private PestIdentity.Vacuum tool;private PestTargets.Target target;
  private long world,started,phaseStart;private int baseline,confirmed;private boolean used,incomplete,sweepArrived;private int sweepIndex;private long sweepArrival;
  private static final int[][] SWEEP={{1,1},{-1,1},{-1,-1},{1,-1}};
+ public PestTrapRelease.CloseTicket beforeServerClose(int id,long now){return state==State.TRAP_MENU?trap.beforeServerClose(id,now):null;}
+ public boolean afterServerClose(PestTrapRelease.CloseTicket ticket,long now){return state==State.TRAP_MENU&&trap.afterServerClose(ticket,now);}
  public PestTask(AutomationSession session,Port port){this(session,port,new PlayerPositionReceipts());}
  public PestTask(AutomationSession session,Port port,PlayerPositionReceipts receipts){this.session=session;this.port=port;travel=new PestPlotTravel(session,receipts,port);trap=new PestTrapRelease(session,port);}
  public boolean ownsMenu(){try{return state==State.TRAP_MENU&&trap.ownsMenu();}catch(RuntimeException invalid){return false;}}

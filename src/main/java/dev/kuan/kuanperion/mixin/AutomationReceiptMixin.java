@@ -3,6 +3,7 @@ package dev.kuan.kuanperion.mixin;
 import dev.kuan.kuanperion.KuanperionClient;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
@@ -19,6 +20,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Observe server-applied results, never client prediction or outbound packets. */
 @Mixin(ClientPacketListener.class)
 public abstract class AutomationReceiptMixin {
+ @Inject(method="handleContainerClose",at=@At("HEAD"))
+ private void kuanperion$beforeClose(ClientboundContainerClosePacket packet,CallbackInfo ci){KuanperionClient.observeAutomationMenuClose(packet,true);}
+ @Inject(method="handleContainerClose",at=@At("TAIL"))
+ private void kuanperion$afterClose(ClientboundContainerClosePacket packet,CallbackInfo ci){KuanperionClient.observeAutomationMenuClose(packet,false);}
  @Inject(method="handleRemoveEntities",at=@At("TAIL"))
  private void kuanperion$harvestRemove(ClientboundRemoveEntitiesPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationHarvest(packet);}
  @Inject(method="handleSetEquipment",at=@At("TAIL"))

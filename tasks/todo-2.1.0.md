@@ -38,6 +38,7 @@
 - [x] Pest UI rename/merge, independent automation and original notifications.
 - [x] Explicit opt-in loaded full-trap release -> normal Pest capture -> exact return under one original Farm hold; strict Tab/marker/menu/proof and manual/cursor safety, offline verified.
 - [x] Explicit independently configured trap plot, bounded shared travel budget/server arrival/loading observation, no trap-ID/plot-ID inference, release/capture/original return.
+- [x] Delayed applied server trap-close observation retains the original hold; local/manual/ignored/stale close remains cancellation.
 - [ ] Bait replenishment and current live trap formats.
 - [ ] Exchange/spray.
 - [ ] Event/crop strategies and due-task scheduling.

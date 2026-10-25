@@ -285,6 +285,7 @@ public final class KuanperionClient implements ClientModInitializer {
         automation.serverHarvestPacket(packet);
     }
 
+    public static void observeAutomationMenuClose(net.minecraft.network.protocol.game.ClientboundContainerClosePacket packet,boolean before){if(automation!=null){if(before)automation.beforeServerClose(packet);else automation.afterServerClose(packet);}}
     public static void observeAutomationCursor(net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet){
         var mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null||packet==null)return;
         automation.serverCursor(packet.contents());

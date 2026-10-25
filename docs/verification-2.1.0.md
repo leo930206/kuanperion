@@ -291,3 +291,12 @@ Staging five gates passed, including all original Jerry/global-stop and Visitor 
 Added complete unique bounded Tab Visitors sections and metadata; unknown/missing/extra/conflicting counts/names are UNKNOWN rather than empty. Local candidates require an exact unique queued invisible hologram plus a sole nearby living non-listed character, retaining both entity IDs/UUIDs/positions; no substring, first/nearest, player or duplicate-character association. Native projection visits <=4096 loaded entities, records <=256 within64 blocks, never forces chunks or interacts. Read-only data is not future action authority.
 
 Missing-API RED -> pure GREEN covers malformed queues, ambiguity, duplicates/players/positions and immutable outputs. Staging full test/build/UI/migration/native gates passed; isolated pinned26.2 offline client passed19:09:12 including native no-world queue/target refusal and all old UI/Mixin/settings proofs. No server Tab/entity format, navigation, interaction, buying, submission or return was tested/enabled. Visitor runtime/service/UI and the full upgrade remain unfinished.
+
+
+## 2026-10-25 — delayed server-owned trap close preserves the original hold
+
+A true behavioral RED reproduced a release menu remaining visible for an extra poll, then an applied server close cancelling the original root before task processing. Added a narrow opaque one-use pending-release ticket: exact owned-menu/ID/current-root/world/deadline snapshot at native HEAD, matching applied vanilla inventory-menu/no-screen at TAIL. Only that scoped event clears the old expected-menu claim; local/manual/ignored/stale/foreign close cannot borrow it. Independent release facts and empty cursor still gate success. See pest-trap-close-2.1.0.md.
+
+Actual-session regressions cover the delayed poll ordering, one-use acknowledgement, manual/local close, wrong/ignored IDs, rejected-TAIL replay and revoked roots. Existing capture/trap/travel/return, Jerry and legacy checks pass. Native source guard requires client-thread checks before cache mutation and no native command, cursor or screen mutation.
+
+Staging five gates passed. Isolated pinned26.2 offline client passed19:23:12 including both newly applied handleContainerClose HEAD/TAIL probes, the actual getContainerId packet API/no-player bridge refusal and all prior UI/native/settings/Mixin checks. No live server or player account was used, and this is not a claim of live trap release validation. Frozen production payload is retained for actual-project equality verification.

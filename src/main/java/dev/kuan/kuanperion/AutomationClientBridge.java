@@ -18,6 +18,7 @@ public final class AutomationClientBridge {
  private final Supplier<LegacyState> legacy;private final Function<Minecraft,List<String>> sidebar;
  private final InventoryReceipts receipts=new InventoryReceipts();
  private final dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts harvests=new dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts();
+ private PestTrapRelease.CloseTicket trapClose;private long trapCloseWorld;private int trapCloseId;
  private final CursorReceipts cursors=new CursorReceipts();
  private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
@@ -92,6 +93,19 @@ public final class AutomationClientBridge {
  public void serverContainerCursor(net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket packet){
   var mc=Minecraft.getInstance();if(packet==null||mc.player==null||packet.containerId()!=mc.player.containerMenu.containerId)return;
   serverCursor(packet.carriedItem());
+ }
+ /** HEAD records only a matching currently owned pending release; off-thread callbacks never touch the cache. */
+ public void beforeServerClose(net.minecraft.network.protocol.game.ClientboundContainerClosePacket packet){
+  var mc=Minecraft.getInstance();if(!mc.isSameThread())return;trapClose=null;
+  if(packet==null||mc.player==null||mc.level==null)return;long world=currentWorldId();var menu=AutomationGameView.menu(mc,world);
+  if(menu==null||menu.containerId()!=packet.getContainerId()||!pest.ownsMenu())return;
+  trapClose=pest.beforeServerClose(packet.getContainerId(),System.nanoTime());trapCloseWorld=world;trapCloseId=packet.getContainerId();
+ }
+ /** TAIL accepts only an applied vanilla close, never local ESC/predicted absence or an ignored close ID. */
+ public void afterServerClose(net.minecraft.network.protocol.game.ClientboundContainerClosePacket packet){
+  var mc=Minecraft.getInstance();if(!mc.isSameThread())return;var ticket=trapClose;trapClose=null;
+  if(ticket==null||packet==null||mc.player==null||mc.level==null||trapCloseWorld!=currentWorldId()||trapCloseId!=packet.getContainerId()||mc.gui.screen()!=null||mc.player.containerMenu!=mc.player.inventoryMenu)return;
+  pest.afterServerClose(ticket,System.nanoTime());
  }
  public PlayerPositionReceipts positionReceipts(){return positions;}
  public void serverPosition(net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket packet){

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Pest trap release now distinguishes an actual delayed server menu close from manual/local disappearance, retaining the original Farming hold only for a scoped applied-close receipt.
 - Visitor discovery dependency: complete bounded Tab queues and exact hologram/NPC dual identities, with listed-player/duplicate/ambiguous-nearest rejection and loaded-only native snapshots; no automatic interaction exposed.
 - Shared item-catalog dependency: strict official resource projection and anonymous demand-only cached transport for future Visitor/Supercraft callers; no player/account fields or startup requests.
 - Jerry stop now also suspends standalone and idle automatic jobs across all six existing new services; manual re-enable is required and idle saved preferences are preserved.

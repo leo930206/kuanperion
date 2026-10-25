@@ -307,6 +307,7 @@ public final class UiSmoke implements ClientModInitializer {
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");byte[] before=java.nio.file.Files.readAllBytes(path);
         if(mc.player!=null||bridge.sendAutomaticJerryHome()||bridge.session().active()||bridge.holdsFarming())throw new AssertionError("offline trusted Jerry record-only command must not send or acquire work");
         if(!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("record-only sender must not mutate persisted settings");
+        var closed=new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(7);if(closed.getContainerId()!=7)throw new AssertionError("pinned26.2 close packet identity");bridge.beforeServerClose(closed);bridge.afterServerClose(closed);
         bridge.suspendForJerry();
         if(bridge.session().active()||!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("idle Jerry global stop must not acquire a lease or rewrite latest settings");
         System.out.println("UI_SMOKE_JERRY_GLOBAL_STOP_PASS native offline bridge suspends all six services without preference/lease side effects");
