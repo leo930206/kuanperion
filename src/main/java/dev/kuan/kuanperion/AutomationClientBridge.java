@@ -89,6 +89,7 @@ public final class AutomationClientBridge {
  public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
+ public void onManualWorldInput(){onManualInventoryInput();}
  public void onManualInventoryInput(){pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
  public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();cursors.clear();harvests.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}

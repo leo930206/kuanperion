@@ -79,3 +79,5 @@ python3 "$ROOT/scripts/test-cursor-boundaries.py"
 python3 "$ROOT/scripts/test-greenhouse-boundaries.py"
 
 python3 "$ROOT/scripts/test-flight-core.py"
+
+python3 "$ROOT/scripts/test-world-input-priority.py"

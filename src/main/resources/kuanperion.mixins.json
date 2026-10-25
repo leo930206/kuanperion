@@ -9,7 +9,8 @@
     "UiRenderMixin",
     "AutomationSoundMixin",
     "AutomationReceiptMixin",
-    "AutomationInventoryInputMixin"
+    "AutomationInventoryInputMixin",
+    "AutomationWorldInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

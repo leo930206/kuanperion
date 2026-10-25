@@ -276,6 +276,8 @@ public final class KuanperionClient implements ClientModInitializer {
 
     public static void onManualAutomationLook(){if(automation!=null)automation.onManualLook();}
 
+    public static void onManualAutomationWorldInput(){if(automation!=null)automation.onManualWorldInput();}
+
     public static void onManualAutomationInventoryInput(){if(automation!=null)automation.onManualInventoryInput();}
 
     public static void observeAutomationHarvest(net.minecraft.network.protocol.Packet<?> packet){

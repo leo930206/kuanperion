@@ -62,3 +62,5 @@
 
 ### Next Pest increment (in progress, not released)
 - [x] Explicit opt-in local four-point sweep when global pests are known but no loaded target is in range; same native flight fence, discovery interrupts sweep, exhaustion returns INCOMPLETE and stops instead of claiming a cleared Garden.
+
+- [x] Vanilla startAttack/startUseItem HEAD manual priority catches released fast clicks before native action, noncancellable; isolated 26.2 applied-Mixin/UI regression passes.
