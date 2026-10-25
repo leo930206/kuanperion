@@ -26,7 +26,7 @@ public final class AutomationSettingsStore {
    if(version==null||!version.isJsonPrimitive()||!version.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Missing schema");
    int schema=version.getAsBigDecimal().intValueExact();
    if(schema!=SCHEMA){writable=false;issue="設定格式版本不相容，未啟用自動化或覆寫檔案";return;}
-   for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
+   for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse","composter"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
    root=candidate;
   }catch(IOException|RuntimeException invalid){writable=false;issue="自動化設定無法讀取，原檔保留且自動化停用";}
  }
@@ -60,6 +60,20 @@ public final class AutomationSettingsStore {
   return new dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy(plots,kinds,s.has("toolId")?strictString(s,"toolId"):"",s.has("toolUuid")?strictString(s,"toolUuid"):"",strictInteger(s,"radius",25,4,25),strictInteger(s,"maxTargets",128,1,256),strictInteger(s,"timeoutSeconds",240,90,300),strictInteger(s,"intervalSeconds",600,60,86400),strictBoolean(s,"onlyWhileFarming",true));
  }
  public void setGreenhousePolicy(dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy p)throws IOException{update(copy->{var s=object(copy,"greenhouse");s.add("plots",JSON.toJsonTree(new java.util.TreeSet<>(p.plots())));s.add("kinds",JSON.toJsonTree(p.kinds().stream().map(Enum::name).sorted().toList()));s.addProperty("toolId",p.toolId());s.addProperty("toolUuid",p.toolUuid());s.addProperty("radius",p.radius());s.addProperty("maxTargets",p.maxTargets());s.addProperty("timeoutSeconds",p.timeoutSeconds());s.addProperty("intervalSeconds",p.intervalSeconds());s.addProperty("onlyWhileFarming",p.onlyWhileFarming());});}
+ public boolean composterPolicyValid(){try{readComposterPolicy();return writable;}catch(RuntimeException invalid){return false;}}
+ public dev.kuan.kuanperion.automation.composter.ComposterPolicy composterPolicy(){try{return readComposterPolicy();}catch(RuntimeException invalid){return dev.kuan.kuanperion.automation.composter.ComposterPolicy.defaults();}}
+ private dev.kuan.kuanperion.automation.composter.ComposterPolicy readComposterPolicy(){
+  var s=section(root,"composter");dev.kuan.kuanperion.automation.composter.ComposterPolicy.Anchor anchor=null;
+  if(s.has("anchor")){var a=s.getAsJsonObject("anchor");if(!a.has("x")||!a.has("y")||!a.has("z"))throw new IllegalArgumentException("Missing Composter coordinates");anchor=new dev.kuan.kuanperion.automation.composter.ComposterPolicy.Anchor(strictInteger(a,"x",0,-48,47),strictInteger(a,"y",72,-2048,2048),strictInteger(a,"z",0,-48,47),strictString(a,"blockId"));}
+  var materials=new java.util.TreeMap<String,dev.kuan.kuanperion.automation.composter.ComposterPolicy.Material>();
+  if(s.has("materials")){var entries=s.getAsJsonObject("materials");if(entries.size()>32)throw new IllegalArgumentException("Too many Composter materials");for(var e:entries.entrySet()){var m=e.getValue().getAsJsonObject();materials.put(e.getKey(),new dev.kuan.kuanperion.automation.composter.ComposterPolicy.Material(dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.valueOf(strictString(m,"kind")),strictInteger(m,"units",0,1,1000000000)));}}
+  return new dev.kuan.kuanperion.automation.composter.ComposterPolicy(anchor,materials,strings(s,"protectedUuids"),strictInteger(s,"targetPercent",90,1,100),strictInteger(s,"maxStacks",3,1,27),strictInteger(s,"maxItems",192,1,1728),strictInteger(s,"delayMillis",1000,500,5000),strictInteger(s,"timeoutSeconds",240,90,300),strictInteger(s,"intervalSeconds",7200,60,86400),strictBoolean(s,"onlyWhileFarming",true));
+ }
+ public void setComposterPolicy(dev.kuan.kuanperion.automation.composter.ComposterPolicy p)throws IOException{update(copy->{
+  var s=object(copy,"composter");if(p.anchor()==null)s.remove("anchor");else{var a=object(s,"anchor");a.addProperty("x",p.anchor().x());a.addProperty("y",p.anchor().y());a.addProperty("z",p.anchor().z());a.addProperty("blockId",p.anchor().blockId());}
+  var previous=section(s,"materials");var materials=new JsonObject();for(var e:new java.util.TreeMap<>(p.materials()).entrySet()){var m=section(previous,e.getKey()).deepCopy();m.addProperty("kind",e.getValue().kind().name());m.addProperty("units",e.getValue().units());materials.add(e.getKey(),m);}s.add("materials",materials);
+  s.add("protectedUuids",JSON.toJsonTree(new java.util.TreeSet<>(p.protectedUuids())));s.addProperty("targetPercent",p.targetPercent());s.addProperty("maxStacks",p.maxStacks());s.addProperty("maxItems",p.maxItems());s.addProperty("delayMillis",p.delayMillis());s.addProperty("timeoutSeconds",p.timeoutSeconds());s.addProperty("intervalSeconds",p.intervalSeconds());s.addProperty("onlyWhileFarming",p.onlyWhileFarming());
+ });}
  private static boolean strictBoolean(JsonObject object,String key,boolean fallback){if(!object.has(key))return fallback;var value=object.get(key);if(!value.isJsonPrimitive()||!value.getAsJsonPrimitive().isBoolean())throw new IllegalArgumentException("Invalid Pest toggle");return value.getAsBoolean();}
  private static String strictString(JsonObject o,String key){var v=o.get(key);if(v==null||!v.isJsonPrimitive()||!v.getAsJsonPrimitive().isString())throw new IllegalArgumentException("Invalid text");return v.getAsString();}
  private static double strictNumber(JsonObject o,String key){var v=o.get(key);if(v==null||!v.isJsonPrimitive()||!v.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Invalid coordinate/limit");return v.getAsDouble();}

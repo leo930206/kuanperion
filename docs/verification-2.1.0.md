@@ -228,3 +228,17 @@ Pest 四點搜尋專案端完整 test/build/UI/migration/native PASS，productio
 - All existing pure/runtime/UI/migration/native fixtures passed on staging; client fixture results are recorded after completion. An initial isolated draft compile used an unordered classpath containing older Minecraft versions; corrected to the pinned26.2 JAR first (no production API/code workaround). Actual repository build already pins that JAR first. This is not live flight/physics validation.
 
 - Isolated pinned26.2 chat-only fixture passed 11:04:18 with the actual Pest facade/construction fixtures, all server/input/camera probes and existing real UI callbacks/preferences/shortcuts; no server or flight action was executed. Production payload frozen separately.
+
+## 2026-10-25 — Greenhouse executable harvest and return
+
+Greenhouse is now wired to the Farming page with explicit plots/crops/exact tool and independent external preferences, default off. Pure task tests require both a fresh targeted server-applied harvest event and a changed mature identity after one actual attempt. Typed plot travel/return requires new absolute server position + expected plot + matching current pose; original tool/view/flight/position and the same revocable Farming token are restored only on verified return. Cap/time-limited maintenance reports PARTIAL honestly rather than claiming every plot cleared. See greenhouse-driver-2.1.0.md.
+
+Full actual-project test/build/UI/migration/native gates passed before e81b6eed7fa0239f1ac989a07e6ecae6db6cb9ba was pushed. Production payload390 entries matched the frozen isolated-client-tested JAR. The pinned26.2 chat-only fixture passed 11:47:53 including UI_SMOKE_GREENHOUSE_PASS, old Pest/native/Mixin/preference/shortcut callbacks and overall UI_SMOKE_PASS. This is not a live Hypixel travel/physics/harvest result; no stable installation/main/tag change.
+
+## 2026-10-25 — Composter inventory-source slice verification (in progress)
+
+Explicit configured Barn machine/material/units, bounded protected full stacks, source/resource/cursor server proof, exact return and independent Farming module are implemented in the development staging source. Sacks/purchases/current live formats remain pending; see composter-driver-2.1.0.md.
+
+TDD caught missing anchor coordinates defaulting to zero, a fractional percentage rounding to a falsely complete empty target, and delayed initial menu slots incorrectly causing immediate failure. These have explicit regression cases. An actual isolated UI callback test also caught Composter writing Greenhouse's feature bit; fixed to COMPOSTER with persistent enable/cancel isolation tests. The failed run/payload are retained separately. Final corrected isolated-client and actual-project gates must pass before this slice is treated as backed up; no live or release claim.
+
+The corrected pinned26.2 isolated chat-only run passed 15:01:49 with UI_SMOKE_COMPOSTER_PASS, UI_SMOKE_GREENHOUSE_PASS, UI_SMOKE_PEST_PASS, real applied Mixin/native fixtures and overall UI_SMOKE_PASS. Full staging test/build/UI/migration/native gates passed with the new enable/cancel feature-isolation regression. The production payload is frozen separately for actual-project equality checks. Neither this offline result nor any fixture conversion value is a current server menu/material catalog claim.

@@ -3,6 +3,10 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        var supplies=ComposterModuleSettings.parseMaterials("BOX=1000",dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.ORGANIC,Map.of());
+        require(supplies.get("BOX").units()==1000,"explicit unit value, no inferred conversion");
+        require(ComposterModuleSettings.parseMaterials("",dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.ORGANIC,supplies).isEmpty(),"clear material list removes consent");
+        for(String bad:List.of("Box=1","BOX=0","BOX=1000000001","BOX=1,BOX=2","BOX; barn=1","BOX=1.2","BOX=1,"))try{ComposterModuleSettings.parseMaterials(bad,dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.ORGANIC,Map.of());throw new AssertionError("invalid Composter materials");}catch(IllegalArgumentException expected){}
         require(GreenhouseModuleSettings.parsePlots("1, 24, 2").equals(Set.of(1,2,24)),"Greenhouse explicit bounded plot parser");
         require(GreenhouseModuleSettings.parsePlots(" ").isEmpty(),"blank plots is unconfigured, not all plots");
         for(String bad:List.of("0","25","1,1","1,","1; barn","1\n2","-1"))try{GreenhouseModuleSettings.parsePlots(bad);throw new AssertionError("invalid plot input accepted");}catch(IllegalArgumentException expected){}

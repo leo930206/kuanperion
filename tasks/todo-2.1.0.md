@@ -46,7 +46,8 @@
 - [x] Shared fixed-owner legal-flight primitive extracted without widening Pest/Garden authority; original Pest vacuum/return facade behavior and method bodies verified.
 - [x] Greenhouse configured plots/kinds/exact tool, bounded harvest -> server-confirmed original return, fixed-feature native flight/attack integration, independent persistent opt-in and actual Farming settings callbacks.
 - [ ] Greenhouse live validation; offline native/gameplay fixtures are not a server success claim.
-- [ ] Composter inspect/source/purchase/fill -> return.
+- [x] Composter inventory-source slice: exact configured Barn machine/IDs/unit values, guarded full-stack deposit, source/resource/cursor server proof, verified original return, independent external preferences and Farming UI.
+- [ ] Composter Sacks source, budgeted material purchases and current live menu/machine/receipt validation.
 
 ## 6 — Visitor/Supercraft
 - [ ] Visitor offers/rules/valuation/budgeted buy/submit -> return.

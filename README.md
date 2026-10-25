@@ -14,12 +14,12 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 已接上安全任務底層、獨立外部設定與 Trade → Stash：自動開關預設關閉，收到可識別的伺服器待領訊息才排程；也可手動開始。領取有間隔／次數／逾時限制，背包滿、切換世界、Mining、回程、選取任務或手動指令會停止，其他選單／失焦時不發指令。不改動原 Farming／Mining 輸入或開關。只在可確認的 Hypixel SkyBlock 連線中允許 `/pickupstash`。
 
-Pest／Visitor 自動化、Greenhouse、Composter、其餘 Trade 功能、Supercraft 與 Farming 暫停接續仍待實作；不以空按鈕冒充完成。因此這個檢查點的 Pest／Visitor 仍保留原通知名稱與功能。新工作流程設定位於 `config/kuanperion/automation.json`；舊 properties、外觀、快捷鍵與收藏不改位置。新設定格式損壞／來自較新版時不覆寫原檔且停用自動化。
+開發線另已接上 NPC Auto Sell、Junk、Pest 核心（含可選地塊搜尋與已載入滿載陷阱）、Greenhouse 收割／返回，以及 Composter 指定背包材料補充／返回。各自預設關閉，使用同一個可撤銷的 Farming 暫停接續權限；手動停止或異常不重啟 Farming。Pest 擴充、Composter Sacks／採購、Visitor 自動化、其餘 Trade、Supercraft、跨工作流程排程及連服驗收仍未完成；Visitor 暫時保留原通知入口，不以空按鈕冒充完成。新工作流程設定位於 `config/kuanperion/automation.json`；舊 properties、外觀、快捷鍵與收藏不改位置。新設定格式損壞／來自較新版時不覆寫原檔且停用自動化。
 
 ## 穩定版安裝與更新
 
 1. 使用 Minecraft 26.2／Java 25 的 Fabric instance，安裝 Fabric API。
-2. 放入 `kuanperion-2.0.16.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
+2. 放入 `kuanperion-2.0.17.jar`，移除本模組的舊版 JAR，保留其他模組，完整重啟遊戲。
 3. NanoVG 3.4.1 與 Linux／macOS Intel／macOS Apple Silicon／Windows native 已包在 JAR，不必另外安裝繪圖插件。
 4. 首次啟動若尚無 `config/kuanperion.properties`，會複製既有版本設定；不覆寫新設定、不刪原檔。舊自訂快捷鍵亦在新鍵尚未保存時沿用。
 
@@ -27,7 +27,7 @@ Pest／Visitor 自動化、Greenhouse、Composter、其餘 Trade 功能、Superc
 
 ## 導覽
 
-左側功能分成 **Farming**（Farming、Pest 通知、Visitor 通知）、**Mining**（Mining）、**Trade**（目前僅 Stash）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
+開發線左側功能分成 **Farming**（Farming、Pest、Greenhouse、Visitor 通知、Composter）、**Mining**（Mining）、**Trade**（NPC Auto Sell、Junk、Stash）、**Other**（Jerry 偵測、Discord Webhook）。每組只顯示所屬功能；詳情返回與搜尋跳轉維持正確分組。
 
 單一齒輪 **Setting** 頁籤順序為「介面／顏色／快捷鍵」，移除手動設定檔頁面。設定變更一律自動保存至遊戲資料夾：功能偏好在 `config/kuanperion.properties`、外觀在 `config/kuanperion-theme.json`、快捷鍵主鍵在 Minecraft `options.txt`（修飾鍵另存 properties），都不在 JAR 內。換 JAR 自動沿用；不需手動快照／載入，舊快照檔不會被刪除或自動套用。顏色頁保留內容小標題，顏色頁依序為「配色收藏 → Colour Presets → 選單顏色」。內建六款白底柔和配色為 Sky Blossom、Ocean Mist、Mint Garden、Peach Cream、Lavender Haze、Rose Quartz，按鈕提供色彩預覽，小視窗自動換行，不含第七個預設按鈕。五組配色與既有設定均保留。
 
@@ -111,11 +111,11 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 
 - 可展開側欄、三欄功能卡片、分類與設定詳情、滑順捲動、搜尋、hover 提示。
 - 原生向量繪圖、卡片／頁面／勾選動畫、色彩選擇器、文字編輯、滑桿與數值輸入。
-- 三個功能入口只包含現有 Farming、Mining、Pest 通知、Visitor 通知、Jerry 偵測、共用 Discord 通知設定；沒有自動除蟲或其他新巨集。
+- 2.1.0 開發線的已接線模塊與限制見上方「開發狀態」；未完成的工作流程不提供空開關。
 - 說明距離統一為標題下方 6 logical px，群組、設定列、搜尋與 hover 使用同一偏好；在「介面設定」可改「說明間距」（6～12）與「輸入框高度」（14～24，預設 22）。數字／單行時間框內文字預設 12 px，快捷鍵按鈕不縮小。
 - Farming／Mining 的工具偵測、智慧暫停、異常處理、範圍／轉速／延遲等設定，直接在列內顯示用途說明，另保留 hover 提示。
 - 點**卡片文字／主體**進設定，點勾選框控制啟停。停止時也能調整偏好，不會因查看設定自動啟動。
-- 「顏色」即時預覽；「設定檔」保存／載入本機功能與主題 Profiles，另有 晴空藍粉、Slate、Sage、Matcha、Dusk、Ember 預設色彩。
+- 「顏色」即時預覽，提供六種內建配色與最多五組收藏；設定自動保存，沒有手動設定檔頁面。
 - 「介面設定」調整 UI／文字比例與動畫時間。較小視窗會暫時縮放至可容納尺寸，不覆蓋偏好。
 - Ctrl 或 macOS Command 支援複製／貼上／全選；Esc 優先結束編輯或返回，再關閉畫面。
 - 未接管 Minecraft 主選單或更換遊戲 HUD，未引入第三方帳號、遙測、IRC、遠控、更新器。

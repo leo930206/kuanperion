@@ -37,7 +37,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -168,7 +168,7 @@ public final class UiSmoke implements ClientModInitializer {
         click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest","Greenhouse","Visitor 通知"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
+        String[][] expected={{"Farming","Pest","Greenhouse","Visitor 通知","Composter"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index+" actual="+sections.stream().map(s->s.subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList()).toList());
     }
@@ -282,6 +282,23 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(8)).execute();if(service.policy().configured()||service.autoEnabled())throw new AssertionError("clearing exact tool consent disables effective automation");
         service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy.defaults());clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_GREENHOUSE_PASS real Farming module/callbacks, explicit plot/crop/tool persistence, no offline travel/attack, safe default restoration");
+    }
+    private void testComposterUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var service=bridge.composter();
+        if(service.autoEnabled()||service.active()||service.policy().configured())throw new AssertionError("Composter must default off/no machine/no materials");
+        var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Composter")).findFirst().orElseThrow();ui.openModuleDetailFromCard(sub);var rows=sub.groups().get(0).getSettings();
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(2)).execute();if(service.policy().anchor()!=null)throw new AssertionError("offline machine capture guessed a position");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(4)).setValue("BOX_OF_SEEDS=1000");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(5)).setValue("VOLTA=2000");
+        service.setPolicy(service.policy().withAnchor(new dev.kuan.kuanperion.automation.composter.ComposterPolicy.Anchor(-11,72,-27,"minecraft:player_head")));
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(7)).setValue(2);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(12)).execute();
+        if(service.active()||rows.get(13).isVisible())throw new AssertionError("offline Composter cannot fly/open/consume");
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.COMPOSTER)||saved.composterPolicy().materials().size()!=2||saved.composterPolicy().maxStacks()!=2||bridge.greenhouse().autoEnabled()||bridge.pest().autoEnabled())throw new AssertionError("Composter settings not independent/external");
+        service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.composter.ComposterPolicy.defaults());clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_COMPOSTER_PASS real Farming module/callbacks, explicit machine/material/unit persistence, no offline flight/consume, safe default restoration");
     }
     private void testStashUi(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);

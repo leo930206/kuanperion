@@ -85,13 +85,14 @@ public final class AutomationGameViewTest {
   AutomationPositionViewTest.runFixtures();
   AutomationCursorViewTest.runFixtures();
   AutomationGreenhouseViewTest.runFixtures();
+  AutomationComposterViewTest.runFixtures();
   var anchor=new dev.kuan.kuanperion.automation.pest.PestTask.Anchor(new dev.kuan.kuanperion.automation.pest.PestTargets.Point(.5,70.25,-.5),12,-5,3,new dev.kuan.kuanperion.automation.ItemSnapshot("TOOL","minecraft:diamond_hoe","uuid","","meta",1,List.of(),true),true);
   var converted=PestFlightController.flightAnchor(anchor);check(converted.position().equals(anchor.position())&&converted.item()==anchor.item()&&converted.slot()==anchor.slot()&&converted.yaw()==anchor.yaw()&&converted.pitch()==anchor.pitch()&&converted.flying()==anchor.flying(),"real Pest facade preserves every return anchor field");
   for(var motion:dev.kuan.kuanperion.automation.flight.FlightMotion.values())check(PestFlightController.pestMotion(motion).name().equals(motion.name()),"real Pest facade maps every motion exactly");
   var coordinator=new dev.kuan.kuanperion.automation.AutomationCoordinator();var session=new dev.kuan.kuanperion.automation.AutomationSession(coordinator,()->new dev.kuan.kuanperion.automation.AutomationContext(1,true,true,java.util.Set.of()),()->{},()->{});
-  for(var feature:java.util.List.of(dev.kuan.kuanperion.automation.AutomationFeature.PEST,dev.kuan.kuanperion.automation.AutomationFeature.GREENHOUSE)){var core=new GardenFlightCore(coordinator,session,()->new dev.kuan.kuanperion.automation.AutomationContext(1,true,true,java.util.Set.of()),feature);check(core.owner()==null&&!session.active(),"constructing a flight primitive performs no action or task acquisition");}
+  for(var feature:java.util.List.of(dev.kuan.kuanperion.automation.AutomationFeature.PEST,dev.kuan.kuanperion.automation.AutomationFeature.GREENHOUSE,dev.kuan.kuanperion.automation.AutomationFeature.COMPOSTER)){var core=new GardenFlightCore(coordinator,session,()->new dev.kuan.kuanperion.automation.AutomationContext(1,true,true,java.util.Set.of()),feature);check(core.owner()==null&&!session.active(),"constructing a flight primitive performs no action or task acquisition");}
   try{new GardenFlightCore(coordinator,session,()->null,dev.kuan.kuanperion.automation.AutomationFeature.AUTO_SELL);throw new AssertionError("unauthorized flight owner");}catch(IllegalArgumentException expected){}
-  System.out.println("FlightFacadeTest: PASS (actual native facade motion/anchor mapping, no-op construction, only two fixed feature owners)");
+  System.out.println("FlightFacadeTest: PASS (actual native facade motion/anchor mapping, no-op construction, only three fixed feature owners)");
   System.out.println("AutomationGameViewTest: PASS (26.2 component fixtures/NBT/lore/protection/metadata identity)");
  }
 }

@@ -48,7 +48,7 @@ assert 'buttons.size()!=1' in trap and 'buttons.getFirst().index()' in trap and 
 assert 'facts.alive()>baseline' in trap and '!facts.traps().full().contains(target.trapId())' in trap
 assert 'terminal!=State.CANCELLED' in trap and 'session.clearExpectedMenu(handle)' in trap
 assert 'public void clearExpectedMenu(Handle handle){if(!isCurrent(handle))return;' in session
-assert '!observe().canIssueCommand()&&!pest.ownsMenu()' in bridge
+assert '!context.canIssueCommand()&&!pest.ownsMenu()' in bridge and 'var context=observe();' in bridge
 assert 'strictBoolean(s,"clearTraps",false)' in policy
 catalog=json.loads((root/'docs/data/pest-trap-catalog.json').read_text())
 assert catalog['source']=='https://api.hypixel.net/v2/resources/skyblock/items'

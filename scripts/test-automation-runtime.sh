@@ -62,3 +62,11 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.greenhouse.GreenhouseTaskTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.greenhouse.GreenhouseSettingsTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.greenhouse.GreenhouseServiceTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.composter.ComposterObservationTest
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.composter.ComposterPolicyTest
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.composter.ComposterTaskTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.composter.ComposterSettingsTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.composter.ComposterServiceTest

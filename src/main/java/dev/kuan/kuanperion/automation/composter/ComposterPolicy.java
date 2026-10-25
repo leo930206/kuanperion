@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-only
+package dev.kuan.kuanperion.automation.composter;
+import dev.kuan.kuanperion.automation.pest.PestPlot;import java.util.*;
+/** Explicit inventory-only supplies. Sacks and purchases need their own verified contracts, not implicit fallback. */
+public record ComposterPolicy(Anchor anchor,Map<String,Material> materials,Set<String> protectedUuids,int targetPercent,int maxStacks,int maxItems,int delayMillis,int timeoutSeconds,int intervalSeconds,boolean onlyWhileFarming){
+ public record Anchor(int x,int y,int z,String blockId){public Anchor{if(y< -2048||y>2048||PestPlot.at(x+.5,z+.5).filter(p->p.id()==0).isEmpty()||blockId==null||!blockId.matches("minecraft:[a-z0-9_]{1,64}")||blockId.equals("minecraft:air"))throw new IllegalArgumentException("Invalid Composter Barn machine");}}
+ public record Material(ComposterObservation.Kind kind,long units){public Material{Objects.requireNonNull(kind);if(units<=0||units>1_000_000_000L)throw new IllegalArgumentException("Invalid resource value");}}
+ public ComposterPolicy{materials=Map.copyOf(materials);protectedUuids=Set.copyOf(protectedUuids);if(materials.size()>32||materials.keySet().stream().anyMatch(id->!id.matches("[A-Z0-9_]{1,64}"))||protectedUuids.size()>128||protectedUuids.stream().anyMatch(id->id.length()>64)||targetPercent<1||targetPercent>100||maxStacks<1||maxStacks>27||maxItems<1||maxItems>1728||delayMillis<500||delayMillis>5000||timeoutSeconds<90||timeoutSeconds>300||intervalSeconds<60||intervalSeconds>86400)throw new IllegalArgumentException("Invalid Composter policy");}
+ public ComposterPolicy withAnchor(Anchor v){return new ComposterPolicy(v,materials,protectedUuids,targetPercent,maxStacks,maxItems,delayMillis,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withMaterials(Map<String,Material> v){return new ComposterPolicy(anchor,v,protectedUuids,targetPercent,maxStacks,maxItems,delayMillis,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withTargetPercent(int v){return new ComposterPolicy(anchor,materials,protectedUuids,v,maxStacks,maxItems,delayMillis,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withMaxStacks(int v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,v,maxItems,delayMillis,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withMaxItems(int v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,maxStacks,v,delayMillis,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withDelay(int v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,maxStacks,maxItems,v,timeoutSeconds,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withTimeout(int v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,maxStacks,maxItems,delayMillis,v,intervalSeconds,onlyWhileFarming);}
+ public ComposterPolicy withInterval(int v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,maxStacks,maxItems,delayMillis,timeoutSeconds,v,onlyWhileFarming);}
+ public ComposterPolicy withOnlyFarming(boolean v){return new ComposterPolicy(anchor,materials,protectedUuids,targetPercent,maxStacks,maxItems,delayMillis,timeoutSeconds,intervalSeconds,v);}
+ public boolean configured(){return anchor!=null&&!materials.isEmpty();}
+ public static ComposterPolicy defaults(){return new ComposterPolicy(null,Map.of(),Set.of(),90,3,192,1000,240,7200,true);}
+}
