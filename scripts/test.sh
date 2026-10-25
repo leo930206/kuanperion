@@ -103,3 +103,6 @@ python3 "$ROOT/scripts/test-supercraft-native.py"
 
 python3 "$ROOT/scripts/test-completion-boundaries.py"
 python3 "$ROOT/scripts/test-completion-input.py"
+
+python3 "$ROOT/scripts/test-release-audit.py"
+python3 "$ROOT/scripts/audit-release.py"

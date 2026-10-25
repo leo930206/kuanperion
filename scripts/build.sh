@@ -29,4 +29,5 @@ mkdir -p "$CLASSES/META-INF/licenses"
 cp "$ROOT/LICENSE" "$CLASSES/META-INF/licenses/Kuanperion-GPL-3.0.txt"
 cp "$ROOT/THIRD_PARTY_NOTICES.md" "$CLASSES/META-INF/licenses/THIRD_PARTY_NOTICES.md"
 "$JAR" --create --file "$OUT" -C "$CLASSES" .
+python3 "$ROOT/scripts/audit-release.py" --jar "$OUT"
 echo "$OUT"

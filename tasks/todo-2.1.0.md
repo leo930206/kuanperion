@@ -74,7 +74,7 @@
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [x] Pest/Greenhouse/Composter/Visitor terminal cleanup now precedes successful original Farming release; failed release/disposal/context/expiry stops first, then an exact one-use same-level/no-new-root physical-input token reconciles legacy key clearing. Actual finish/native bodies plus full Visitor failure path tested; other release gates remain open.
 - [ ] Audit own-settings GUI coexistence with claimed server menus; never silently replace the user's settings screen or claim uninterrupted operation without proof.
-- [ ] Audit no forbidden integration, no bundled original client, no secrets.
+- [x] Current source/production archive static regression audit: fixed anonymous official GETs plus explicit user-configured outbound webhook; no upstream runtime class/client, agent/test/private-path payload or unapproved bundled dependency. Five rendering JAR hashes pinned, GPL/source notices preserved, in-memory negative mutations tested. This is not a network sandbox or a complete information-flow/security proof; reruns on every build.
 - [ ] Isolated runtime/UI checks and explicit server-test limitations.
 - [ ] Build payload equality, source/JAR backup, settings and unrelated mods preserved.
 - [ ] Only after all above: publish/tag/install 2.1.0, update main.
