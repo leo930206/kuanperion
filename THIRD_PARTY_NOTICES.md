@@ -45,3 +45,7 @@ Greenhouse crop texture IDs and observation concepts are adapted from supplied G
 ## Composter resource slice (2.1.0 development)
 
 The read-only capacity ratio concept and inventory-refill workflow were reviewed against the supplied Aether `modules/ComposterManager.java` (GPL-3.0-only). Kuanperion replaces its blind slots 39/41/11, substring-based material clicks, worker sleeps and unconditional resume with exact configured IDs/units, unique semantic resource roles, server source/resource/cursor receipts, one revocable local lease and verified original return. No author services or original client bootstrap are imported. Current live server formats remain a separate validation gate; purchases and Sacks are not implemented by this slice.
+
+## Visitor offer protocol (2.1.0 development)
+
+Visitor requirement/reward grammar and accepted-offer system-message concepts were reviewed against the supplied GPL-3.0-only `modules/visitor/VisitorManager.java` and `VisitorsMacro.java`. Kuanperion replaces blind slots29/33, substring role matching, the scanner-button ID fallback, unknown-as-free costs, disappearance-only completion and worker sleeps with exact selected title/semantic roles, explicitly supplied material IDs, bounded depth estimates, protected inventory and dual server accepted/removal proof plus cursor safety. These are read-only/protocol boundaries, not yet an executable Visitor feature or verified current server format. No upstream client bootstrap, account/service connection or remote name lookup is imported.

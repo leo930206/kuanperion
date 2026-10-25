@@ -73,3 +73,9 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestTrapTravelTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestTrapTravelSettingsTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.visitor.VisitorOfferTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.visitor.VisitorValuationTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.visitor.VisitorSubmissionTest

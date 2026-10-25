@@ -1,0 +1,39 @@
+package dev.kuan.kuanperion.automation.visitor;
+import dev.kuan.kuanperion.automation.*;import java.util.*;import java.util.concurrent.atomic.*;
+public final class VisitorSubmissionTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ static final ItemSnapshot EMPTY=new ItemSnapshot("","minecraft:air","","Air","empty",0,List.of(),false);
+ static Map<Integer,ItemSnapshot> before(){var m=new HashMap<Integer,ItemSnapshot>();for(int i=0;i<43;i++)m.put(i,EMPTY);m.put(9,VisitorValuationTest.item("ENCHANTED_WHEAT",3,false));for(int i=10;i<26;i++)m.put(i,VisitorValuationTest.item("ENCHANTED_CARROT",64,false));return m;}
+ static VisitorOffer offer(Map<Integer,ItemSnapshot> inv){var raw=VisitorOfferTest.menu(VisitorOfferTest.lore());var slots=new ArrayList<>(raw.slots());for(int i=0;i<36;i++){int inventorySlot=i<27?9+i:i-27;slots.add(new MenuSnapshot.Slot(54+i,inv.get(inventorySlot),true));}return VisitorOffer.inspect(new MenuSnapshot(1,7,2,"Librarian",54,slots),"Librarian",VisitorOfferTest.IDS).orElseThrow();}
+ static final class Fixture {
+  final InventoryReceipts receipts=new InventoryReceipts();final CursorReceipts cursors=new CursorReceipts();final AtomicBoolean owned=new AtomicBoolean(true);final AtomicInteger clicks=new AtomicInteger();
+  final VisitorSubmission ledger=new VisitorSubmission(receipts,cursors,owned::get);Map<Integer,ItemSnapshot> initial=before();
+  boolean begin(){return begin(GuardedMenuAction.Result.SENT);}
+  boolean begin(GuardedMenuAction.Result result){return ledger.begin(offer(initial),VisitorValuationTest.rules(),initial,VisitorValuationTest.market(1000000),1000000,1,true,()->{clicks.incrementAndGet();return result;});}
+  Map<Integer,ItemSnapshot> removed(boolean authoritative){var m=new HashMap<>(initial);for(int i=9;i<26;i++){m.put(i,EMPTY);if(authoritative)receipts.observe(1,7,54+i-9,EMPTY);}return m;}
+  void chat(){ledger.onSystemMessage(1,"OFFER ACCEPTED with Librarian (UNCOMMON)");}
+  void cursor(){cursors.observe(1,7,EMPTY,2);}
+  void poll(Map<Integer,ItemSnapshot> current){ledger.poll(1,current,true,3);}
+ }
+ public static void main(String[] args){
+  var f=new Fixture();check(f.begin(),"exact inventory-backed offer may issue one guarded attempt");f.chat();f.cursor();f.poll(f.removed(false));check(f.ledger.state()==VisitorSubmission.State.AWAITING,"predicted removals plus chat and cursor never prove submission");f.poll(f.removed(true));check(f.ledger.state()==VisitorSubmission.State.CONFIRMED&&f.clicks.get()==1,"exact server accepted line + every required applied removal + empty cursor");check(!f.begin(),"confirmed submission cannot replay");
+  var noChat=new Fixture();noChat.begin();noChat.cursor();var consumed=noChat.removed(true);noChat.poll(consumed);check(noChat.ledger.state()==VisitorSubmission.State.AWAITING,"inventory loss alone not success");for(String msg:List.of("[Player] OFFER ACCEPTED with Librarian (UNCOMMON)","OFFER ACCEPTED with Farmer (UNCOMMON)","OFFER ACCEPTED with Librarian (UNKNOWN)","OFFER ACCEPTED with librarian (UNCOMMON)"))noChat.ledger.onSystemMessage(1,msg);noChat.poll(consumed);check(noChat.ledger.state()==VisitorSubmission.State.AWAITING,"player-prefix, wrong visitor/case/rarity ignored");noChat.ledger.onSystemMessage(2,"OFFER ACCEPTED with Librarian (UNCOMMON)");noChat.poll(consumed);check(noChat.ledger.state()==VisitorSubmission.State.AWAITING,"wrong world chat ignored");noChat.chat();noChat.poll(consumed);check(noChat.ledger.state()==VisitorSubmission.State.CONFIRMED,"delayed exact server chat accepted once");
+  var noCursor=new Fixture();noCursor.begin();noCursor.chat();noCursor.poll(noCursor.removed(true));check(noCursor.ledger.state()==VisitorSubmission.State.AWAITING,"physical empty cursor is not server evidence");noCursor.cursor();noCursor.ledger.poll(1,noCursor.removed(true),false,3);check(noCursor.ledger.state()==VisitorSubmission.State.AWAITING,"server empty cursor does not override held physical cursor");
+  var partial=new Fixture();partial.begin();partial.chat();partial.cursor();var part=partial.removed(true);part.put(9,VisitorValuationTest.item("ENCHANTED_WHEAT",1,false));partial.receipts.observe(1,7,54,part.get(9));partial.poll(part);check(partial.ledger.state()==VisitorSubmission.State.AWAITING,"partial consumption not success");
+  var stale=new Fixture();stale.removed(true);stale.cursors.observe(1,7,EMPTY,0);stale.begin();stale.chat();stale.poll(stale.removed(false));check(stale.ledger.state()==VisitorSubmission.State.AWAITING,"old receipts cannot prove a new attempt");
+  var hand=new Fixture();hand.initial.put(0,VisitorValuationTest.item("ENCHANTED_WHEAT",1,false));check(!hand.begin()&&hand.clicks.get()==0,"server could consume protected hotbar same-ID stack: deny even with sufficient main materials");
+  var gear=new Fixture();gear.initial.put(40,VisitorValuationTest.item("ENCHANTED_CARROT",1,false));check(!gear.begin()&&gear.clicks.get()==0,"same-ID offhand/armor cannot be hidden from protection preflight");
+  for(int extra:List.of(41,42)){var equipment=new Fixture();equipment.initial.put(extra,VisitorValuationTest.item("ENCHANTED_WHEAT",1,false));check(!equipment.begin(),"26.2 body/saddle slots also protected");}
+  var locked=new Fixture();locked.initial.put(30,VisitorValuationTest.item("ENCHANTED_WHEAT",1,true));check(!locked.begin()&&locked.clicks.get()==0,"same-ID locked stack anywhere denies whole submission");
+  var missing=new Fixture();missing.initial.put(9,EMPTY);check(!missing.begin()&&missing.clicks.get()==0,"valuation missing materials cannot trigger submit or automatic purchase");
+  var rejected=new Fixture();check(!rejected.begin(GuardedMenuAction.Result.REJECTED)&&rejected.ledger.state()==VisitorSubmission.State.REJECTED&&rejected.clicks.get()==1,"guard refusal terminal, never auto retry");
+  var uncertain=new Fixture();check(!uncertain.begin(GuardedMenuAction.Result.UNCERTAIN)&&uncertain.ledger.state()==VisitorSubmission.State.UNCERTAIN&&!uncertain.begin(),"possibly sent result terminal without retry");
+  var failure=new Fixture();check(!failure.ledger.begin(offer(failure.initial),VisitorValuationTest.rules(),failure.initial,VisitorValuationTest.market(1000000),1000000,1,true,()->{throw new IllegalStateException("possibly sent");})&&failure.ledger.state()==VisitorSubmission.State.UNCERTAIN,"exception is not proof of rejection");
+  var cancel=new Fixture();cancel.begin();cancel.owned.set(false);cancel.poll(cancel.removed(true));check(cancel.ledger.state()==VisitorSubmission.State.UNCERTAIN,"manual ownership revocation prevents success even if items move");
+  var timeout=new Fixture();timeout.begin();timeout.ledger.poll(1,timeout.initial,true,15_000_000_001L);check(timeout.ledger.state()==VisitorSubmission.State.UNCERTAIN,"bounded proof deadline, no blind second click");
+  var world=new Fixture();world.begin();world.ledger.poll(2,world.initial,true,3);check(world.ledger.state()==VisitorSubmission.State.UNCERTAIN,"world change revokes pending proof");
+  var moved=new Fixture();moved.begin();moved.chat();moved.cursor();var predicted=moved.removed(true);predicted.put(9,VisitorValuationTest.item("ENCHANTED_WHEAT",3,false));moved.poll(predicted);check(moved.ledger.state()==VisitorSubmission.State.AWAITING,"server receipt must equal current applied inventory, not borrow unrelated prediction");
+  var window0=new Fixture();window0.begin();window0.chat();window0.cursor();var empty=window0.removed(false);for(int i=9;i<26;i++)window0.receipts.observe(1,0,i,EMPTY);window0.poll(empty);check(window0.ledger.state()==VisitorSubmission.State.CONFIRMED,"exact fresh vanilla window0 inventory updates also prove removals");
+  System.out.println("VisitorSubmissionTest: PASS (explicit inventory-only rules, protected same-ID denial, single guarded attempt, exact accepted GAME line + all server removals + empty cursor, no prediction/replay/retry)");
+ }
+}

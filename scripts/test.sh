@@ -88,3 +88,5 @@ python3 "$ROOT/scripts/test-composter-driver.py"
 python3 "$ROOT/scripts/test-maintenance-input-priority.py"
 
 python3 "$ROOT/scripts/test-jerry-home-handoff.py"
+
+python3 "$ROOT/scripts/test-visitor-boundaries.py"

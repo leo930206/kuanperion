@@ -51,7 +51,9 @@
 - [ ] Composter Sacks source, budgeted material purchases and current live menu/machine/receipt validation.
 
 ## 6 — Visitor/Supercraft
-- [ ] Visitor offers/rules/valuation/budgeted buy/submit -> return.
+- [x] Visitor exact selected-title/semantic-role offer parsing, explicit material IDs, protected main-inventory deficits and full opportunity-cost estimates; native43-slot fixtures.
+- [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; no runtime caller yet.
+- [ ] Visitor executable queue/navigation/menu service/UI, budgeted acquisition, guarded submission -> original return; validate live formats.
 - [ ] Visitor UI rename/merge, independent automation and original notifications.
 - [ ] Supercraft recipe/amount/material/menu/deadline -> return, Other UI.
 
