@@ -61,6 +61,7 @@
 - [x] Visitor UI rename/merge, independent off-by-default automation and retained original notifications.
 - [x] Supercraft read-only exact-batch preflight: explicit output/ingredient/consumption/craft caps, complete protected43-slot inventory and capacity, immutable baseline; recipe data does not authorize a GUI action.
 - [x] Supercraft single-attempt receipt contract: current complete baseline, guarded-result window, exact requested input/output deltas backed by every affected server slot and empty cursor, no replay/prediction/manual/world/clock/timeout success. No native caller or placeholder toggle.
+- [x] Historical official advanced-preview read-only contract: complete exact recipe/output/selected amount/material/source/destination facts, inventory-only allocation, no fixed slots or unknown-cost skipping; current2026 live compatibility remains unverified.
 - [ ] Supercraft authoritative current recipe/quantity/cost/native menu driver, lifecycle/service/Other UI and live receipt/return validation.
 
 ## 7 — release gate
