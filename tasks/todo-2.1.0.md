@@ -42,7 +42,8 @@
 - [ ] Event/crop strategies and due-task scheduling.
 
 ## 5 — farm maintenance
-- [ ] Greenhouse configured plots/tools/targets/harvest -> return.
+- [x] Greenhouse read-only exact crop identities, bounded no-load native discovery, typed entity/block targets and watched server-applied harvest update receipts; no local prediction proof or unfinished toggle.
+- [ ] Greenhouse configured plots/tools/targets executable harvest -> return, native flight integration and live validation.
 - [ ] Composter inspect/source/purchase/fill -> return.
 
 ## 6 — Visitor/Supercraft

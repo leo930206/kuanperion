@@ -1,0 +1,9 @@
+{
+  "source": "supplied Aether 1.3.1-r6 modules/GreenhouseManager.java",
+  "sourceArchiveSha256": "904a32484806b4d19a605d9a21503b9188324a80cafcbbf4f82b8d39c3313868",
+  "textures": {
+    "ASHWREATH": "5890f50780fdecedaa85aa40bf3399e9439ee68594c6d022688165608171681d",
+    "TURTELLINI": "1d1bd06a6738d0da5053eae49a1362b89489d1ac004c222504536f7bcd07679d",
+    "GLASSCORN": "297de27338b9f876e570d1cc01fe1beccfc940467c5c97c467e93e79c81c25ee"
+  }
+}

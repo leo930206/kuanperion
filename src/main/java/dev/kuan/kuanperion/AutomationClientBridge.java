@@ -15,6 +15,7 @@ public final class AutomationClientBridge {
  private final Consumer<StashService.Notice> feedback;
  private final Supplier<LegacyState> legacy;private final Function<Minecraft,List<String>> sidebar;
  private final InventoryReceipts receipts=new InventoryReceipts();
+ private final dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts harvests=new dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts();
  private final CursorReceipts cursors=new CursorReceipts();
  private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
@@ -57,6 +58,14 @@ public final class AutomationClientBridge {
  public JunkService junk(){return junk;}
  public void tick(){long now=System.nanoTime();pest.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
+ public dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts harvestReceipts(){return harvests;}
+ public void serverHarvestPacket(net.minecraft.network.protocol.Packet<?> packet){
+  var mc=Minecraft.getInstance();if(!session.active()||!mc.isSameThread()||mc.player==null||mc.level==null||packet==null)return;
+  var watched=harvests.watched();if(watched.isEmpty()||!GreenhouseGameView.applied(mc,watched.get(),packet))return;
+  var ref=watched.get();long world=currentWorldId(),now=System.nanoTime();
+  if(ref instanceof dev.kuan.kuanperion.automation.greenhouse.GreenhouseTarget.EntityRef entity)harvests.entityChanged(world,entity.id(),now);
+  else if(ref instanceof dev.kuan.kuanperion.automation.greenhouse.GreenhouseTarget.BlockRef block)harvests.blockChanged(world,block.x(),block.y(),block.z(),now);
+ }
  public CursorReceipts cursorReceipts(){return cursors;}
  public void serverCursor(net.minecraft.world.item.ItemStack server){
   var mc=Minecraft.getInstance();if(!session.active()||!mc.isSameThread()||mc.player==null||mc.level==null)return;
@@ -81,7 +90,7 @@ public final class AutomationClientBridge {
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
  public void onManualInventoryInput(){pest.cancel(System.nanoTime());session.cancel(System.nanoTime());}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();cursors.clear();}
+ public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());receipts.clear();positions.clear();cursors.clear();harvests.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);
