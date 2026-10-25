@@ -11,6 +11,8 @@ for forbidden in ['sendCommand(','.handleContainerInput(','.setDown(','.setSelec
     assert forbidden not in strip(view+protocol),forbidden
 assert 'mc.isSameThread()' in view and 'getContainerSize()!=43' in view and 'getNonEquipmentItems().size()!=36' in view
 assert 'i<9||i>=36' in view
+assert 'inspected>4096' in view and 'facts.size()>=256' in view and 'ChunkStatus.FULL,false' in view
+assert 'getListedOnlinePlayers()' in view and 'VisitorTargets.select(queue,facts)' in view
 feature=(main/'automation/AutomationFeature.java').read_text().split('public boolean implemented()',1)[1]
 assert 'this==VISITOR' not in feature,'No executable Visitor driver yet; do not expose placeholder auto toggle'
 for p in main.rglob('*.java'):

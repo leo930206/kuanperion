@@ -84,3 +84,6 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.SkyblockItemCatalogTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.HypixelItemCatalogClientTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.visitor.VisitorQueueTest
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.visitor.VisitorTargetsTest

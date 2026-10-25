@@ -284,3 +284,10 @@ Added a strict bounded offline official-resource projection and a fixed anonymou
 A previously cached official5680-item/4.8MB source was parsed locally into5364 unambiguous names (SHA recorded in item-catalog-2.1.0.md); it is not bundled. No native or legacy consumer constructs/fetches the dependency yet. Future callers still require world/session/allowlist, independent GUI amount/cost proof and lifecycle shutdown.
 
 Staging five gates passed, including all original Jerry/global-stop and Visitor contracts. Isolated pinned26.2 offline client passed18:59:14 with existing real UI callbacks/native projections/Mixin proofs and no server gameplay. Frozen production payload is retained for actual-project equality verification, not release/installation.
+
+
+## 2026-10-25 — bounded Visitor queue and native dual-identity discovery
+
+Added complete unique bounded Tab Visitors sections and metadata; unknown/missing/extra/conflicting counts/names are UNKNOWN rather than empty. Local candidates require an exact unique queued invisible hologram plus a sole nearby living non-listed character, retaining both entity IDs/UUIDs/positions; no substring, first/nearest, player or duplicate-character association. Native projection visits <=4096 loaded entities, records <=256 within64 blocks, never forces chunks or interacts. Read-only data is not future action authority.
+
+Missing-API RED -> pure GREEN covers malformed queues, ambiguity, duplicates/players/positions and immutable outputs. Staging full test/build/UI/migration/native gates passed; isolated pinned26.2 offline client passed19:09:12 including native no-world queue/target refusal and all old UI/Mixin/settings proofs. No server Tab/entity format, navigation, interaction, buying, submission or return was tested/enabled. Visitor runtime/service/UI and the full upgrade remain unfinished.

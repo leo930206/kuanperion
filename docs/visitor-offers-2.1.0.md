@@ -20,4 +20,10 @@ After at most one guarded attempt, success requires an exact same-world server G
 
 ## Pending
 
-Queue/entity identity, legal navigation, lease/service/UI, acquisition, return/orchestration and current live server formats remain unimplemented/unverified. Synthetic offer/receipt fixtures and real native item projections are not evidence of server interaction. No original author account, bootstrap, backend, telemetry, remote control or updater is imported.
+Legal navigation, lease/service/UI, acquisition, return/orchestration and current live server formats remain unimplemented/unverified. Synthetic offer/receipt fixtures and real native item projections are not evidence of server interaction. No original author account, bootstrap, backend, telemetry, remote control or updater is imported.
+
+## Queue and local identity observation
+
+Native Tab parsing requires one bounded exact Visitors header/count and a complete unique list of up to5 names. Missing/extra/conflicting entries, duplicate headers/names, unknown rarity suffixes, controls or excessive data produce UNKNOWN, never an empty success. Known rarity and explicit NEW! metadata are read only; no fuzzy name/substring acceptance is added.
+
+Local discovery scans at most4096 loaded entities and projects at most256 relevant facts in64 blocks. It needs the exact uniquely named invisible queued hologram plus exactly one nearby living non-listed character below it, retaining both entity IDs/UUIDs/positions. Duplicate identities, multiple markers/characters or one character matched to two queued visitors deny selection, not choose nearest/first. Listed players cannot impersonate an NPC. No chunks are forced and no entity is interacted with. All facts still need fresh world/session/position revalidation before any later native driver can act. Current live Tab/entity formats remain unverified.
