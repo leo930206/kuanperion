@@ -17,11 +17,16 @@ import org.lwjgl.glfw.GLFW;
 
 /** Native legal flight only: server mayfly + standard keys/useItem, never velocity/noClip/teleport. */
 public final class PestFlightController implements PestTask.Port {
+ public interface Travel {boolean send(AutomationSession.Handle handle,PestPlot plot,long now);}
+ private final Travel travel;
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;
  private AutomationSession.Handle owner;private Object ownedLevel;private final Set<KeyMapping> pressed=new HashSet<>();
  private PestFlightBounds bounds;private PestFlightPath search;private PestTargets.Point searchGoal,progressPoint;private List<PestTargets.Point> route=List.of();private int waypoint;
  private long plannedAt,lastProgress,lastUse;private boolean used;
- public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this.coordinator=coordinator;this.session=session;this.observe=observe;}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this(coordinator,session,observe,(h,p,n)->false);}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;}
+ public PestTargets.Point position(){return mc().player==null?null:point(mc().player.position());}
+ public boolean travel(AutomationSession.Handle h,PestPlot plot,long now){return plot!=null&&allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plot,now);}
  public AutomationContext context(){return observe.get();}
  private Minecraft mc(){return Minecraft.getInstance();}
  private static PestTargets.Point point(Vec3 p){return new PestTargets.Point(p.x,p.y,p.z);}
@@ -30,7 +35,7 @@ public final class PestFlightController implements PestTask.Port {
   var mc=mc();var context=context();var facts=PestGameView.read(mc,context,now);var p=mc.player;
   var zero=new PestTargets.Point(0,0,0);var empty=new ItemSnapshot("","minecraft:air","","","",0,List.of(),true);
   if(p==null)return new PestTask.Frame(context.worldId(),now,zero,zero,0,0,-1,empty,false,false,true,-1,List.of(),List.of(),false);
-  return new PestTask.Frame(facts.world(),facts.observedAt(),point(p.position()),point(p.getEyePosition()),p.getYRot(),p.getXRot(),p.getInventory().getSelectedSlot(),AutomationGameView.item(p.getMainHandItem(),true),p.getAbilities().mayfly,p.getAbilities().flying,manualInput(),facts.tab().alive(),facts.targets(),facts.vacuums(),facts.complete());
+  return new PestTask.Frame(facts.world(),facts.observedAt(),point(p.position()),point(p.getEyePosition()),p.getYRot(),p.getXRot(),p.getInventory().getSelectedSlot(),AutomationGameView.item(p.getMainHandItem(),true),p.getAbilities().mayfly,p.getAbilities().flying,manualInput(),facts.tab().alive(),facts.targets(),facts.vacuums(),facts.complete()).withPlots(facts.tab().plots(),facts.tab().plotsKnown());
  }
  private boolean allowed(AutomationSession.Handle h,long now,AutomationCoordinator.Resource... resources){
   var mc=mc();var context=context();if(!mc.isSameThread()||mc.player==null||mc.level==null||h==null||h.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(h)||!context.canIssueCommand()||!context.garden()||manualInput()||!mc.player.getAbilities().mayfly)return false;
@@ -51,7 +56,7 @@ public final class PestFlightController implements PestTask.Port {
  }
  public boolean prepare(AutomationSession.Handle h,PestIdentity.Vacuum tool,PestTask.Anchor anchor,int radius,long now){
   if(!allowed(h,now,AutomationCoordinator.Resource.MOVEMENT,AutomationCoordinator.Resource.HOTBAR))return false;
-  var mc=mc();var p=mc.player;if(p.isPassenger()||p.isSleeping()||p.isUsingItem()||PestGameView.vacuum(p.getInventory().getItem(tool.slot()),tool.slot()).filter(tool::equals).isEmpty())return false;
+  var mc=mc();var p=mc.player;if(p.isPassenger()||p.isSleeping()||p.isUsingItem()||!PestIdentity.sameVacuum(tool,AutomationGameView.item(p.getInventory().getItem(tool.slot()),true)))return false;
   owner=h;ownedLevel=mc.level;bounds=new PestFlightBounds(anchor.position(),radius);search=null;route=List.of();searchGoal=null;progressPoint=point(p.position());lastProgress=now;used=false;
   p.getInventory().setSelectedSlot(tool.slot());
   if(!p.getAbilities().flying){p.getAbilities().flying=true;p.onUpdateAbilities();}

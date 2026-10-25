@@ -73,3 +73,4 @@ python3 "$ROOT/scripts/test-junk-wiring.py"
 python3 "$ROOT/scripts/test-pest-boundaries.py"
 
 python3 "$ROOT/scripts/test-position-boundaries.py"
+python3 "$ROOT/scripts/test-pest-travel-wiring.py"

@@ -12,6 +12,7 @@ import org.lwjgl.glfw.GLFW;
 /** Thin 26.2 adapter. New tasks cannot write legacy movement/toggles or use arbitrary commands. */
 public final class AutomationClientBridge {
  public record LegacyState(boolean farmingArmed,boolean mining,boolean recovering,boolean selecting,String island){}
+ private final Consumer<StashService.Notice> feedback;
  private final Supplier<LegacyState> legacy;private final Function<Minecraft,List<String>> sidebar;
  private final InventoryReceipts receipts=new InventoryReceipts();
  private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
@@ -20,12 +21,12 @@ public final class AutomationClientBridge {
  private final JunkService junk;private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
  private final StashService stash;private Object levelIdentity;private long worldGeneration;
  public AutomationClientBridge(Path configDir,Supplier<LegacyState> legacy,Function<Minecraft,List<String>> sidebar,Consumer<StashService.Notice> feedback,Runnable pauseFarm,Runnable safeStopFarm){
-  this.legacy=legacy;this.sidebar=sidebar;
+  this.feedback=feedback;this.legacy=legacy;this.sidebar=sidebar;
   var settings=AutomationSettingsStore.load(configDir.resolve("kuanperion/automation.json"));
   stash=new StashService(settings,coordinator,this::observe,this::send,feedback);
   session=new AutomationSession(coordinator,this::observe,pauseFarm,safeStopFarm);
-  flight=new PestFlightController(coordinator,session,this::observe);
-  pest=new PestService(settings,session,flight,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  flight=new PestFlightController(coordinator,session,this::observe,this::sendPestTravel);
+  pest=new PestService(settings,session,flight,positions,()->Minecraft.getInstance().gui.screen()==null,feedback);
   autoSell=new AutoSellService(settings,session,receipts,new AutoSellTask.Port(){
    public AutomationContext context(){return observe();}
    public MenuSnapshot menu(){return AutomationGameView.menu(Minecraft.getInstance(),currentWorldId());}
@@ -91,6 +92,13 @@ public final class AutomationClientBridge {
   if(!skyblock)blockers.add(AutomationContext.Blocker.OUTSIDE_SKYBLOCK);
   boolean garden=skyblock&&location.garden();
   return new AutomationContext(worldGeneration,flags.farmingArmed(),garden,blockers);
+ }
+ private boolean sendPestTravel(AutomationSession.Handle handle,PestPlot plot,long now){
+  if(plot==null||!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.PEST)return false;
+  var context=observe();var mc=Minecraft.getInstance();
+  if(!mc.isSameThread()||mc.player==null||mc.level==null||!context.garden()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
+  ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand(plot.command());if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /"+plot.command(),false,"Pest"));return true;}finally{ownGameplayCommand=false;}
  }
  private boolean sendGameplay(AutomationSession.Handle handle,AutomationCommand command){
   if(!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.AUTO_SELL||command!=AutomationCommand.BOOSTER_COOKIE)return false;

@@ -8,7 +8,8 @@ public final class PestService {
  private static final long SECOND=1_000_000_000L;
  private final AutomationSettingsStore settings;private final PestTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
  private long lastAttempt,lastPoll;private boolean attempted,polled,suspended;private PestTask.State reported=PestTask.State.IDLE;
- public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;task=new PestTask(session,port);this.automaticAllowed=automaticAllowed;this.feedback=feedback;}
+ public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this(settings,session,port,new PlayerPositionReceipts(),automaticAllowed,feedback);}
+ public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,PlayerPositionReceipts receipts,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;task=new PestTask(session,port,receipts);this.automaticAllowed=automaticAllowed;this.feedback=feedback;}
  public PestPolicy policy(){return settings.pestPolicy();}public boolean autoEnabled(){return settings.enabled(AutomationFeature.PEST)&&settings.pestPolicyValid()&&!suspended;}public boolean active(){return task.active();}
  public void setEnabled(boolean value)throws IOException{if(!value){suspended=true;cancel(System.nanoTime());}settings.setEnabled(AutomationFeature.PEST,value);if(value)suspended=false;}
  public void setPolicy(PestPolicy policy)throws IOException{if(active())cancel(System.nanoTime());try{settings.setPestPolicy(policy);}catch(IOException failure){suspended=true;throw failure;}}
