@@ -98,3 +98,5 @@ python3 "$ROOT/scripts/test-trap-close-boundaries.py"
 python3 "$ROOT/scripts/test-visitor-data-demand.py"
 
 python3 "$ROOT/scripts/test-supercraft-boundaries.py"
+
+python3 "$ROOT/scripts/test-supercraft-native.py"

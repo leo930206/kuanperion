@@ -12,7 +12,7 @@ assert 'outputCount%recipe.outputPerCraft()!=0' in code and 'slot<9||slot>=36' i
 assert 'SupercraftPlan.stillMatches(plan,current)' in code and 'state!=State.ARMED' in code
 assert 'stamp=items.stamp(menu.worldId());cursorStamp=cursors.stamp(menu.worldId(),menu.containerId(),now)' in code
 feature=(r/'automation/AutomationFeature.java').read_text().split('public boolean implemented()',1)[1]
-assert 'this==SUPERCRAFT' not in feature,'No actual recipe/quantity/cost/native driver yet: never expose a placeholder toggle'
+assert 'this==SUPERCRAFT' not in feature,'Native adapter still has no service/UI/current-format/quantity integration: never expose a placeholder toggle'
 task=(r/'automation/supercraft/SupercraftTask.java').read_text()
 for required in ['session.begin(AutomationFeature.SUPERCRAFT,','session.expectMenu(handle,contract,port::menu)','SupercraftPreview.inspect(','SupercraftPlan.select(','proof.arm(','proof.sent(result,now)','proof.poll(','!sameOrigin(f)','session.clearExpectedMenu(handle)']:
  assert required in task,required
@@ -21,4 +21,4 @@ assert finish.index('port.dispose(done)')<finish.index('session.finish(done,succ
 assert task.count('port.recipe(')==1 and task.count('port.craft(')==1 and task.count('port.closeOwnedMenu(')==1
 for p in r.rglob('*.java'):
  if 'supercraft' not in p.parts:assert 'new SupercraftReceipts(' not in p.read_text() and 'new SupercraftTask(' not in p.read_text(),p
-print('SupercraftBoundariesTest: PASS (pure contracts and leased exact-batch port task, explicit source/quantity/proof/original-pose guards; no native executor/cost assumption/network or unfinished toggle)')
+print('SupercraftBoundariesTest: PASS (pure contracts and leased exact-batch port task, explicit source/quantity/proof/original-pose guards; no automatic executor/cost assumption/network or unfinished toggle)')

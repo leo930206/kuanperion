@@ -62,7 +62,8 @@
 - [x] Supercraft read-only exact-batch preflight: explicit output/ingredient/consumption/craft caps, complete protected43-slot inventory and capacity, immutable baseline; recipe data does not authorize a GUI action.
 - [x] Supercraft single-attempt receipt contract: current complete baseline, guarded-result window, exact requested input/output deltas backed by every affected server slot and empty cursor, no replay/prediction/manual/world/clock/timeout success. No native caller or placeholder toggle.
 - [x] Historical official advanced-preview read-only contract: complete exact recipe/output/selected amount/material/source/destination facts, inventory-only allocation, no fixed slots or unknown-cost skipping; current2026 live compatibility remains unverified.
-- [x] Supercraft abstract exact-selected-batch task: one root/catalog/typed recipe/guarded-attempt, strict preview -> server proof -> unchanged original pose/tool and owned close before valid Farming release; native adapter/service/UI still absent.
+- [x] Supercraft abstract exact-selected-batch task: one root/catalog/typed recipe/guarded-attempt, strict preview -> server proof -> unchanged original pose/tool and owned close before valid Farming release; standalone native adapter verified below, runtime service/UI still absent.
+- [x] Dormant native Supercraft adapter: fixed root/thread/world, lazy catalog, exact recipe callback, complete fresh server54 + inventory43/grid/stack-limit/source/cost/cursor proof, one guarded attempt/uncertainty, exact owned close and pending-data disposal; no native command/service/UI caller yet.
 - [ ] Supercraft authoritative current recipe/quantity/cost/native menu driver, lifecycle/service/Other UI and live receipt/return validation.
 
 ## 7 — release gate
@@ -72,6 +73,7 @@
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [ ] Audit terminal cleanup exceptions before successful Farming release across existing flight/menu tasks, while retaining post-safe-stop physical-key restoration priority (new Supercraft data-only port already cleans before release).
+- [ ] Audit own-settings GUI coexistence with claimed server menus; never silently replace the user's settings screen or claim uninterrupted operation without proof.
 - [ ] Audit no forbidden integration, no bundled original client, no secrets.
 - [ ] Isolated runtime/UI checks and explicit server-test limitations.
 - [ ] Build payload equality, source/JAR backup, settings and unrelated mods preserved.
