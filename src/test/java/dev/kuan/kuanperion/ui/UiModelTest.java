@@ -3,6 +3,7 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        testPestPendingUi();
         var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");
         require(recipe.outputId().equals("ENCHANTED_WHEAT")&&recipe.inputsPerCraft().equals(Map.of("WHEAT",160)),"explicit exact recipe UI, not a display-name guess");
         for(String bad:List.of("","WHEAT;1;64;WHEAT=1","A;1;64;WHEAT=1,WHEAT=2","A;1;64;WHEAT=1.5","A;1;64;WHEAT=0","A;1;64;WHEAT=1,","A;1;64;WHEAT=1;barn","A;65;64;WHEAT=1"))try{SupercraftModuleSettings.parseRecipe(bad);throw new AssertionError("invalid Supercraft recipe accepted");}catch(IllegalArgumentException expected){}
@@ -163,6 +164,29 @@ public final class UiModelTest {
             require(ColorPresetRow.columns(width)*(ColorPresetRow.SWATCH+ColorPresetRow.SWATCH_GAP)-ColorPresetRow.SWATCH_GAP<=ColorPresetRow.saveX(0,width)-16,"swatches do not overlap controls");
         }
         System.out.println("UiModelTest: PASS (live bindings, bounds, Chinese text, word navigation, original spring animation, geometry, adaptive scale)");
+    }
+    private static void testPestPendingUi() throws Exception {
+        var path=java.nio.file.Files.createTempDirectory("pest-pending-ui-");
+        try {
+            var context=new dev.kuan.kuanperion.automation.AutomationContext(1,true,true,Set.of());
+            var session=new dev.kuan.kuanperion.automation.AutomationSession(new dev.kuan.kuanperion.automation.AutomationCoordinator(),()->context,()->{throw new AssertionError("UI must not pause Farming");},()->{throw new AssertionError("UI must not stop Farming");});
+            var port=new dev.kuan.kuanperion.automation.pest.PestTask.Port(){
+                public dev.kuan.kuanperion.automation.AutomationContext context(){return context;}
+                public dev.kuan.kuanperion.automation.pest.PestTask.Frame frame(long now){throw new AssertionError("UI must not inspect/replay flight target");}
+                public boolean prepare(dev.kuan.kuanperion.automation.AutomationSession.Handle h,dev.kuan.kuanperion.automation.pest.PestIdentity.Vacuum v,dev.kuan.kuanperion.automation.pest.PestTask.Anchor a,int r,long n){throw new AssertionError("no flight prepare from UI");}
+                public dev.kuan.kuanperion.automation.pest.PestTask.Motion move(dev.kuan.kuanperion.automation.AutomationSession.Handle h,dev.kuan.kuanperion.automation.pest.PestTargets.Point p,double t,long n){throw new AssertionError("no UI movement");}
+                public dev.kuan.kuanperion.automation.pest.PestTask.Capture capture(dev.kuan.kuanperion.automation.AutomationSession.Handle h,dev.kuan.kuanperion.automation.pest.PestTargets.Target t,dev.kuan.kuanperion.automation.pest.PestIdentity.Vacuum v,long n){throw new AssertionError("no UI capture");}
+                public void release(dev.kuan.kuanperion.automation.AutomationSession.Handle h){throw new AssertionError("no UI input ownership");}
+                public dev.kuan.kuanperion.automation.pest.PestTask.Motion restore(dev.kuan.kuanperion.automation.AutomationSession.Handle h,dev.kuan.kuanperion.automation.pest.PestTask.Anchor a,long n){throw new AssertionError("no UI restore");}
+            };
+            var store=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path.resolve("automation.json"));
+            var service=new dev.kuan.kuanperion.automation.pest.PestService(store,session,port,()->false,notice->{throw new AssertionError("queue/cancel is not gameplay completion");});
+            var tab=PestModuleSettings.tab(service,SettingGroup.alwaysOn("Notifications",""));
+            var actions=tab.groups().getFirst().getSettings().stream().filter(ActionSetting.class::isInstance).map(ActionSetting.class::cast).toList();
+            require(actions.size()==2&&!actions.get(1).isVisible(),"no phantom Pest stop action");actions.getFirst().execute();
+            require(service.pending()&&actions.get(1).isVisible()&&!service.active()&&!session.active()&&service.status().contains("30"),"real Pest UI queues without effects and exposes stop/status");
+            actions.get(1).execute();require(!service.pending()&&!actions.get(1).isVisible()&&!service.autoEnabled()&&!java.nio.file.Files.exists(path.resolve("automation.json")),"actual stop callback cancels queue without persisted runtime intent");
+        } finally {java.nio.file.Files.delete(path);}
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}
 }

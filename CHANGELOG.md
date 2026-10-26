@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Pest 手動按鈕改為關閉設定後才執行：最多保留單一、30 秒有效的請求；等待時不暫停 Farming、不換工具／移動／開選單。停止、政策改動、Jerry、世界／環境／Farming 狀態變更會清除請求；執行時重新驗證目前條件，失敗不重播，等待期間也可取消。
 - 設定快捷鍵／本機指令不再直接取代仍有共享任務、伺服器容器或游標物品的畫面：提示後保留現況，不關閉／取消原任務，也不排入稍後自動開啟；一般 Farming／Mining 與既有設定關閉行為不變。原生延遲封包及各功能手動入口的完整共存驗收仍待完成。
 - Revoke only the original shared task/Farming hold on unavailable context/menu/transition observations; revalidate owner and monotonic binding revision after callbacks (including same-object rebinding) so old poll/transition/finish reads cannot clear or attach menus to newer work. A reentrant pause callback cannot lend/cancel a newer owner's handle; stop-callback errors are not silently swallowed.
 - Add a declared-layout Pest bait evidence protocol/subtask with explicit material/capacity/protected43 preflight, ordered server cursor/slot/NoBait proofs, owned remainder return and original-root retention; no native refill action/settings or live format claim.

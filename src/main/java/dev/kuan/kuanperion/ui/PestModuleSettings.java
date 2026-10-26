@@ -25,8 +25,8 @@ public final class PestModuleSettings {
    .add(new SliderSetting("單次地塊傳送上限（0 為停用）",0,24,()->(float)service.policy().travelPlots(),value->policy(service,p->p.withTravelPlots(Math.round(value)))).withDecimals(0))
    .add(new ToggleSetting("清理已載入的滿載陷阱",()->service.policy().clearTraps(),value->policy(service,p->p.withClearTraps(value))))
    .add(new SliderSetting("陷阱所在地塊（-1 未設定、0 Barn）",-1,24,()->(float)service.policy().trapPlot(),value->policy(service,p->p.withTrapPlot(Math.round(value)))).withDecimals(0))
-   .add(new ActionSetting("立即清理 Pest",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Pest 未開始","請確認 Pest 達門檻、Garden 允許飛行、快捷列有 Vacuum；未載入目標時需啟用範圍搜尋或設定地塊傳送上限；未載入陷阱需另設所在地塊，並避免其他動作或手動輸入。");}))
-   .add(new ActionSetting("停止本次除蟲",()->service.cancel(System.nanoTime())).visibleWhen(service::active))
+   .add(new ActionSetting("關閉選單後清理 Pest",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Pest 未開始","請確認 Pest 達門檻、Garden 允許飛行、快捷列有 Vacuum；未載入目標時需啟用範圍搜尋或設定地塊傳送上限；未載入陷阱需另設所在地塊，並避免其他動作或手動輸入。");}))
+   .add(new ActionSetting("停止本次除蟲",()->service.cancel(System.nanoTime())).visibleWhen(()->service.active()||service.pending()))
    .add(new InfoSetting("執行狀態",service::status));
   return new ModulesTab.SubTab("Pest","除蟲與獨立通知設定",service::autoEnabled,value->enabled(service,value),List.of(core,notifications));
  }
