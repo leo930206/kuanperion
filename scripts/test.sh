@@ -112,3 +112,5 @@ python3 "$ROOT/scripts/test-pet-boundaries.py"
 python3 "$ROOT/scripts/test-supercraft-service-wiring.py"
 
 python3 "$ROOT/scripts/test-pest-bait-boundaries.py"
+
+python3 "$ROOT/scripts/test-settings-task-coexistence.py"

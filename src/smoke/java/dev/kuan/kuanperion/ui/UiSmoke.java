@@ -93,7 +93,7 @@ public final class UiSmoke implements ClientModInitializer {
                 System.out.println("UI_SMOKE_JERRY_ROW_PASS four independent real cell clicks");
             }
             if(phase==27) {
-                var setting=ui.getActiveModuleSubTab().groups().get(0).getSettings().get(0);
+                var setting=ui.getActiveModuleSubTab().groups().stream().flatMap(g->g.getSettings().stream()).filter(s->s.getName().equals("通知門檻")).findFirst().orElseThrow();
                 var bounds=rowFor(setting);var metrics=new MainGUITextLayout();
                 var renderer=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
                 int lines=metrics.wrapTextToWidth(renderer,setting.getDescription(),"Inter-Regular",10.5f,metrics.descriptionWidth(setting,bounds[2])).size();
@@ -133,7 +133,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 24 -> org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1440,900);
                 case 25 -> {org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1100,760);ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Discord Webhook")).findFirst().orElseThrow());}
                 case 26 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Jerry 偵測")).findFirst().orElseThrow());
-                case 27 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor")).findFirst().orElseThrow());
+                case 27 -> {var visitor=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Visitor")).findFirst().orElseThrow();var group=visitor.groups().stream().filter(g->g.getSettings().stream().anyMatch(s->s.getName().equals("通知門檻"))).findFirst().orElseThrow();var threshold=group.getSettings().stream().filter(s->s.getName().equals("通知門檻")).findFirst().orElseThrow();ui.openSearchResult(0,visitor,group,threshold);}
                 case 28 -> {switchTab(1);ui.activateSearchField();ui.setSearchQuery("");ui.textBuf=new StringBuilder();ui.textCursor=0;}
                 case 30 -> {clickSidebar(3);assertGroup(3);System.out.println("UI_HOVER_NAV main="+ui.getActiveMainTab()+" panel="+ui.panelX()+","+ui.panelY()+" anim="+ui.context().animation.sidebarAnim);}
                 case 31 -> clickSidebar(0);
@@ -429,7 +429,8 @@ public final class UiSmoke implements ClientModInitializer {
         ui.mouseClicked(event,false);ui.mouseReleased(event);
     }
     private void testInlineDuration() {
-        var setting=(dev.kuan.kuanperion.ui.settings.InlineToggleSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();
+        var settings=ui.getActiveModuleSubTab().groups().stream().flatMap(g->g.getSettings().stream()).toList();
+        var setting=(dev.kuan.kuanperion.ui.settings.InlineToggleSetting)settings.stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.InlineToggleSetting).findFirst().orElseThrow();
         var row=rowFor(setting);boolean before=setting.isOn();
         click(row[0]+row[2]-100,UiLayoutMetrics.inputTop(row[1],row[3])+11);
         if(ui.activeText!=setting || setting.isOn()!=before)throw new AssertionError("duration click toggled checkbox / did not focus editor");
@@ -441,7 +442,7 @@ public final class UiSmoke implements ClientModInitializer {
         if(!setting.getValue().isEmpty())throw new AssertionError("blank should preserve placeholder state");
         click(row[0]+row[2]-40,UiLayoutMetrics.checkboxTop(row[1],row[3])+19);
         if(setting.isOn()==before||!setting.getValue().isEmpty())throw new AssertionError("checkbox click edited time / failed toggle");
-        var threshold=(dev.kuan.kuanperion.ui.settings.SliderSetting)ui.getActiveModuleSubTab().groups().get(0).getSettings().stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.SliderSetting).findFirst().orElseThrow();
+        var threshold=(dev.kuan.kuanperion.ui.settings.SliderSetting)settings.stream().filter(s->s instanceof dev.kuan.kuanperion.ui.settings.SliderSetting&&s.getName().equals("通知門檻")).findFirst().orElseThrow();
         var numberRow=rowFor(threshold);float innerW=numberRow[2]-24;
         click(numberRow[0]+12+innerW-innerW/3+33,UiLayoutMetrics.inputTop(numberRow[1],numberRow[3])+11);
         if(ui.activeSliderField!=threshold || ui.activeEditorH!=22 || Math.abs(ui.activeEditorY+11-(numberRow[1]+(numberRow[3]-5)/2))>.01f)throw new AssertionError("threshold input not centered/enlarged/clickable");

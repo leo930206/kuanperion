@@ -371,6 +371,8 @@ public final class KuanperionClient implements ClientModInitializer {
 
     private static void toggleSettingsScreen(Minecraft mc) {
         if (mc.gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI) mc.gui.screen().onClose();
+        else if (automation != null && !automation.canOpenSettings())
+            say(mc, plain("請先結束目前的自動任務、關閉伺服器選單並放回游標物品，再開啟設定。"));
         else mc.setScreenAndShow(new dev.kuan.kuanperion.ui.MainGUI());
     }
 

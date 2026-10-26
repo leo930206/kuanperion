@@ -89,6 +89,11 @@ public final class AutomationClientBridge {
  public JunkService junk(){return junk;}
  public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);visitor.tick(now);supercraft.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
+ /** Local settings must not replace a leased task or an inventory/cursor still owned by the server. No queued replay. */
+ public boolean canOpenSettings(){
+  var mc=Minecraft.getInstance();if(!mc.isSameThread()||mc.gui.overlay()!=null||session.active())return false;
+  return mc.player==null||mc.player.containerMenu==mc.player.inventoryMenu&&mc.player.containerMenu.getCarried().isEmpty();
+ }
  public dev.kuan.kuanperion.automation.greenhouse.HarvestReceipts harvestReceipts(){return harvests;}
  public void serverHarvestPacket(net.minecraft.network.protocol.Packet<?> packet){
   var mc=Minecraft.getInstance();if(!session.active()||!mc.isSameThread()||mc.player==null||mc.level==null||packet==null)return;
