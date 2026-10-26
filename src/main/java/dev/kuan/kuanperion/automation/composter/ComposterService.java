@@ -4,7 +4,7 @@ import dev.kuan.kuanperion.automation.*;import java.io.IOException;import java.u
 /** Off-by-default interval maintenance. Failures require explicit re-enabling, never re-arm Farming. */
 public final class ComposterService {
  private static final long SECOND=1_000_000_000L;
- private final AutomationSession session;private final ComposterTask.Port port;private final dev.kuan.kuanperion.automation.flight.GardenManualRequest manual=new dev.kuan.kuanperion.automation.flight.GardenManualRequest();
+ private final AutomationSession session;private final ComposterTask.Port port;private final ManualTaskRequest manual=new ManualTaskRequest(true);
  private final Supplier<Optional<ComposterPolicy.Anchor>> capture;private final AutomationSettingsStore settings;private final ComposterTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
  private boolean suspended,scheduled,attempted,polled;private long lastScheduled,lastAttempt,lastPoll;private ComposterTask.State reported=ComposterTask.State.IDLE;
  public ComposterService(AutomationSettingsStore settings,AutomationSession session,PlayerPositionReceipts positions,InventoryReceipts inventory,CursorReceipts cursor,ComposterTask.Port port,BooleanSupplier automaticAllowed,Supplier<Optional<ComposterPolicy.Anchor>> capture,Consumer<StashService.Notice> feedback){this.capture=capture;this.settings=settings;this.session=session;this.port=port;this.automaticAllowed=automaticAllowed;this.feedback=feedback;task=new ComposterTask(session,positions,inventory,cursor,port);}

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-package dev.kuan.kuanperion.automation.flight;
-import dev.kuan.kuanperion.automation.AutomationContext;
+package dev.kuan.kuanperion.automation;
 /** One transient UI intent, not a gameplay lease or saved automation preference. */
-public final class GardenManualRequest {
+public final class ManualTaskRequest {
+ private final boolean requireGarden;
+ public ManualTaskRequest(boolean requireGarden){this.requireGarden=requireGarden;}
  private boolean pending,farming;private long world,started;
  public boolean pending(){return pending;}
  public boolean offer(AutomationContext context,boolean occupied,long now){
@@ -15,5 +16,5 @@ public final class GardenManualRequest {
   if(!screenClosed)return false;clear();return true;
  }
  public boolean clear(){boolean previous=pending;pending=false;return previous;}
- private static boolean valid(AutomationContext context){return context!=null&&context.canIssueCommand()&&context.garden();}
+ private boolean valid(AutomationContext context){return context!=null&&context.canIssueCommand()&&(!requireGarden||context.garden());}
 }

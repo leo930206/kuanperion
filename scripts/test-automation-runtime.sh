@@ -13,6 +13,8 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.AutoSellServiceTest
 
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.AutoSellManualQueueTest
+
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.BazaarMarketTest
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.HypixelMarketClientTest
@@ -26,6 +28,8 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.JunkTaskTest
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.JunkServiceTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.JunkManualQueueTest
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.BookCombineTaskTest
 

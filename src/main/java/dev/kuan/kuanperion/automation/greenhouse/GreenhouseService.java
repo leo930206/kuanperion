@@ -4,7 +4,7 @@ import dev.kuan.kuanperion.automation.*;import java.io.IOException;import java.u
 /** Off-by-default interval maintenance. Failures require explicit re-enabling, never re-arm Farming. */
 public final class GreenhouseService {
  private static final long SECOND=1_000_000_000L;
- private final AutomationSession session;private final GreenhouseTask.Port port;private final dev.kuan.kuanperion.automation.flight.GardenManualRequest manual=new dev.kuan.kuanperion.automation.flight.GardenManualRequest();
+ private final AutomationSession session;private final GreenhouseTask.Port port;private final ManualTaskRequest manual=new ManualTaskRequest(true);
  private final AutomationSettingsStore settings;private final GreenhouseTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
  private boolean suspended,scheduled,attempted,polled;private long lastScheduled,lastAttempt,lastPoll;private GreenhouseTask.State reported=GreenhouseTask.State.IDLE;
  public GreenhouseService(AutomationSettingsStore settings,AutomationSession session,PlayerPositionReceipts positions,HarvestReceipts harvests,GreenhouseTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;this.session=session;this.port=port;this.automaticAllowed=automaticAllowed;this.feedback=feedback;task=new GreenhouseTask(session,positions,harvests,port);}

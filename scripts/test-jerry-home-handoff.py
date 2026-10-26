@@ -17,7 +17,7 @@ public final class JerryHomeHandoffTest {
  AutomationContext observe(){return new AutomationContext(1,farming,true,Set.of());}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::observe,()->paused++,()->{stopped++;farming=false;});
  static class Service {int calls;void cancel(long now){calls++;}void onOutgoingCommand(){calls++;}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service();
+ Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),autoSell=new Service(),junk=new Service();
  static JerryHomeHandoffTest current;
  static class Connection {boolean observed=true,throwing;List<String> commands=new ArrayList<>();void sendCommand(String command){commands.add(command);if(throwing)throw new IllegalStateException("fixture send error");if(observed)current.onOutgoingCommand();}}
  static class Player {Connection connection=new Connection();}

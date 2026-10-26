@@ -36,8 +36,8 @@ public final class AutomationModuleSettings {
    .add(new SliderSetting("操作間隔（秒）",.5f,5,()->sell.policy().delayMillis()/1000f,value->change(()->{var p=sell.policy();sell.setPolicy(new AutoSellPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),Math.round(value*1000),p.timeoutSeconds(),p.cooldownSeconds(),p.thresholdPercent(),p.onlyWhileFarming()));})).withDecimals(1))
    .add(new SliderSetting("逾時（秒）",10,180,()->(float)sell.policy().timeoutSeconds(),value->change(()->{var p=sell.policy();sell.setPolicy(new AutoSellPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),p.delayMillis(),Math.round(value),p.cooldownSeconds(),p.thresholdPercent(),p.onlyWhileFarming()));})).withDecimals(0))
    .add(new SliderSetting("自動執行冷卻（秒）",10,3600,()->(float)sell.policy().cooldownSeconds(),value->change(()->{var p=sell.policy();sell.setPolicy(new AutoSellPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),p.delayMillis(),p.timeoutSeconds(),Math.round(value),p.thresholdPercent(),p.onlyWhileFarming()));})).withDecimals(0))
-   .add(new ActionSetting("立即 NPC 出售",()->{if(!sell.manualRequest(System.nanoTime()))NotificationManager.error("Auto Sell 未開始","請先設定精確物品 ID 白名單，確認有符合且未受保護的物品，並位於 SkyBlock 的安全狀態");}))
-   .add(new ActionSetting("停止本次出售",()->sell.cancel(System.nanoTime())).visibleWhen(sell::active))
+   .add(new ActionSetting("關閉選單後 NPC 出售",()->{if(!sell.manualRequest(System.nanoTime()))NotificationManager.error("Auto Sell 未開始","請先設定精確物品 ID 白名單，確認有符合且未受保護的物品，並位於 SkyBlock 的安全狀態");}))
+   .add(new ActionSetting("停止本次出售",()->sell.cancel(System.nanoTime())).visibleWhen(()->sell.active()||sell.pending()))
    .add(new InfoSetting("執行狀態",sell::status));
   return new ModulesTab.SubTab("Auto Sell","依精確白名單進行 NPC 出售",sell::autoEnabled,value->change(()->sell.setEnabled(value)),List.of(group));
  }
@@ -57,8 +57,8 @@ public final class AutomationModuleSettings {
    .add(new SliderSetting("操作間隔（秒）",.5f,5,()->junk.policy().delayMillis()/1000f,value->change(()->{var p=junk.policy();junk.setPolicy(new JunkPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),Math.round(value*1000),p.timeoutSeconds(),p.cooldownSeconds(),p.thresholdPercent(),p.onlyWhileFarming(),p.anchor(),p.radius()));})).withDecimals(1))
    .add(new SliderSetting("逾時（秒）",10,180,()->(float)junk.policy().timeoutSeconds(),value->change(()->{var p=junk.policy();junk.setPolicy(new JunkPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),p.delayMillis(),Math.round(value),p.cooldownSeconds(),p.thresholdPercent(),p.onlyWhileFarming(),p.anchor(),p.radius()));})).withDecimals(0))
    .add(new SliderSetting("自動執行冷卻（秒）",10,3600,()->(float)junk.policy().cooldownSeconds(),value->change(()->{var p=junk.policy();junk.setPolicy(new JunkPolicy(p.allowedIds(),p.protectedUuids(),p.maxStacks(),p.maxItems(),p.delayMillis(),p.timeoutSeconds(),Math.round(value),p.thresholdPercent(),p.onlyWhileFarming(),p.anchor(),p.radius()));})).withDecimals(0))
-   .add(new ActionSetting("立即丟棄授權物品",()->{if(!junk.manualRequest(System.nanoTime()))NotificationManager.error("Junk 未開始","請設定精確 ID 白名單及 Garden 丟棄位置，並站在設定範圍內；工具、快捷列與保護物品不丟棄");}))
-   .add(new ActionSetting("停止本次丟棄",()->junk.cancel(System.nanoTime())).visibleWhen(junk::active))
+   .add(new ActionSetting("關閉選單後丟棄授權物品",()->{if(!junk.manualRequest(System.nanoTime()))NotificationManager.error("Junk 未開始","請設定精確 ID 白名單及 Garden 丟棄位置，並站在設定範圍內；工具、快捷列與保護物品不丟棄");}))
+   .add(new ActionSetting("停止本次丟棄",()->junk.cancel(System.nanoTime())).visibleWhen(()->junk.active()||junk.pending()))
    .add(new InfoSetting("執行狀態",junk::status));
   return new ModulesTab.SubTab("Junk","只在指定 Garden 位置丟棄白名單物品",junk::autoEnabled,value->change(()->junk.setEnabled(value)),List.of(group));
  }

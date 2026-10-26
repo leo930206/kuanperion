@@ -4,7 +4,7 @@ import dev.kuan.kuanperion.automation.*;import java.io.IOException;import java.u
 /** Explicit inventory-only automatic dispatch; failures require user re-enabling, never re-arm Farming. */
 public final class VisitorService {
  private static final long SECOND=1_000_000_000L;
- private final AutomationSession session;private final VisitorTask.Port port;private final dev.kuan.kuanperion.automation.flight.GardenManualRequest manual=new dev.kuan.kuanperion.automation.flight.GardenManualRequest();
+ private final AutomationSession session;private final VisitorTask.Port port;private final ManualTaskRequest manual=new ManualTaskRequest(true);
  private final AutomationSettingsStore settings;private final VisitorTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
  private boolean suspended,attempted,polled;private long lastAttempt,lastPoll;private VisitorTask.State reported=VisitorTask.State.IDLE;
  public VisitorService(AutomationSettingsStore settings,AutomationSession session,PlayerPositionReceipts positions,InventoryReceipts receipts,CursorReceipts cursors,VisitorTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;this.session=session;this.port=port;this.automaticAllowed=automaticAllowed;this.feedback=feedback;task=new VisitorTask(session,positions,receipts,cursors,port);}

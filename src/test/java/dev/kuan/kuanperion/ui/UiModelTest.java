@@ -213,6 +213,8 @@ public final class UiModelTest {
             store.setGreenhousePolicy(GreenhousePolicy.defaults().withPlots(Set.of(1)).withKinds(Set.of(GreenhouseIdentity.Kind.ASHWREATH)).withTool("FARMING_HOE",new UUID(0,9).toString()));
             store.setComposterPolicy(ComposterPolicy.defaults().withAnchor(new ComposterPolicy.Anchor(-11,72,-27,"minecraft:player_head")).withMaterials(Map.of("BOX_OF_SEEDS",new ComposterPolicy.Material(ComposterObservation.Kind.ORGANIC,1000))));
             store.setVisitorPolicy(new VisitorPolicy(new VisitorValuation.Rules(Set.of("Librarian"),Set.of("WHEAT"),1000,0,1),1,1,240,60,true));
+            store.setAutoSellPolicy(new AutoSellPolicy(Set.of("WHEAT"),Set.of(),2,128,1000,60,60,85,true));
+            store.setJunkPolicy(new JunkPolicy(Set.of("SEEDS"),Set.of(),3,192,1000,60,60,85,true,new JunkPolicy.Location("overworld",10,70,10),1.5));
             byte[] original=java.nio.file.Files.readAllBytes(path);java.util.function.Consumer<StashService.Notice> notice=n->{throw new AssertionError("queue/cancel is not gameplay completion");};
             var greenhouse=new GreenhouseService(store,session,new PlayerPositionReceipts(),new HarvestReceipts(),contextOnlyPort(GreenhouseTask.Port.class,context),()->false,notice);
             assertPendingUi(GreenhouseModuleSettings.tab(greenhouse),greenhouse::pending,greenhouse::active,greenhouse::status);
@@ -220,7 +222,14 @@ public final class UiModelTest {
             assertPendingUi(ComposterModuleSettings.tab(composter),composter::pending,composter::active,composter::status);
             var visitor=new VisitorService(store,session,new PlayerPositionReceipts(),new InventoryReceipts(),new CursorReceipts(),contextOnlyPort(VisitorTask.Port.class,context),()->false,notice);
             assertPendingUi(VisitorModuleSettings.tab(visitor,SettingGroup.alwaysOn("Notifications","")),visitor::pending,visitor::active,visitor::status);
-            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
+            var hub=new AutomationContext(1,true,false,Set.of());
+            var sell=new AutoSellService(store,session,new InventoryReceipts(),contextOnlyPort(AutoSellTask.Port.class,hub),()->false,notice);
+            var junk=new JunkService(store,session,new InventoryReceipts(),contextOnlyPort(JunkTask.Port.class,context),()->false,notice);
+            var stash=new StashService(store,new AutomationCoordinator(),()->context,command->{throw new AssertionError("Trade settings sent Stash command");},notice);
+            var trade=AutomationModuleSettings.trade(stash,sell,junk);
+            assertPendingUi(trade.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow(),sell::pending,sell::active,sell::status);
+            assertPendingUi(trade.stream().filter(t->t.name().equals("Junk")).findFirst().orElseThrow(),junk::pending,junk::active,junk::status);
+            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&!sell.autoEnabled()&&!junk.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
         } finally {try(var paths=java.nio.file.Files.walk(dir)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())java.nio.file.Files.deleteIfExists(p);}}
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}

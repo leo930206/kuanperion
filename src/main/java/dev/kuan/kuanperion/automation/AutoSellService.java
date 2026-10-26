@@ -5,19 +5,31 @@ import java.util.function.*;
 /** NPC disposal orchestration; Bazaar is a separate forthcoming driver, not a fake option. */
 public final class AutoSellService {
  private static final long SECOND=1000000000L;
+ private final AutomationSession session;private final ManualTaskRequest manual=new ManualTaskRequest(false);
  private final AutomationSettingsStore settings;private final AutoSellTask task;private final AutoSellTask.Port port;
  private final BooleanSupplier allowAutomatic;private final Consumer<StashService.Notice> feedback;
  private boolean sessionSuspended,hasAttempt,hasPolled,reportedStart;private long lastAttempt,lastPoll;
  private AutoSellTask.State reported=AutoSellTask.State.IDLE;
- public AutoSellService(AutomationSettingsStore settings,AutomationSession session,InventoryReceipts receipts,AutoSellTask.Port port,BooleanSupplier allowAutomatic,Consumer<StashService.Notice> feedback){this.settings=settings;this.port=port;this.allowAutomatic=allowAutomatic;this.feedback=feedback;task=new AutoSellTask(session,receipts,port);}
+ public AutoSellService(AutomationSettingsStore settings,AutomationSession session,InventoryReceipts receipts,AutoSellTask.Port port,BooleanSupplier allowAutomatic,Consumer<StashService.Notice> feedback){this.settings=settings;this.session=session;this.port=port;this.allowAutomatic=allowAutomatic;this.feedback=feedback;task=new AutoSellTask(session,receipts,port);}
  public boolean autoEnabled(){return settings.enabled(AutomationFeature.AUTO_SELL)&&!sessionSuspended;}
- public boolean active(){return task.active();}public AutoSellPolicy policy(){return settings.autoSellPolicy();}
- public void setEnabled(boolean enabled)throws IOException{if(!enabled){sessionSuspended=true;cancel(System.nanoTime());}settings.setEnabled(AutomationFeature.AUTO_SELL,enabled);if(enabled)sessionSuspended=false;}
+ public boolean active(){return task.active();}public boolean pending(){return manual.pending();}public AutoSellPolicy policy(){return settings.autoSellPolicy();}
+ public void setEnabled(boolean enabled)throws IOException{manual.clear();if(!enabled){sessionSuspended=true;cancel(System.nanoTime());}settings.setEnabled(AutomationFeature.AUTO_SELL,enabled);if(enabled)sessionSuspended=false;}
  public void setPolicy(AutoSellPolicy policy)throws IOException{cancel(System.nanoTime());try{settings.setAutoSellPolicy(policy);}catch(IOException failure){sessionSuspended=true;throw failure;}}
- public boolean manualRequest(long now){return settings.writable()&&(!hasAttempt||now-lastAttempt>=SECOND)&&request(true,now);}
+ public boolean manualRequest(long now){
+  if(active()||pending()||!settings.writable()||policy().allowedIds().isEmpty()||hasAttempt&&(now-lastAttempt<0||now-lastAttempt<1_000_000_000L))return false;
+  if(allowAutomatic.getAsBoolean())return request(true,now);
+  return manual.offer(pendingContext(),session.active(),now);
+ }
+ private AutomationContext pendingContext(){try{var context=port.context();return context==null?null:AutomationSession.forFeature(context,AutomationFeature.AUTO_SELL);}catch(RuntimeException unavailable){return null;}}
  private boolean request(boolean manual,long now){if(!task.request(policy(),manual,now))return false;lastAttempt=now;hasAttempt=true;reportedStart=false;reported=AutoSellTask.State.OPENING;return true;}
  public void tick(long now){
   if(active()){task.tick(now);report();return;}
+  if(pending()){
+   if(manual.take(pendingContext(),session.active(),allowAutomatic.getAsBoolean(),now)){
+    var previous=reported;boolean accepted=request(true,now);if(accepted)task.tick(now);report();
+    if(!accepted&&reported==previous)feedback.accept(new StashService.Notice("Auto Sell 單次請求未開始：目前物品、位置或控制權條件不符；未繼續執行。",false,"Auto Sell"));
+   }return;
+  }
   if(!autoEnabled()||!allowAutomatic.getAsBoolean()||hasPolled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   lastPoll=now;hasPolled=true;var p=policy();
   if(p.allowedIds().isEmpty()||hasAttempt&&now-lastAttempt>=0&&now-lastAttempt<p.cooldownSeconds()*SECOND)return;
@@ -27,7 +39,7 @@ public final class AutoSellService {
  }
  /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
  public void suspend(long now){sessionSuspended=true;cancel(now);}
- public void cancel(long now){task.cancel(now);report();}
+ public void cancel(long now){if(manual.clear())sessionSuspended=true;task.cancel(now);report();}
  public void onSystemMessage(String message,long now){
   if(!active()||!message.replaceAll("(?i)§[0-9a-fk-orx]","").strip().equals("You've reached the daily limit of coins you may earn from NPC shops."))return;
   sessionSuspended=true;cancel(now);try{settings.setEnabled(AutomationFeature.AUTO_SELL,false);}catch(IOException ignored){}
@@ -45,5 +57,5 @@ public final class AutoSellService {
    default->throw new IllegalStateException("Not terminal");
   };feedback.accept(new StashService.Notice(message,state!=AutoSellTask.State.COMPLETE&&state!=AutoSellTask.State.CANCELLED));
  }
- public String status(){return settings.writable()?task.state().name()+" · 已確認 "+task.soldItems()+" 個物品":settings.issue();}
+ public String status(){return !settings.writable()?settings.issue():pending()?"已排入單次執行，關閉選單後開始（30 秒內有效）":task.state().name()+" · 已確認 "+task.soldItems()+" 個物品";}
 }
