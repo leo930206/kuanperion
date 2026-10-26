@@ -1,0 +1,9 @@
+# Trade native-observation failures (development checkpoint)
+
+NPC Auto Sell and Junk refuse a manual or automatic Task.request when context, location or inventory preflight observations are missing/throwing. The inventory is copied in full before a candidate can authorize work: a valid early stack must not short-circuit validation of a later null element. An already-active task rejects a duplicate request before reading native state.
+
+AutomationSession.begin separately reads its own fresh context before acquisition. Null/throwing observations return no handle, no lease and no Farming hold. A generation change or a new reentrant owner during that read invalidates the old attempt; stale data cannot acquire a fresh-generation root. Acquisition, pause and safety-stop callbacks are outside the read catch boundary. In particular, an error while safely stopping Farming must remain visible after revocation.
+
+Junk observes its running context/location and each menu read inside narrow read-only failure boundaries. A failure ends the task, revokes the original hold and never drops/retries an item. After native inventory open it verifies one immutable menu snapshot rather than rereading the title from a different observation. Menu cleanup remains limited to a currently owned exact inventory; an unavailable menu is not guessed or repaired. Stop-callback exceptions are not caught as observation failures.
+
+Regression evidence: real production task/session/coordinator tests cover manual/automatic preflight null/throw/malformed lists, active duplicates, running context/position/menu reads before and after inventory open, reentrant generation changes, and propagated stop errors. No game/account/server or spending/disposal permissions are added. This does not implement unfinished Pet Sell, Book Combine, Bazaar purchases or claim live server compatibility; stable2.0.17 remains unchanged.

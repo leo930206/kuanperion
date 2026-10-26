@@ -17,23 +17,34 @@ public final class JunkTask {
  public State state(){return state;}public int removedItems(){return removedItems;}public int removedStacks(){return removedStacks;}
  public boolean active(){return state==State.OPENING||state==State.READY||state==State.WAITING_RECEIPT;}
  public boolean request(JunkPolicy policy,boolean manual,long now){
-  var context=port.context();
-  if(active()||policy.allowedIds().isEmpty()||!policy.atAnchor(port.location())||!context.garden()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive()||port.inventory().stream().noneMatch(i->policy.protection().permits(i)&&i.count()<=policy.maxItems()))return false;
+  if(active()||policy==null||policy.allowedIds().isEmpty())return false;
+  AutomationContext context;
+  try{
+   context=Objects.requireNonNull(port.context());
+   if(!policy.atAnchor(port.location())||!context.garden()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive()||List.copyOf(port.inventory()).stream().noneMatch(i->policy.protection().permits(i)&&i.count()<=policy.maxItems()))return false;
+  }catch(RuntimeException unavailable){return false;}
+  // Only preflight reads are caught; ownership and safety-stop failures must stay visible.
   var next=session.begin(AutomationFeature.JUNK,now,policy.timeoutSeconds()*1_000_000_000L);if(next==null)return false;
   handle=next;this.policy=policy;world=context.worldId();started=lastAction=now;removedItems=removedStacks=0;pending=null;contract=null;state=State.OPENING;return true;
  }
  public void tick(long now){
-  if(!active())return;var context=port.context();
-  if(!session.isCurrent(handle)||context.worldId()!=world||context.hardBlocked()||!context.garden()||!policy.atAnchor(port.location())){finish(State.CANCELLED,now);return;}
+  if(!active())return;AutomationContext context;JunkPolicy.Location location;
+  try{context=Objects.requireNonNull(port.context());location=port.location();}
+  catch(RuntimeException unavailable){finish(State.FAILED,now);return;}
+  if(!session.isCurrent(handle)||context.worldId()!=world||context.hardBlocked()||!context.garden()||!policy.atAnchor(location)){finish(State.CANCELLED,now);return;}
   if(now-started<0||now-started>=policy.timeoutSeconds()*1_000_000_000L){finish(State.TIMED_OUT,now);return;}
   if(context.blockers().contains(AutomationContext.Blocker.FOCUS))return;
   if(state==State.OPENING){
    if(!AutomationSession.forFeature(context,AutomationFeature.JUNK).canIssueCommand())return;
    boolean opened;try{opened=port.open(handle);}catch(RuntimeException failure){finish(State.FAILED,now);return;}
-   if(!opened||!ownInventory(port.menu())){finish(State.FAILED,now);return;}
-   contract=new MenuContract(Set.of(port.menu().title()),9);session.expectMenu(handle,contract,port::menu);state=State.READY;lastAction=now;return;
+   MenuSnapshot openedMenu;
+   try{openedMenu=port.menu();}catch(RuntimeException unavailable){finish(State.FAILED,now);return;}
+   if(!opened||!session.isCurrent(handle)||!ownInventory(openedMenu)){finish(State.FAILED,now);return;}
+   contract=new MenuContract(Set.of(openedMenu.title()),9);session.expectMenu(handle,contract,port::menu);state=State.READY;lastAction=now;return;
   }
-  var menu=port.menu();if(!ownInventory(menu)||!contract.matches(menu)){finish(State.FAILED,now);return;}
+  MenuSnapshot menu;
+  try{menu=port.menu();}catch(RuntimeException unavailable){finish(State.FAILED,now);return;}
+  if(!session.isCurrent(handle)||!ownInventory(menu)||!contract.matches(menu)){finish(State.FAILED,now);return;}
   if(state==State.WAITING_RECEIPT){
    if(receipts.confirmsDecrease(stamp,0,pendingSlot,pending,pending.count())){removedStacks++;removedItems+=pending.count();pending=null;state=State.READY;lastAction=now;}
    return;

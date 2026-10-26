@@ -20,7 +20,13 @@ public final class AutoSellTask {
  public State state(){return state;}public int soldItems(){return soldItems;}public int soldStacks(){return soldStacks;}
  public boolean active(){return state==State.OPENING||state==State.WAITING_MENU||state==State.READY||state==State.WAITING_RECEIPT;}
  public boolean request(AutoSellPolicy policy,boolean manual,long now){
-  var context=port.context();if(active()||policy.allowedIds().isEmpty()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive()||port.inventory().stream().noneMatch(item->policy.protection().permits(item)&&item.count()<=policy.maxItems()))return false;
+  if(active()||policy==null||policy.allowedIds().isEmpty())return false;
+  AutomationContext context;
+  try{
+   context=Objects.requireNonNull(port.context());
+   if(!manual&&policy.onlyWhileFarming()&&!context.farmingActive()||List.copyOf(port.inventory()).stream().noneMatch(item->policy.protection().permits(item)&&item.count()<=policy.maxItems()))return false;
+  }catch(RuntimeException unavailable){return false;}
+  // Acquisition/stop callbacks are not observations: never swallow their failures here.
   var next=session.begin(AutomationFeature.AUTO_SELL,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
   this.policy=policy;handle=next;world=context.worldId();started=lastAction=now;soldStacks=soldItems=0;pending=null;ownedContainer=-1;state=State.OPENING;
   session.expectMenu(handle,COOKIE,port::menu);return true;

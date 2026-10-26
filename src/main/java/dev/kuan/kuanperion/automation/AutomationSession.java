@@ -14,7 +14,10 @@ public final class AutomationSession {
  public boolean active(){return active!=null;}public boolean holdsFarming(){return farm.held();}
  public Handle begin(AutomationFeature feature,long now,long lifetime){
   if(active!=null||feature==AutomationFeature.STASH)return null;
-  var context=forFeature(observe.get(),feature);var lease=coordinator.tryAcquire(feature,context,now,lifetime);if(lease==null)return null;
+  long observedGeneration=generation;AutomationContext context;
+  try{context=forFeature(java.util.Objects.requireNonNull(observe.get()),feature);}catch(RuntimeException unavailable){return null;}
+  if(active!=null||generation!=observedGeneration)return null;
+  var lease=coordinator.tryAcquire(feature,context,now,lifetime);if(lease==null)return null;
   var hold=farm.acquire(context.worldId(),generation,context.farmingActive());var created=new Handle(lease,hold,generation);active=created;
   if(hold!=null)try{pauseFarm.run();}catch(RuntimeException failure){finish(created,false,now);return null;}
   return isCurrent(created)?created:null;
