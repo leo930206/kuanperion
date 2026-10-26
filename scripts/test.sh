@@ -116,3 +116,5 @@ python3 "$ROOT/scripts/test-pest-bait-boundaries.py"
 python3 "$ROOT/scripts/test-settings-task-coexistence.py"
 
 python3 "$ROOT/scripts/test-trade-manual-takeover.py"
+
+python3 "$ROOT/scripts/test-applied-inventory-hooks.py" "$JAVA_HOME"

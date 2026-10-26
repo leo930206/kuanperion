@@ -17,7 +17,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-/** Observe server-applied results, never client prediction or outbound packets. */
+/** Observe server-applied results, never client prediction or outbound packets.
+ * Container handlers also return normally for ignored packets: observe only after their actual writes. */
 @Mixin(ClientPacketListener.class)
 public abstract class AutomationReceiptMixin {
  @Inject(method="handleContainerClose",at=@At("HEAD"))
@@ -38,9 +39,15 @@ public abstract class AutomationReceiptMixin {
  private void kuanperion$cursor(ClientboundSetCursorItemPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationCursor(packet);}
  @Inject(method="handleMovePlayer",at=@At("TAIL"))
  private void kuanperion$position(ClientboundPlayerPositionPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationPosition(packet);}
- @Inject(method="handleContainerSetSlot",at=@At("TAIL"))
+ @Inject(method="handleContainerSetSlot",at={
+  @At(value="INVOKE",target="Lnet/minecraft/world/inventory/InventoryMenu;setItem(IILnet/minecraft/world/item/ItemStack;)V",shift=At.Shift.AFTER),
+  @At(value="INVOKE",target="Lnet/minecraft/world/inventory/AbstractContainerMenu;setItem(IILnet/minecraft/world/item/ItemStack;)V",shift=At.Shift.AFTER)
+ },require=2,allow=2)
  private void kuanperion$slot(ClientboundContainerSetSlotPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationSlot(packet.getContainerId(),packet.getSlot(),packet.getItem());}
- @Inject(method="handleContainerContent",at=@At("TAIL"))
+ @Inject(method="handleContainerContent",at={
+  @At(value="INVOKE",target="Lnet/minecraft/world/inventory/InventoryMenu;initializeContents(ILjava/util/List;Lnet/minecraft/world/item/ItemStack;)V",shift=At.Shift.AFTER),
+  @At(value="INVOKE",target="Lnet/minecraft/world/inventory/AbstractContainerMenu;initializeContents(ILjava/util/List;Lnet/minecraft/world/item/ItemStack;)V",shift=At.Shift.AFTER)
+ },require=2,allow=2)
  private void kuanperion$content(ClientboundContainerSetContentPacket packet,CallbackInfo ci){for(int i=0;i<packet.items().size();i++)KuanperionClient.observeAutomationSlot(packet.containerId(),i,packet.items().get(i));KuanperionClient.observeAutomationContainerCursor(packet);}
  @Inject(method="handleSetPlayerInventory",at=@At("TAIL"))
  private void kuanperion$inventory(ClientboundSetPlayerInventoryPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationInventorySlot(packet.slot(),packet.contents());}

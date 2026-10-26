@@ -35,4 +35,7 @@ shutil.copy2(W/'build/libs/kuanperion-2.1.0.jar',R/'game/mods/kuanperion-2.1.0.j
 shutil.copy2(P/'instances/Hypixel SkyBlock/minecraft/mods/fabric-api-0.161.0+26.2.jar',R/'game/mods/fabric-api.jar')
 (R/'game/options.txt').write_text('maxFps:30\nguiScale:2\nfullscreen:false\nskipMultiplayerWarning:true\n')
 args=[str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/java'),'-XstartOnFirstThread','-Xmx2G','-Dfabric.log.level=info','-Dfabric.gameVersion=26.2','-cp',':'.join(cp),'net.fabricmc.loader.impl.launch.knot.KnotClient','--username','KuanperionUITest','--version','26.2','--gameDir',str(R/'game'),'--assetsDir',str(P/'assets'),'--assetIndex','32','--uuid','00000000000040008000000000000001','--accessToken','offline-ui-test','--userType','legacy','--versionType','release','--width','1100','--height','760']
+# Optional test-only bytecode export, scoped to this isolated directory and listener class.
+if os.environ.get('KUANPERION_SMOKE_EXPORT_RECEIPTS')=='1':
+ args[1:1]=['-Dmixin.debug.export=true','-Dmixin.debug.export.filter=net.minecraft.client.multiplayer.ClientPacketListener']
 (R/'launch-args.json').write_text(json.dumps(args));print('Prepared isolated client,',len(cp),'runtime dependencies; no account or server arguments')
