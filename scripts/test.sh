@@ -110,3 +110,5 @@ python3 "$ROOT/scripts/audit-release.py"
 python3 "$ROOT/scripts/test-pet-boundaries.py"
 
 python3 "$ROOT/scripts/test-supercraft-service-wiring.py"
+
+python3 "$ROOT/scripts/test-pest-bait-boundaries.py"

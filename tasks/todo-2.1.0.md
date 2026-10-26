@@ -40,7 +40,8 @@
 - [x] Explicit opt-in loaded full-trap release -> normal Pest capture -> exact return under one original Farm hold; strict Tab/marker/menu/proof and manual/cursor safety, offline verified.
 - [x] Explicit independently configured trap plot, bounded shared travel budget/server arrival/loading observation, no trap-ID/plot-ID inference, release/capture/original return.
 - [x] Delayed applied server trap-close observation retains the original hold; local/manual/ignored/stale close remains cancellation.
-- [ ] Bait replenishment and current live trap formats.
+- [x] Bait declared direct-item transfer protocol/subtask: explicit protected43 material/count/capacity preflight, fresh pickup/deposit/owned remainder-return/cursor/NoBait receipts, same original Pest/Farm root and exact owned close; no native caller or live layout claim.
+- [ ] Bait actual current native role/capacity/transfer gate, Pest parent navigation/dispatch, settings/UI/acquisition and live trap formats.
 - [ ] Exchange/spray.
 - [ ] Event/crop strategies and due-task scheduling.
 

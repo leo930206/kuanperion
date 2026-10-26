@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Add a declared-layout Pest bait evidence protocol/subtask with explicit material/capacity/protected43 preflight, ordered server cursor/slot/NoBait proofs, owned remainder return and original-root retention; no native refill action/settings or live format claim.
 - Refuse ambiguous duplicate JSON preference keys, malformed UTF8/trailing data and excessive nesting before reading automation consent or limits; invalid originals remain byte-identical and valid unknown fields persist across restarts.
 - Add off-by-default Supercraft exact-batch service/Other UI with external explicit recipe/caps, expiring post-UI manual requests, guarded typed recipe command, native single-attempt proof, original-Farming cleanup and all8-service Jerry/lifecycle cancellation; current live format/quantity-setting support remains unverified and incomplete.
 - Trade 的 Pet Sell 新增唯讀前置：依原生 PET／UUID／petInfo 判斷，不靠名稱猜等級；經驗、綁定／活動、糖果、裝備／外觀、未知欄位及重複身分均有保護。尚無出售／選單／價格確認入口，不視為可用的自動賣寵物功能。
