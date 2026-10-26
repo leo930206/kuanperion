@@ -1,0 +1,23 @@
+package dev.kuan.kuanperion;
+import dev.kuan.kuanperion.automation.*;import java.util.*;import net.minecraft.world.item.*;import net.minecraft.core.component.DataComponents;import net.minecraft.network.chat.Component;import net.minecraft.nbt.CompoundTag;import net.minecraft.world.item.component.CustomData;import net.minecraft.world.SimpleContainer;import net.minecraft.world.inventory.Slot;
+public final class BookGameViewTest {
+ static void check(boolean v,String m){if(!v)throw new AssertionError(m);}
+ static ItemStack book(String uuid){var s=AutomationGameViewTest.fixture(Items.ENCHANTED_BOOK,1);s.set(DataComponents.ITEM_NAME,Component.literal("Enchanted Book"));var a=new CompoundTag();a.putString("id","ENCHANTED_BOOK");a.putString("uuid",uuid);var e=new CompoundTag();e.putInt("harvesting",4);a.put("enchantments",e);s.set(DataComponents.CUSTOM_DATA,CustomData.of(a));return s;}
+ public static void runFixtures(){
+  var items=new ArrayList<ItemStack>(Collections.nCopies(43,ItemStack.EMPTY));var first=book("first");var second=book("second");items.set(9,first);items.set(10,second);var raw=first.get(DataComponents.CUSTOM_DATA).copyTag();var inv=BookGameView.projectInventory(items).orElseThrow();
+  check(inv.inventory().size()==43&&inv.books().size()==2&&inv.books().get(9).enchantments().equals(Map.of("harvesting",4)),"native NBT projected into complete canonical inventory");check(first.get(DataComponents.CUSTOM_DATA).copyTag().equals(raw),"native projection never edits book components");
+  first.setCount(2);check(inv.books().get(9).item().count()==1,"native item mutation does not change frozen baseline");first.setCount(1);items.set(40,book("FIRST"));check(BookGameView.projectInventory(items).isEmpty(),"protected offhand duplicate cannot hide behind main-only book map");items.set(40,ItemStack.EMPTY);
+  items.set(11,AutomationGameViewTest.fixture(Items.ENCHANTED_BOOK,1));check(BookGameView.projectInventory(items).isEmpty(),"unprojectable vanilla/raw book is unknown, never silently omitted");items.set(11,ItemStack.EMPTY);
+  items.set(0,book("hotbar"));check(BookGameView.projectInventory(items).orElseThrow().books().get(0).item().protectedItem(),"native hotbar book remains protected");items.set(0,ItemStack.EMPTY);
+  check(BookGameView.projectInventory(items.subList(0,42)).isEmpty()&&BookGameView.inventory(null).isEmpty()&&BookGameView.anvil(null,1,null).isEmpty(),"incomplete/native no-world reads never infer a menu or inventory");
+  // Declared test layout only, not a live slot default. Real26.2 Slot/container objects bind player aliases.
+  var layout=new BookAnvilView.Layout("Anvil",54,20,24,22,22,22,Set.of("minecraft:air"));var external=new SimpleContainer(54);var player=new SimpleContainer(43);player.setItem(9,book("main"));external.setItem(20,book("input"));var nativeSlots=new ArrayList<Slot>();var facts=new ArrayList<MenuSnapshot.Slot>();
+  for(int i=0;i<90;i++){int rawSlot=i<54?i:i<81?i-54+9:i-81;var slot=new Slot(i<54?external:player,rawSlot,0,0);slot.index=i;nativeSlots.add(slot);facts.add(new MenuSnapshot.Slot(i,AutomationGameView.item(slot.getItem(),i>=81),i>=54));}
+  var menu=new MenuSnapshot(1,7,3,"Anvil",54,facts);var view=BookGameView.projectAnvil(layout,menu,nativeSlots,player).orElseThrow();check(view.book(20).inventorySlot()==-1&&view.book(54).inventorySlot()==9,"native external and canonical player book slots remain distinct");check(view.freeCombine()==null,"read-only view does not invent a free combine permission");
+  var oldEmpty=nativeSlots.get(55);var alias=new Slot(player,11,0,0);alias.index=55;nativeSlots.set(55,alias);check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"even an empty native player alias must retain canonical raw index");nativeSlots.set(55,oldEmpty);
+  var oldExternal=nativeSlots.get(5);var externalAlias=new Slot(external,6,0,0);externalAlias.index=5;nativeSlots.set(5,externalAlias);check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"empty external native alias is not an independent role");nativeSlots.set(5,oldExternal);
+  nativeSlots.get(54).index=55;check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"native menu index alias rejected");nativeSlots.get(54).index=54;
+  player.setItem(9,book("changed"));check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"changed native stack cannot borrow earlier menu snapshot");
+  System.out.println("BookGameViewTest: PASS (actual26.2 book NBT/slots, complete43/protected aliases, malformed/native drift denial, declared-layout projection only; no GUI mutation/live layout claim)");
+ }
+}

@@ -25,6 +25,7 @@
 - [ ] Auto Sell Bazaar path; validate current live NPC/Bazaar formats before release.
 - [x] Book Combine exact preflight: authorized equal-level/single-enchantment pairs, protected identity and preserved result metadata; native26.2 NBT fixtures (no anvil actions yet).
 - [x] Book Combine declared-layout protocol: ordered server-acknowledged inputs, fresh exact preview + explicit zero cost, authoritative result/recovery deltas and owned-menu cleanup; synthetic fixtures only, no runtime caller.
+- [x] Book Combine native read-only complete43 immutable inventory/book projection and declared-layout anvil Slot binding, canonical/protected alias/full-equipment drift/duplicate identity/malformed native metadata validation; no default live layout, action or runtime caller.
 - [ ] Book Combine current native anvil layout/adapter, settings/service/UI, cancellation recovery and live format validation.
 - [x] Pet Sell read-only preflight/native26.2 metadata projection: exact explicit type+rarity/XP/UUID caps, nested soulbound/active/transfer/attachment/candy/unknown-data protection, complete43 immutable inventory and duplicate identity veto. Anonymous public-item schema sampled with only redacted field facts retained; no account/profile query or runtime auction endpoint.
 - [ ] Pet Sell current George offer/price/transfer/confirmation/recovery/server receipts, settings/service/UI and live validation; eligibility alone grants no disposal authority.

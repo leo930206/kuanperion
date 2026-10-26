@@ -88,6 +88,7 @@ public final class AutomationGameViewTest {
   AutomationComposterViewTest.runFixtures();
   AutomationVisitorViewTest.runFixtures();
   PetGameViewTest.runFixtures();
+  BookGameViewTest.runFixtures();
   var anchor=new dev.kuan.kuanperion.automation.pest.PestTask.Anchor(new dev.kuan.kuanperion.automation.pest.PestTargets.Point(.5,70.25,-.5),12,-5,3,new dev.kuan.kuanperion.automation.ItemSnapshot("TOOL","minecraft:diamond_hoe","uuid","","meta",1,List.of(),true),true);
   var converted=PestFlightController.flightAnchor(anchor);check(converted.position().equals(anchor.position())&&converted.item()==anchor.item()&&converted.slot()==anchor.slot()&&converted.yaw()==anchor.yaw()&&converted.pitch()==anchor.pitch()&&converted.flying()==anchor.flying(),"real Pest facade preserves every return anchor field");
   for(var motion:dev.kuan.kuanperion.automation.flight.FlightMotion.values())check(PestFlightController.pestMotion(motion).name().equals(motion.name()),"real Pest facade maps every motion exactly");
