@@ -74,7 +74,8 @@
 - [x] Jerry stop applies to all eight existing new services including Supercraft pending requests, standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
 - [ ] Extend global-stop/priority matrix to future Pet Sell/Book Combine and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
-- [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
+- [x] Shared session observation faults: null/throwing context/menu/transition reads revoke only original root/hold; callback owner/contract changes (including same-object rebinding) cannot cancel newer work or install old menu bindings. Pause callbacks cannot return or cancel a newer owner's handle; stop-callback failures remain visible.
+- [ ] Remaining full lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix and live validation.
 - [x] Pest/Greenhouse/Composter/Visitor terminal cleanup now precedes successful original Farming release; failed release/disposal/context/expiry stops first, then an exact one-use same-level/no-new-root physical-input token reconciles legacy key clearing. Actual finish/native bodies plus full Visitor failure path tested; other release gates remain open.
 - [ ] Audit own-settings GUI coexistence with claimed server menus; never silently replace the user's settings screen or claim uninterrupted operation without proof.
 - [x] Current source/production archive static regression audit: fixed anonymous official GETs plus explicit user-configured outbound webhook; no upstream runtime class/client, agent/test/private-path payload or unapproved bundled dependency. Five rendering JAR hashes pinned, GPL/source notices preserved, in-memory negative mutations tested. This is not a network sandbox or a complete information-flow/security proof; reruns on every build.

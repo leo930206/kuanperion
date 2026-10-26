@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 public final class AutomationSession {
  public record Handle(AutomationCoordinator.Lease lease,FarmingHandoff.Token hold,long generation){}
  private final AutomationCoordinator coordinator;private final Supplier<AutomationContext> observe;private final Runnable pauseFarm,safeStopFarm;
- private final FarmingHandoff farm=new FarmingHandoff();private long generation=1;private Handle active;private MenuContract expectedMenu;private Supplier<MenuSnapshot> menus;private int claimedContainer=-1;
+ private final FarmingHandoff farm=new FarmingHandoff();private long generation=1;private Handle active;private MenuContract expectedMenu;private Supplier<MenuSnapshot> menus;private int claimedContainer=-1;private long menuRevision;
  private record Transition(MenuSnapshot origin,MenuContract from,MenuContract next,long started,long timeout){}
  private Transition transition;
  public AutomationSession(AutomationCoordinator coordinator,Supplier<AutomationContext> observe,Runnable pauseFarm,Runnable safeStopFarm){this.coordinator=coordinator;this.observe=observe;this.pauseFarm=pauseFarm;this.safeStopFarm=safeStopFarm;}
@@ -15,56 +15,65 @@ public final class AutomationSession {
  public Handle begin(AutomationFeature feature,long now,long lifetime){
   if(active!=null||feature==AutomationFeature.STASH)return null;
   var context=forFeature(observe.get(),feature);var lease=coordinator.tryAcquire(feature,context,now,lifetime);if(lease==null)return null;
-  var hold=farm.acquire(context.worldId(),generation,context.farmingActive());active=new Handle(lease,hold,generation);
-  if(hold!=null)try{pauseFarm.run();}catch(RuntimeException failure){finish(active,false,now);return null;}
-  return active;
+  var hold=farm.acquire(context.worldId(),generation,context.farmingActive());var created=new Handle(lease,hold,generation);active=created;
+  if(hold!=null)try{pauseFarm.run();}catch(RuntimeException failure){finish(created,false,now);return null;}
+  return isCurrent(created)?created:null;
  }
  public void cancel(long now){finish(active,false,now);}
- public void clearExpectedMenu(Handle handle){if(!isCurrent(handle))return;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;}
+ public void clearExpectedMenu(Handle handle){if(!isCurrent(handle))return;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;menuRevision++;}
  public void expectMenu(Handle handle,MenuContract contract,Supplier<MenuSnapshot> menus){
-  if(handle==null||!handle.equals(active))throw new IllegalStateException("Not current task");this.expectedMenu=contract;this.menus=menus;claimedContainer=-1;transition=null;
+  if(handle==null||!handle.equals(active))throw new IllegalStateException("Not current task");this.expectedMenu=contract;this.menus=menus;claimedContainer=-1;transition=null;menuRevision++;
  }
  /** Register before the guarded native click; permits only the old container or exact next contract. */
  public boolean transitionMenu(Handle handle,MenuSnapshot origin,MenuContract from,MenuContract next,long now,long timeout){
-  if(!isCurrent(handle)||transition!=null||from==null||next==null||!java.util.Collections.disjoint(from.titles(),next.titles())||timeout<=0||timeout>10_000_000_000L||menus==null||!from.equals(expectedMenu)||!from.matches(origin)||origin.worldId()!=handle.lease().worldId()||claimedContainer>=0&&claimedContainer!=origin.containerId()||!origin.equals(menus.get()))return false;
-  transition=new Transition(origin,from,next,now,timeout);return true;
+  if(!isCurrent(handle)||transition!=null||from==null||next==null||!java.util.Collections.disjoint(from.titles(),next.titles())||timeout<=0||timeout>10_000_000_000L||menus==null||!from.equals(expectedMenu)||!from.matches(origin)||origin.worldId()!=handle.lease().worldId()||claimedContainer>=0&&claimedContainer!=origin.containerId())return false;
+  var reader=menus;var contract=expectedMenu;long binding=menuRevision;var current=observeMenu(handle,reader,now);
+  if(!isCurrent(handle)||menuRevision!=binding||transition!=null||menus!=reader||expectedMenu!=contract||!origin.equals(current))return false;
+  transition=new Transition(origin,from,next,now,timeout);menuRevision++;return true;
  }
+ /** A failed/stale observation may revoke only the root that requested it, not a newer reentrant owner/binding. */
  public void poll(long now){
-  if(active==null)return;var context=observe.get();
-  if(!coordinator.isOwner(active.lease(),context,now)){finish(active,false,now);return;}
-  if(transition!=null){
-   long elapsed=now-transition.started();var menu=menus.get();
-   if(elapsed<0||elapsed>=transition.timeout()){finish(active,false,now);return;}
-   if(transition.next().matches(menu)&&menu.worldId()==context.worldId()){
-    expectedMenu=transition.next();claimedContainer=menu.containerId();transition=null;return;
-   }
-   if(menu==null){if(context.blockers().contains(AutomationContext.Blocker.MENU))finish(active,false,now);return;}
-   var origin=transition.origin();
-   if(!transition.from().matches(menu)||menu.worldId()!=origin.worldId()||menu.containerId()!=origin.containerId())finish(active,false,now);
-   return;
+  var handle=active;if(handle==null)return;AutomationContext context;
+  try{context=java.util.Objects.requireNonNull(observe.get());}catch(RuntimeException unavailable){finish(handle,false,now);return;}
+  if(!isCurrent(handle))return;
+  if(!coordinator.isOwner(handle.lease(),context,now)){finish(handle,false,now);return;}
+  var flow=transition;var reader=menus;var contract=expectedMenu;long binding=menuRevision;
+  if(flow!=null){
+   long elapsed=now-flow.started();if(elapsed<0||elapsed>=flow.timeout()){finish(handle,false,now);return;}
+   var menu=observeMenu(handle,reader,now);
+   if(!isCurrent(handle)||menuRevision!=binding||transition!=flow||menus!=reader||expectedMenu!=contract)return;
+   if(flow.next().matches(menu)&&menu.worldId()==context.worldId()){expectedMenu=flow.next();claimedContainer=menu.containerId();transition=null;menuRevision++;return;}
+   if(menu==null){if(context.blockers().contains(AutomationContext.Blocker.MENU))finish(handle,false,now);return;}
+   var origin=flow.origin();if(!flow.from().matches(menu)||menu.worldId()!=origin.worldId()||menu.containerId()!=origin.containerId())finish(handle,false,now);return;
   }
   if(context.blockers().contains(AutomationContext.Blocker.MENU)||claimedContainer>=0){
-   var menu=menus==null?null:menus.get();
-   if(expectedMenu==null||!expectedMenu.matches(menu)||menu.worldId()!=context.worldId()||claimedContainer>=0&&claimedContainer!=menu.containerId()){finish(active,false,now);return;}
-   claimedContainer=menu.containerId();
+   var menu=observeMenu(handle,reader,now);
+   if(!isCurrent(handle)||menuRevision!=binding||transition!=flow||menus!=reader||expectedMenu!=contract)return;
+   if(contract==null||!contract.matches(menu)||menu.worldId()!=context.worldId()||claimedContainer>=0&&claimedContainer!=menu.containerId()){finish(handle,false,now);return;}
+   if(claimedContainer!=menu.containerId()){claimedContainer=menu.containerId();menuRevision++;}
   }
+ }
+ private MenuSnapshot observeMenu(Handle handle,Supplier<MenuSnapshot> reader,long now){
+  try{return reader==null?null:reader.get();}catch(RuntimeException unavailable){finish(handle,false,now);return null;}
  }
  public boolean finish(Handle handle,boolean success,long now){
   if(handle==null||!handle.equals(active))return false;AutomationContext context;
   try{context=java.util.Objects.requireNonNull(observe.get());}catch(RuntimeException unavailable){
+   if(!isCurrent(handle))return false;
    // Same root/generation only: an unavailable native context cannot leave an invisible Farming hold or lease alive.
-   active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;coordinator.release(handle.lease());farm.invalidate();
+   active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;menuRevision++;coordinator.release(handle.lease());farm.invalidate();
    if(handle.hold()!=null&&handle.generation()==generation)safeStopFarm.run();return false;
   }
+  if(!isCurrent(handle))return false;
   boolean owns=coordinator.isOwner(handle.lease(),context,now);
-  active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;coordinator.release(handle.lease());
+  active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;menuRevision++;coordinator.release(handle.lease());
   boolean resume=handle.hold()==null||farm.finish(handle.hold(),context.worldId(),generation,context.farmingActive());
   boolean completed=success&&owns&&resume;
   if(!completed&&handle.hold()!=null&&handle.generation()==generation&&context.farmingActive())safeStopFarm.run();
   return completed;
  }
  /** Called by legacy stop/new-start, Mining, recovery, Jerry stop and world invalidation. No callback recursion. */
- public void invalidate(){if(active!=null)coordinator.release(active.lease());active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;farm.invalidate();generation++;}
+ public void invalidate(){if(active!=null)coordinator.release(active.lease());active=null;expectedMenu=null;menus=null;claimedContainer=-1;transition=null;menuRevision++;farm.invalidate();generation++;}
  public static AutomationContext forFeature(AutomationContext context,AutomationFeature feature){
   if(feature!=AutomationFeature.AUTO_SELL&&feature!=AutomationFeature.JUNK&&feature!=AutomationFeature.PET_SELL&&feature!=AutomationFeature.BOOK_COMBINE)return context;
   var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);blockers.addAll(context.blockers());blockers.remove(AutomationContext.Blocker.INVENTORY_FULL);
