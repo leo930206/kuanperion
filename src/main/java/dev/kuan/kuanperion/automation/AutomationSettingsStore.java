@@ -20,7 +20,8 @@ public final class AutomationSettingsStore {
   root=new JsonObject();root.addProperty("schemaVersion",SCHEMA);writable=true;
   try{
    fingerprint=readBytes();if(fingerprint==null)return;
-   var parsed=JsonParser.parseString(new String(fingerprint,StandardCharsets.UTF_8));
+   var text=StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(fingerprint)).toString();
+   var reader=new com.google.gson.stream.JsonReader(new java.io.StringReader(text));reader.setStrictness(Strictness.STRICT);var parsed=readJson(reader,0,new int[]{0});if(reader.peek()!=com.google.gson.stream.JsonToken.END_DOCUMENT)throw new IllegalArgumentException("Trailing settings data");
    if(!parsed.isJsonObject())throw new IllegalArgumentException("Not an object");
    var candidate=parsed.getAsJsonObject();var version=candidate.get("schemaVersion");
    if(version==null||!version.isJsonPrimitive()||!version.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Missing schema");
@@ -29,6 +30,15 @@ public final class AutomationSettingsStore {
    for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse","composter","visitor","supercraft"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
    root=candidate;
   }catch(IOException|RuntimeException invalid){writable=false;issue="自動化設定無法讀取，原檔保留且自動化停用";}
+ }
+ /** Reject ambiguous consent before Gson can collapse duplicate names into last-wins values. Unknown valid data remains intact. */
+ private static JsonElement readJson(com.google.gson.stream.JsonReader reader,int depth,int[] nodes)throws IOException{
+  if(depth>32||++nodes[0]>32768)throw new IllegalArgumentException("Settings nesting/entry bound");
+  return switch(reader.peek()){
+   case BEGIN_OBJECT->{var object=new JsonObject();reader.beginObject();while(reader.hasNext()){String key=reader.nextName();if(object.has(key))throw new IllegalArgumentException("Duplicate settings field");object.add(key,readJson(reader,depth+1,nodes));}reader.endObject();yield object;}
+   case BEGIN_ARRAY->{var array=new JsonArray();reader.beginArray();while(reader.hasNext())array.add(readJson(reader,depth+1,nodes));reader.endArray();yield array;}
+   case STRING->new JsonPrimitive(reader.nextString());case NUMBER->new JsonPrimitive(new java.math.BigDecimal(reader.nextString()));case BOOLEAN->new JsonPrimitive(reader.nextBoolean());case NULL->{reader.nextNull();yield JsonNull.INSTANCE;}default->throw new IllegalArgumentException("Invalid settings JSON");
+  };
  }
  private byte[] readBytes()throws IOException {
   if(!Files.exists(path,LinkOption.NOFOLLOW_LINKS))return null;

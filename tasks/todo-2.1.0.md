@@ -10,7 +10,7 @@
 ## 1 — safe runtime
 - [x] Pure feature IDs, capability/risk/resource ownership contract + tests.
 - [x] World/session/focus/Mining/recovery/menu guards; bounded lease and stale-token rejection.
-- [x] Atomic schema-aware preferences: defaults off, unknown keys retained, corrupt/future files not overwritten.
+- [x] Atomic schema-aware preferences: defaults off, unknown keys retained, corrupt/future files not overwritten; strict UTF8/JSON, duplicate fields at every depth, trailing data and excessive nesting fail closed without changing original bytes.
 - [x] Stash vertical slice: system signals, bounded attempts/deadline, cancellation, guarded actual command and local feedback (offline contracts/UI verified; live server results not yet verified).
 - [x] Trade navigation/Stash UI and real settings persistence, no no-op toggles for unfinished workflows.
 - [x] Server-applied cursor receipt path: exact active container/raw-applied state, bounded epoch/sequence/freshness, no local-prediction proof or cursor mutation; next item-transfer callers still pending.
