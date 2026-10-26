@@ -11,7 +11,7 @@ public final class BookCombineTask {
  }
  public enum State{IDLE,OPENING,WAIT_MENU,WAIT_FIRST,SECOND_READY,WAIT_SECOND,COMBINE_READY,WAIT_COMBINE,COLLECT_READY,WAIT_RESULT,RECOVERING,WAIT_RECOVERY,COMPLETE,CANCELLED,TIMED_OUT,FAILED}
  public interface Port{
-  AutomationContext context();MenuSnapshot menu();BookAnvilView view();Map<Integer,BookCombinePlanner.Book> inventoryBooks();
+  AutomationContext context();MenuSnapshot menu();BookAnvilView view();BookInventorySnapshot inventorySnapshot();
   boolean open(AutomationSession.Handle handle);
   GuardedMenuAction.Result transfer(AutomationSession.Handle handle,MenuContract.Ticket ticket,InventoryProtection rules,long now);
   GuardedMenuAction.Result combine(AutomationSession.Handle handle,MenuContract.Ticket ticket,long now);
@@ -21,71 +21,96 @@ public final class BookCombineTask {
  }
  private final AutomationSession session;private final InventoryReceipts receipts;private final Port port;private final BookAnvilView.Layout layout;
  private State state=State.IDLE,recoveryOutcome;private Policy policy;private BookCombinePlanner planner;private BookCombinePlanner.Plan plan;private AutomationSession.Handle handle;
- private long started,lastAction,recoveryStarted,world;private int container=-1,pendingSource,resultSlot,recoverSlot;private boolean inputPending,combineIssued,mayHoldBooks;
- private InventoryReceipts.Stamp stamp;private ItemSnapshot pendingItem;private Map<Integer,BookCombinePlanner.Book> baseline=Map.of();private final Map<Integer,BookCombinePlanner.Book> knownInputs=new LinkedHashMap<>();private BookCombinePlanner.Book recovering;
+ private long started,lastAction,recoveryStarted,world;private int container=-1,pendingSource,pendingRaw,resultSlot,recoverSlot;private boolean inputPending,combineIssued,mayHoldBooks;
+ private InventoryReceipts.Stamp stamp;private ItemSnapshot pendingItem;private BookInventorySnapshot expectedInventory;private final Map<Integer,BookCombinePlanner.Book> knownInputs=new LinkedHashMap<>();private BookCombinePlanner.Book recovering;
  public BookCombineTask(AutomationSession session,InventoryReceipts receipts,Port port,BookAnvilView.Layout layout){this.session=session;this.receipts=receipts;this.port=port;this.layout=layout;}
  public State state(){return state;}public boolean manualRecoveryRequired(){return mayHoldBooks;}public boolean active(){return state!=State.IDLE&&state!=State.COMPLETE&&state!=State.CANCELLED&&state!=State.TIMED_OUT&&state!=State.FAILED;}
  public boolean request(Policy policy,boolean manual,long now){
-  if(policy==null)return false;var context=port.context();if(active()||!manual&&(mayHoldBooks||policy.onlyWhileFarming()&&!context.farmingActive()))return false;
-  var planner=new BookCombinePlanner(policy.ceilings(),policy.protectedUuids());Optional<BookCombinePlanner.Plan> selected;try{selected=planner.select(new ArrayList<>(inventory().values()));}catch(RuntimeException invalid){return false;}if(selected.isEmpty())return false;
+  if(active()||policy==null)return false;AutomationContext context;BookInventorySnapshot initial;
+  var planner=new BookCombinePlanner(policy.ceilings(),policy.protectedUuids());Optional<BookCombinePlanner.Plan> selected;
+  try{context=Objects.requireNonNull(port.context());if(!manual&&(mayHoldBooks||policy.onlyWhileFarming()&&!context.farmingActive()))return false;initial=inventory();selected=planner.select(new ArrayList<>(initial.books().values()));}catch(RuntimeException unavailable){return false;}
+  if(selected.isEmpty())return false;
   var next=session.begin(AutomationFeature.BOOK_COMBINE,now,(policy.timeoutSeconds()+10)*1_000_000_000L);if(next==null)return false;
-  this.policy=policy;this.planner=planner;plan=selected.get();handle=next;world=context.worldId();started=lastAction=now;container=-1;knownInputs.clear();inputPending=combineIssued=mayHoldBooks=false;baseline=Map.of();state=State.OPENING;
+  this.policy=policy;this.planner=planner;plan=selected.get();handle=next;world=context.worldId();started=lastAction=now;container=-1;knownInputs.clear();inputPending=combineIssued=mayHoldBooks=false;expectedInventory=initial;state=State.OPENING;
   session.expectMenu(handle,layout.contract(),port::menu);return true;
  }
- public void tick(long now){if(!active())return;try{runTick(now);}catch(RuntimeException invalid){finish(State.FAILED,now,false);}}
+ public void tick(long now){if(!active())return;try{runTick(now);}catch(RuntimeException invalid){if(!active())throw invalid;finish(State.FAILED,now,false);}}
  private void runTick(long now){
   if(!active())return;var context=port.context();
   if(!session.isCurrent(handle)||context.worldId()!=world||context.hardBlocked()){finish(State.CANCELLED,now,false);return;}
+  var current=inventory();if(!allowedInventory(current)){finish(State.FAILED,now,false);return;}
   boolean recoveringState=state==State.RECOVERING||state==State.WAIT_RECOVERY;
   if(recoveringState){if(now-recoveryStarted<0||now-recoveryStarted>=10_000_000_000L){finish(recoveryOutcome,now,false);return;}}
   else if(now-started<0||now-started>=policy.timeoutSeconds()*1_000_000_000L){abort(State.TIMED_OUT,now);return;}
   if(context.blockers().contains(AutomationContext.Blocker.FOCUS))return;
   if(state==State.OPENING){if(!AutomationSession.forFeature(context,AutomationFeature.BOOK_COMBINE).canIssueCommand())return;boolean sent;try{sent=port.open(handle);}catch(RuntimeException failure){sent=false;}if(!sent){finish(State.FAILED,now,false);return;}state=State.WAIT_MENU;lastAction=now;return;}
   var view=observe();if(view==null){if(container>=0)finish(State.FAILED,now,false);return;}
-  if(container<0)container=view.menu().containerId();if(view.menu().containerId()!=container){finish(State.FAILED,now,false);return;}
+  if(container<0)container=view.menu().containerId();if(view.menu().containerId()!=container||!playerViewMatches(view,current)){finish(State.FAILED,now,false);return;}
   if(state==State.WAIT_FIRST||state==State.WAIT_SECOND){
-   if(!receipts.confirmsDecrease(stamp,container,pendingSource,pendingItem,1))return;
+   if(!receipts.confirmsDecrease(stamp,container,pendingSource,pendingItem,1)||!receipts.confirmsDecrease(stamp,0,pendingRaw,pendingItem,1)||!Objects.equals(receipts.after(stamp,0,pendingRaw),current.inventory().get(pendingRaw)))return;
    var target=state==State.WAIT_FIRST?layout.firstInput():layout.secondInput();var expected=state==State.WAIT_FIRST?plan.first():plan.second();
    if(!acknowledgedBook(stamp,target,view)||!sameBook(expected,view.book(target)))return;
-   inputPending=false;knownInputs.put(target,view.book(target));state=state==State.WAIT_FIRST?State.SECOND_READY:State.COMBINE_READY;lastAction=now;return;
+   expectedInventory=current;inputPending=false;knownInputs.put(target,view.book(target));state=state==State.WAIT_FIRST?State.SECOND_READY:State.COMBINE_READY;lastAction=now;return;
   }
   if(state==State.WAIT_COMBINE){
    if(!cleared(stamp,layout.firstInput(),view)||!cleared(stamp,layout.secondInput(),view))return;
-   if(resultArrived(stamp)){mayHoldBooks=false;finish(State.COMPLETE,now,true);return;}
+   if(resultArrived(stamp,current)){mayHoldBooks=false;finish(State.COMPLETE,now,true);return;}
    var result=view.book(layout.result());var acknowledged=receipts.after(stamp,container,layout.result());
    if(expectedResult(result)&&acknowledged!=null&&acknowledged.equals(result.item())){resultSlot=layout.result();state=State.COLLECT_READY;lastAction=now;}return;
   }
-  if(state==State.WAIT_RESULT){if(cleared(stamp,resultSlot,view)&&resultArrived(stamp)){mayHoldBooks=false;finish(State.COMPLETE,now,true);}return;}
+  if(state==State.WAIT_RESULT){if(cleared(stamp,resultSlot,view)&&resultArrived(stamp,current)){mayHoldBooks=false;finish(State.COMPLETE,now,true);}return;}
   if(state==State.WAIT_RECOVERY){
-   if(cleared(stamp,recoverSlot,view)&&arrivedInput(stamp,recovering)){knownInputs.remove(recoverSlot);if(knownInputs.isEmpty()){mayHoldBooks=false;finish(recoveryOutcome,now,true);}else{state=State.RECOVERING;lastAction=now;}}
+   if(cleared(stamp,recoverSlot,view)&&arrivedInput(stamp,recovering,current)){expectedInventory=current;knownInputs.remove(recoverSlot);if(knownInputs.isEmpty()){mayHoldBooks=false;finish(recoveryOutcome,now,true);}else{state=State.RECOVERING;lastAction=now;}}
    return;
   }
   if(now-lastAction<policy.delayMillis()*1_000_000L)return;
   if(state==State.RECOVERING){
    if(knownInputs.isEmpty()){mayHoldBooks=false;finish(recoveryOutcome,now,true);return;}
    var e=knownInputs.entrySet().iterator().next();recoverSlot=e.getKey();recovering=e.getValue();if(!sameBook(recovering,view.book(recoverSlot))){finish(recoveryOutcome,now,false);return;}
-   baseline=inventory();stamp=receipts.stamp(world);var ticket=layout.contract().plan(view.menu(),recoverSlot,MenuContract.Click.QUICK_MOVE);
+   stamp=receipts.stamp(world);var ticket=layout.contract().plan(view.menu(),recoverSlot,MenuContract.Click.QUICK_MOVE);
    if(action(()->port.reclaim(handle,ticket,policy.protection(),now))!=GuardedMenuAction.Result.SENT){finish(recoveryOutcome,now,false);return;}state=State.WAIT_RECOVERY;lastAction=now;return;
   }
   if(state==State.WAIT_MENU||state==State.SECOND_READY){
    boolean first=state==State.WAIT_MENU;var wanted=first?plan.first():plan.second();
-   if(first&&(!view.emptyInput(layout.firstInput())||!view.emptyInput(layout.secondInput())||!planner.stillMatches(plan,new ArrayList<>(inventory().values())))||!first&&!sameBook(plan.first(),view.book(layout.firstInput()))){abort(State.FAILED,now);return;}
+   if(first&&(!view.emptyInput(layout.firstInput())||!view.emptyInput(layout.secondInput())||!planner.stillMatches(plan,new ArrayList<>(current.books().values())))||!first&&!sameBook(plan.first(),view.book(layout.firstInput()))){abort(State.FAILED,now);return;}
    var ticket=view.inputTicket(wanted);if(ticket==null||!policy.protection().permits(ticket.observed().item(ticket.slot()))){abort(State.FAILED,now);return;}
-   pendingSource=ticket.slot();pendingItem=ticket.observed().item(ticket.slot());stamp=receipts.stamp(world);inputPending=mayHoldBooks=true;
+   pendingRaw=wanted.inventorySlot();pendingSource=ticket.slot();pendingItem=ticket.observed().item(ticket.slot());stamp=receipts.stamp(world);inputPending=mayHoldBooks=true;
    var sent=action(()->port.transfer(handle,ticket,policy.protection(),now));if(sent!=GuardedMenuAction.Result.SENT){finish(State.FAILED,now,false);return;}state=first?State.WAIT_FIRST:State.WAIT_SECOND;lastAction=now;return;
   }
   if(state==State.COMBINE_READY){
    if(!acknowledgedBook(stamp,layout.preview(),view)||!acknowledgedSlot(stamp,layout.combine(),view))return;
    var ticket=view.freeCombine();if(!sameBook(plan.first(),view.book(layout.firstInput()))||!sameBook(plan.second(),view.book(layout.secondInput()))||!expectedResult(view.book(layout.preview()))||ticket==null){abort(State.FAILED,now);return;}
-   baseline=inventory();stamp=receipts.stamp(world);combineIssued=true;
+   stamp=receipts.stamp(world);combineIssued=true;
    if(action(()->port.combine(handle,ticket,now))!=GuardedMenuAction.Result.SENT){finish(State.FAILED,now,false);return;}state=State.WAIT_COMBINE;lastAction=now;return;
   }
   if(state==State.COLLECT_READY){
-   if(!expectedResult(view.book(resultSlot))){finish(State.FAILED,now,false);return;}var ticket=layout.contract().plan(view.menu(),resultSlot,MenuContract.Click.QUICK_MOVE);stamp=receipts.stamp(world);
+   if(!expectedInventory.stillMatches(current.inventory())||!expectedResult(view.book(resultSlot))){finish(State.FAILED,now,false);return;}var ticket=layout.contract().plan(view.menu(),resultSlot,MenuContract.Click.QUICK_MOVE);stamp=receipts.stamp(world);
    if(action(()->port.collect(handle,ticket,now))!=GuardedMenuAction.Result.SENT){finish(State.FAILED,now,false);return;}state=State.WAIT_RESULT;lastAction=now;
   }
  }
- private Map<Integer,BookCombinePlanner.Book> inventory(){var items=Map.copyOf(port.inventoryBooks());if(items.size()>36||items.entrySet().stream().anyMatch(e->e.getKey()<0||e.getKey()>35||e.getValue().inventorySlot()!=e.getKey()||e.getValue().item().count()<1||e.getValue().item().count()>64||e.getValue().compatibility().length()>16384))throw new IllegalArgumentException("Invalid canonical book inventory");return items;}
+ private BookInventorySnapshot inventory(){var snapshot=Objects.requireNonNull(port.inventorySnapshot());if(snapshot.books().values().stream().anyMatch(b->b.compatibility().length()>16384))throw new IllegalArgumentException("Invalid canonical book inventory");return snapshot;}
+ private boolean playerViewMatches(BookAnvilView view,BookInventorySnapshot current){for(int raw=0;raw<36;raw++){int slot=raw<9?layout.size()+27+raw:layout.size()+raw-9;if(!Objects.equals(view.menu().item(slot),current.inventory().get(raw)))return false;}return true;}
+ private boolean allowedInventory(BookInventorySnapshot current){
+  if(state==State.WAIT_FIRST||state==State.WAIT_SECOND){
+   for(int raw=0;raw<43;raw++)if(raw!=pendingRaw&&!Objects.equals(expectedInventory.inventory().get(raw),current.inventory().get(raw)))return false;
+   var source=current.inventory().get(pendingRaw);return source.equals(pendingItem)||source.equals(emptyItem());
+  }
+  if(state==State.WAIT_COMBINE||state==State.COLLECT_READY||state==State.WAIT_RESULT)return gainSlot(current,this::resultStack)!=-2;
+  if(state==State.WAIT_RECOVERY)return gainSlot(current,b->sameBook(recovering,unit(b)))!=-2;
+  return expectedInventory.stillMatches(current.inventory());
+ }
+ private static ItemSnapshot emptyItem(){return new ItemSnapshot("","minecraft:air","","","",0,List.of(),true);}
+ /** -1: unchanged; -2: invalid delta; otherwise the sole permitted main-inventory gain slot. */
+ private int gainSlot(BookInventorySnapshot current,java.util.function.Predicate<BookCombinePlanner.Book> matches){
+  int changed=-1;
+  for(int raw=0;raw<43;raw++){
+   var old=expectedInventory.inventory().get(raw);var next=current.inventory().get(raw);if(old.equals(next))continue;
+   if(changed!=-1||raw<9||raw>=36)return -2;var book=current.books().get(raw);var before=expectedInventory.books().get(raw);
+   if(book==null||!matches.test(book)||next.count()!=old.count()+1||old.count()>0&&(before==null||!matches.test(before)||!old.fingerprint().equals(next.fingerprint())||!old.uuid().equals(next.uuid())))return -2;
+   changed=raw;
+  }return changed;
+ }
+
  private BookAnvilView observe(){try{var v=port.view();return v!=null&&v.layout().equals(layout)&&v.menu().worldId()==world&&v.menu().equals(port.menu())?v:null;}catch(RuntimeException invalid){return null;}}
  private boolean cleared(InventoryReceipts.Stamp since,int slot,BookAnvilView view){var fresh=receipts.after(since,container,slot);if(fresh==null||!fresh.equals(view.menu().item(slot))||view.book(slot)!=null)return false;return fresh.count()==0||!fresh.identified()&&(layout.emptyMaterials().contains(fresh.minecraftId())||slot==layout.combine()&&fresh.minecraftId().equals("minecraft:anvil")&&fresh.name().equals("Combine Items"));}
  private static BookCombinePlanner.Book unit(BookCombinePlanner.Book b){if(b==null||b.item().count()<1||b.item().count()>64)return null;var i=b.item();return new BookCombinePlanner.Book(b.inventorySlot(),new ItemSnapshot(i.skyblockId(),i.minecraftId(),i.uuid(),i.name(),i.fingerprint(),1,i.lore(),i.protectedItem()),b.enchantments(),b.compatibility());}
@@ -96,19 +121,11 @@ public final class BookCombineTask {
   var fresh=receipts.after(since,container,slot);return fresh!=null&&fresh.equals(view.menu().item(slot));
  }
  private boolean acknowledgedBook(InventoryReceipts.Stamp since,int slot,BookAnvilView view){return view.book(slot)!=null&&acknowledgedSlot(since,slot,view);}
- /** Only changed, server-observed destination slots contribute; predicted slots never borrow another receipt. */
- private boolean inventoryGain(InventoryReceipts.Stamp since,java.util.function.Predicate<BookCombinePlanner.Book> matches){
-  var current=inventory();long delta=0;
-  for(int raw=0;raw<36;raw++){
-   var fresh=receipts.after(since,0,raw<9?36+raw:raw);if(fresh==null)continue;
-   var next=current.get(raw);if(next!=null&&!fresh.equals(next.item()))return false;
-   var old=baseline.get(raw);if(old!=null&&matches.test(old))delta-=old.item().count();
-   if(next!=null&&matches.test(next))delta+=next.item().count();
-  }
-  return delta==1;
- }
- private boolean resultArrived(InventoryReceipts.Stamp since){return inventoryGain(since,this::resultStack);}
- private boolean arrivedInput(InventoryReceipts.Stamp since,BookCombinePlanner.Book wanted){return inventoryGain(since,b->sameBook(wanted,unit(b)));}
+ /** A single exact gain, with every other main/equipment slot unchanged and its own server receipt. */
+ private boolean inventoryGain(InventoryReceipts.Stamp since,BookInventorySnapshot current,java.util.function.Predicate<BookCombinePlanner.Book> matches){int raw=gainSlot(current,matches);return raw>=9&&Objects.equals(receipts.after(since,0,raw),current.inventory().get(raw));}
+ private boolean resultArrived(InventoryReceipts.Stamp since,BookInventorySnapshot current){return inventoryGain(since,current,this::resultStack);}
+ private boolean arrivedInput(InventoryReceipts.Stamp since,BookCombinePlanner.Book wanted,BookInventorySnapshot current){return inventoryGain(since,current,b->sameBook(wanted,unit(b)));}
+
  private static GuardedMenuAction.Result action(java.util.function.Supplier<GuardedMenuAction.Result> action){try{var result=action.get();return result==null?GuardedMenuAction.Result.UNCERTAIN:result;}catch(RuntimeException failure){return GuardedMenuAction.Result.UNCERTAIN;}}
  public void cancel(long now){if(active())abort(State.CANCELLED,now);}
  private void abort(State terminal,long now){
@@ -117,6 +134,6 @@ public final class BookCombineTask {
  }
  private void finish(State terminal,long now,boolean safeClose){
   state=terminal;try{var view=observe();if(safeClose&&session.isCurrent(handle)&&container>=0&&view!=null&&view.menu().containerId()==container){port.closeOwnedMenu(container);if(port.menu()!=null)state=State.FAILED;}}catch(RuntimeException failure){state=State.FAILED;}
-  finally{boolean completed=session.finish(handle,state==State.COMPLETE,now);if(state==State.COMPLETE&&!completed)state=State.FAILED;handle=null;knownInputs.clear();}
+  finally{var done=handle;handle=null;knownInputs.clear();boolean completed=session.finish(done,state==State.COMPLETE,now);if(state==State.COMPLETE&&!completed)state=State.FAILED;}
  }
 }

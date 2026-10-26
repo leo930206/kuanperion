@@ -132,3 +132,4 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.JunkTaskObservationTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.TradeServiceObservationTest
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.BookInventorySnapshotTest
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.BookTaskInventoryGuardsTest
