@@ -26,7 +26,8 @@
 - [x] Book Combine exact preflight: authorized equal-level/single-enchantment pairs, protected identity and preserved result metadata; native26.2 NBT fixtures (no anvil actions yet).
 - [x] Book Combine declared-layout protocol: ordered server-acknowledged inputs, fresh exact preview + explicit zero cost, authoritative result/recovery deltas and owned-menu cleanup; synthetic fixtures only, no runtime caller.
 - [ ] Book Combine current native anvil layout/adapter, settings/service/UI, cancellation recovery and live format validation.
-- [ ] Pet Sell eligibility/confirmation/protection and menu flow.
+- [x] Pet Sell read-only preflight/native26.2 metadata projection: exact explicit type+rarity/XP/UUID caps, nested soulbound/active/transfer/attachment/candy/unknown-data protection, complete43 immutable inventory and duplicate identity veto. Anonymous public-item schema sampled with only redacted field facts retained; no account/profile query or runtime auction endpoint.
+- [ ] Pet Sell current George offer/price/transfer/confirmation/recovery/server receipts, settings/service/UI and live validation; eligibility alone grants no disposal authority.
 - [x] Junk native inventory disposal at an explicitly authorized Garden point: exact allowlist/protection, server receipts, limits/cancellation, per-world reconfirmation, independent settings/UI; offline tests/full38-state runtime verified, live drop not yet validated.
 
 ## 3/4 — Pest
