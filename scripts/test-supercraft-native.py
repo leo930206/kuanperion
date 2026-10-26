@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix='kuanperion-supercraft-boundary-') as tm
  subprocess.run([str(jdk/'javac'),'--release','21','-cp',str(gson),'-d',tmp,*map(str,files),str(p/'SupercraftNativeBoundaryTest.java')],check=True)
  subprocess.run([str(jdk/'java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.SupercraftNativeBoundaryTest'],check=True)
 
-# The adapter is dormant: no unleased caller, startup fetch, generic command or raw native click path.
+# The adapter has exactly one leased service constructor: no unleased caller, startup fetch, generic command or raw native click path.
 request=extract(source,'requestCatalog')
 assert source.count('new HypixelItemCatalogClient()')==1 and 'new HypixelItemCatalogClient()' in request
 for forbidden in ['.sendCommand(','.handleContainerInput(','.setDown(','.setPos(','.setSelectedSlot(','.thenAccept(','.whenComplete(','Thread.sleep','QUICK_MOVE']:
@@ -66,5 +66,8 @@ for forbidden in ['.sendCommand(','.handleContainerInput(','.setDown(','.setPos(
 assert 'for(int slot=0;slot<54;slot++)' in extract(source,'craft')
 assert 'AutomationMenuActions.purchaseClick(' in extract(source,'craft')
 for p in main.rglob('*.java'):
- if p.name!='SupercraftMenuController.java':assert 'new SupercraftMenuController(' not in p.read_text(),p
-print('SupercraftNativeWiringTest: PASS (dormant adapter, single guarded native click and typed recipe callback; demand-only catalog, no startup caller/action or unverified feature toggle)')
+ if p.name not in {'SupercraftMenuController.java','AutomationClientBridge.java'}:assert 'new SupercraftMenuController(' not in p.read_text(),p
+bridge=(main/'AutomationClientBridge.java').read_text()
+assert bridge.count('new SupercraftMenuController(')==1 and 'this::sendSupercraftRecipe' in bridge
+assert 'new SupercraftService(settings,session,receipts,cursors,supercraftMenu,' in bridge
+print('SupercraftNativeWiringTest: PASS (fixed-owner service adapter, single guarded native click and typed recipe callback; demand-only catalog, no startup fetch/action or quantity guessing)')

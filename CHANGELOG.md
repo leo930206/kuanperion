@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0 — 開發中（未發佈）
+- Add off-by-default Supercraft exact-batch service/Other UI with external explicit recipe/caps, expiring post-UI manual requests, guarded typed recipe command, native single-attempt proof, original-Farming cleanup and all8-service Jerry/lifecycle cancellation; current live format/quantity-setting support remains unverified and incomplete.
 - Trade 的 Pet Sell 新增唯讀前置：依原生 PET／UUID／petInfo 判斷，不靠名稱猜等級；經驗、綁定／活動、糖果、裝備／外觀、未知欄位及重複身分均有保護。尚無出售／選單／價格確認入口，不視為可用的自動賣寵物功能。
 - 建置新增來源／成品靜態稽核：鎖定五個繪圖依賴、檢查對外請求邊界及原始客戶端／測試／私人路徑／agent 混入，保留 GPL 來源聲明；未通過就建置失敗。這是回歸守門，不是網路沙箱或完整資安保證。
 - 修正 Pest／Greenhouse／Composter／Visitor 收尾清理失敗卻可能已恢復 Farming 的順序：所有清理成功才續耕；失敗先停止，再以單次、同世界且無新任務的權限還原玩家實際按鍵。讀取環境失敗也會撤銷原 hold，不留下隱藏工作。

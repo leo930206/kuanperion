@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import dev.kuan.kuanperion.automation.supercraft.*;import dev.kuan.kuanperion.automation.flight.FlightAnchor;import dev.kuan.kuanperion.automation.pest.PestTargets;import java.util.*;import java.util.concurrent.CompletableFuture;import java.util.function.Supplier;import java.util.regex.Pattern;import net.minecraft.client.Minecraft;import com.mojang.blaze3d.platform.InputConstants;import org.lwjgl.glfw.GLFW;
-/** Fixed-owner, inventory-only adapter. Not wired to a service/UI; current live schema/quantity gates remain pending. No movement, quantity guessing, purchase, cursor repair or startup fetching. */
+/** Fixed-owner, inventory-only adapter. One explicit matching batch via service/UI; current live compatibility/quantity-setting gates remain pending. No movement, quantity guessing, purchase, cursor repair or startup fetching. */
 public final class SupercraftMenuController implements SupercraftTask.Port {
  @FunctionalInterface public interface RecipeSender{boolean send(AutomationSession.Handle handle,SupercraftPlan.Recipe recipe,long now);}
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final InventoryReceipts receipts;private final RecipeSender sender;

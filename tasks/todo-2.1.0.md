@@ -63,14 +63,15 @@
 - [x] Supercraft read-only exact-batch preflight: explicit output/ingredient/consumption/craft caps, complete protected43-slot inventory and capacity, immutable baseline; recipe data does not authorize a GUI action.
 - [x] Supercraft single-attempt receipt contract: current complete baseline, guarded-result window, exact requested input/output deltas backed by every affected server slot and empty cursor, no replay/prediction/manual/world/clock/timeout success. No native caller or placeholder toggle.
 - [x] Historical official advanced-preview read-only contract: complete exact recipe/output/selected amount/material/source/destination facts, inventory-only allocation, no fixed slots or unknown-cost skipping; current2026 live compatibility remains unverified.
-- [x] Supercraft abstract exact-selected-batch task: one root/catalog/typed recipe/guarded-attempt, strict preview -> server proof -> unchanged original pose/tool and owned close before valid Farming release; standalone native adapter verified below, runtime service/UI still absent.
-- [x] Dormant native Supercraft adapter: fixed root/thread/world, lazy catalog, exact recipe callback, complete fresh server54 + inventory43/grid/stack-limit/source/cost/cursor proof, one guarded attempt/uncertainty, exact owned close and pending-data disposal; no native command/service/UI caller yet.
-- [ ] Supercraft authoritative current recipe/quantity/cost/native menu driver, lifecycle/service/Other UI and live receipt/return validation.
+- [x] Supercraft abstract exact-selected-batch task: one root/catalog/typed recipe/guarded-attempt, strict preview -> server proof -> unchanged original pose/tool and owned close before valid Farming release; standalone native adapter verified below, native service/UI exact-batch caller now wired below.
+- [x] Native Supercraft adapter: fixed root/thread/world, lazy catalog, exact recipe callback, complete fresh server54 + inventory43/grid/stack-limit/source/cost/cursor proof, one guarded attempt/uncertainty, exact owned close and pending-data disposal; single fixed-owner typed recipe/service/Other UI caller now wired below; unknown current format remains refusal.
+- [x] Supercraft exact-selected-batch runtime service/Other UI: strict external recipe/caps, off/unconfigured defaults, one deferred expiring manual request, opt-in interval, real typed recipe/native guarded attempt, complete server receipt/original-hold proof, active/idle/pending cancellation and independent settings. Offline verified only.
+- [ ] Supercraft current live recipe/source/cost formats, actual quantity-setting UI where needed, broader recipe/amount behavior and live receipts/original-pose validation.
 
 ## 7 — release gate
 - [x] Trusted Jerry automatic sethome does not preempt held Farming; original independent stop toggle/message/beam order and subsequent manual-command priority verified with actual composed method bodies and a negative old-route mutation.
-- [x] Jerry stop applies to all seven existing new services including standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
-- [ ] Extend global-stop/priority matrix to future Supercraft/Pet Sell and full due-task handoffs before release.
+- [x] Jerry stop applies to all eight existing new services including Supercraft pending requests, standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.
+- [ ] Extend global-stop/priority matrix to future Pet Sell/Book Combine and full due-task handoffs before release.
 - [ ] All approved modules function, all old UI/gameplay/preferences regressions pass.
 - [ ] Lifecycle/hand-off/manual stop/Mining/Jerry/disconnect/death/error test matrix.
 - [x] Pest/Greenhouse/Composter/Visitor terminal cleanup now precedes successful original Farming release; failed release/disposal/context/expiry stops first, then an exact one-use same-level/no-new-root physical-input token reconciles legacy key clearing. Actual finish/native bodies plus full Visitor failure path tested; other release gates remain open.

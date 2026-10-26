@@ -5,13 +5,14 @@ import subprocess,tempfile
 r=Path(__file__).resolve().parent.parent;m=r/'src/main/java/dev/kuan/kuanperion';s=(m/'AutomationClientBridge.java').read_text();a=s.index(' public void beforeMovementTick(');b=s.index('{',a)+1;depth=1
 while depth:
  depth+=(s[b]=='{')-(s[b]=='}');b+=1
-method=s[a:b]
+method=s[a:b].replace("dev.kuan.kuanperion.ui.MainGUI","OwnMenu")
 java='''package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class MaintenanceInputPriorityTest {
  static class Service {boolean running,owned;int cancelled;boolean active(){return running;}boolean ownsMenu(){return owned;}void cancel(long now){if(running)cancelled++;running=false;}}
  static class Flight {boolean manual;boolean manualInput(){return manual;}}
- Service composter=new Service(),pest=new Service(),greenhouse=new Service(),visitor=new Service();Flight composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
+ Service composter=new Service(),pest=new Service(),greenhouse=new Service(),visitor=new Service(),supercraft=new Service();Flight composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight(),supercraftMenu=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
+ static class OwnMenu{}static class Gui{Object current;Object screen(){return current;}}static class Minecraft{static final Minecraft INSTANCE=new Minecraft();Gui gui=new Gui();static Minecraft getInstance(){return INSTANCE;}}
  METHOD
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  public static void main(String[]args){
@@ -24,6 +25,11 @@ public final class MaintenanceInputPriorityTest {
   h.composterFlight.manual=false;h.greenhouse.running=true;h.beforeMovementTick();check(h.greenhouse.running,"inactive Composter cannot stop existing Greenhouse");h.pest.running=true;h.flight.manual=true;h.beforeMovementTick();check(!h.pest.running&&h.greenhouse.running,"existing Pest-specific manual guard stays isolated");
   h=new MaintenanceInputPriorityTest();h.visitor.running=true;h.beforeMovementTick();check(h.visitor.running,"Visitor running must not cross-cancel or be ignored");h.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU));h.visitor.owned=true;h.beforeMovementTick();check(h.visitor.running,"exact owned Visitor menu allowed");h.visitor.owned=false;h.beforeMovementTick();check(!h.visitor.running,"foreign menu cancels Visitor");
   for(var b:AutomationContext.Blocker.values())if(b!=AutomationContext.Blocker.MENU){h.context=new AutomationContext(1,true,true,Set.of(b));h.visitor.running=true;h.visitor.owned=true;h.beforeMovementTick();check(!h.visitor.running,"Visitor owned menu cannot mask: "+b);}h.context=new AutomationContext(1,true,false,Set.of());h.visitor.running=true;h.beforeMovementTick();check(!h.visitor.running,"Visitor Garden proof mandatory");h.context=new AutomationContext(1,true,true,Set.of());h.visitor.running=true;h.visitorFlight.manual=true;h.beforeMovementTick();check(!h.visitor.running,"Visitor physical input wins before native movement");
+  h=new MaintenanceInputPriorityTest();h.supercraft.running=true;h.beforeMovementTick();check(h.supercraft.running,"inactive flight actors do not cross-cancel Supercraft");
+  h.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU));h.supercraft.owned=true;h.beforeMovementTick();check(h.supercraft.running,"registered recipe menu is not foreign");h.supercraft.owned=false;h.beforeMovementTick();check(!h.supercraft.running,"foreign menu preempts craft");
+  h.context=new AutomationContext(1,true,true,Set.of());h.supercraft.running=true;Minecraft.INSTANCE.gui.current=new OwnMenu();h.beforeMovementTick();check(!h.supercraft.running,"own settings screen cannot be replaced by a running craft");Minecraft.INSTANCE.gui.current=null;
+  h.supercraft.running=true;h.supercraftMenu.manual=true;h.beforeMovementTick();check(!h.supercraft.running,"physical manual input beats craft");
+  for(var b:AutomationContext.Blocker.values())if(b!=AutomationContext.Blocker.MENU){h.context=new AutomationContext(1,true,true,Set.of(b));h.supercraft.running=true;h.supercraft.owned=true;h.beforeMovementTick();check(!h.supercraft.running,"recipe ownership cannot mask blocker: "+b);}
   System.out.println("MaintenanceInputPriorityTest: PASS (actual bridge body, no cross-cancellation, exact owned GUI only, all blockers/Garden/physical priority, preserved Pest/Greenhouse guards)");
  }
 }'''.replace('METHOD',method)

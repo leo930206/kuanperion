@@ -2918,7 +2918,7 @@ public final class KuanperionClient implements ClientModInitializer {
         return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,dev.kuan.kuanperion.ui.GreenhouseModuleSettings.tab(automation.greenhouse()),visitorTab,dev.kuan.kuanperion.ui.ComposterModuleSettings.tab(automation.composter()))),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
             new MainGUIRegistry.ModuleSection("trade","Trade",dev.kuan.kuanperion.ui.AutomationModuleSettings.trade(automation.stash(),automation.autoSell(),automation.junk())),
-            new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab)));
+            new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab,dev.kuan.kuanperion.ui.SupercraftModuleSettings.tab(automation.supercraft()))));
     }
 
     private static SettingGroup uiNotificationGroup(NotificationType type) {

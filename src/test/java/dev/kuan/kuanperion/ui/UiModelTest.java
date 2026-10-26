@@ -3,6 +3,9 @@ import dev.kuan.kuanperion.ui.settings.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");
+        require(recipe.outputId().equals("ENCHANTED_WHEAT")&&recipe.inputsPerCraft().equals(Map.of("WHEAT",160)),"explicit exact recipe UI, not a display-name guess");
+        for(String bad:List.of("","WHEAT;1;64;WHEAT=1","A;1;64;WHEAT=1,WHEAT=2","A;1;64;WHEAT=1.5","A;1;64;WHEAT=0","A;1;64;WHEAT=1,","A;1;64;WHEAT=1;barn","A;65;64;WHEAT=1"))try{SupercraftModuleSettings.parseRecipe(bad);throw new AssertionError("invalid Supercraft recipe accepted");}catch(IllegalArgumentException expected){}
         var supplies=ComposterModuleSettings.parseMaterials("BOX=1000",dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.ORGANIC,Map.of());
         require(supplies.get("BOX").units()==1000,"explicit unit value, no inferred conversion");
         require(ComposterModuleSettings.parseMaterials("",dev.kuan.kuanperion.automation.composter.ComposterObservation.Kind.ORGANIC,supplies).isEmpty(),"clear material list removes consent");
