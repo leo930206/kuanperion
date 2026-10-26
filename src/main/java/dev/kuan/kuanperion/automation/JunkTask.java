@@ -15,6 +15,8 @@ public final class JunkTask {
  private long started,lastAction,world;private int removedStacks,removedItems,pendingSlot;private ItemSnapshot pending;private InventoryReceipts.Stamp stamp;
  public JunkTask(AutomationSession session,InventoryReceipts receipts,Port port){this.session=session;this.receipts=receipts;this.port=port;}
  public State state(){return state;}public int removedItems(){return removedItems;}public int removedStacks(){return removedStacks;}
+ /** Already acquired data only; callers must not reread native context after a successful request. */
+ public long worldId(){return session.isCurrent(handle)?handle.lease().worldId():0;}
  public boolean active(){return state==State.OPENING||state==State.READY||state==State.WAITING_RECEIPT;}
  public boolean request(JunkPolicy policy,boolean manual,long now){
   if(active()||policy==null||policy.allowedIds().isEmpty())return false;

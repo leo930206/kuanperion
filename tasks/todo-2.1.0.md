@@ -70,6 +70,7 @@
 - [ ] Supercraft current live recipe/source/cost formats, actual quantity-setting UI where needed, broader recipe/amount behavior and live receipts/original-pose validation.
 
 ## 7 — release gate
+- [x] NPC/Junk service entry points also reject unavailable complete inventory scans; Junk anchor/status/enable reads fail closed, explicit preferences are preserved without inventing current-world authority, and a successful manual request uses its acquired world without another fallible native read. Idle observation failures recover only from a later fresh guarded dispatch.
 - [x] Shared task acquisition rejects null/throwing or invalidated-generation observations before ownership; NPC/Junk complete-list preflight faults are inert and Junk running context/location/menu faults revoke only the original root, without disposal/retry or swallowed safety-stop failures. Other native/service lifecycle observations remain under the unchecked full matrix below.
 - [x] Trusted Jerry automatic sethome does not preempt held Farming; original independent stop toggle/message/beam order and subsequent manual-command priority verified with actual composed method bodies and a negative old-route mutation.
 - [x] Jerry stop applies to all eight existing new services including Supercraft pending requests, standalone/manual tasks and idle automatic timers with Farming off; explicit per-feature re-enable required, idle preferences retained.

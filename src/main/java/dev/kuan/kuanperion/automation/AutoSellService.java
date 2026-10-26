@@ -33,7 +33,9 @@ public final class AutoSellService {
   if(!autoEnabled()||!allowAutomatic.getAsBoolean()||hasPolled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   lastPoll=now;hasPolled=true;var p=policy();
   if(p.allowedIds().isEmpty()||hasAttempt&&now-lastAttempt>=0&&now-lastAttempt<p.cooldownSeconds()*SECOND)return;
-  var inventory=port.inventory();if(inventory.isEmpty())return;long occupied=inventory.stream().filter(i->i.count()>0).count();
+  java.util.List<ItemSnapshot> inventory;
+  try{inventory=java.util.List.copyOf(port.inventory());}catch(RuntimeException unavailable){return;}
+  if(inventory.isEmpty())return;long occupied=inventory.stream().filter(i->i.count()>0).count();
   if(occupied*100<inventory.size()*p.thresholdPercent())return;
   if(request(false,now)){task.tick(now);report();}
  }
