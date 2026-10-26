@@ -23,8 +23,8 @@ public final class GreenhouseModuleSettings {
    .add(new SliderSetting("單次收割上限",1,256,()->(float)service.policy().maxTargets(),v->policy(service,p->p.withMaxTargets(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("整體逾時（秒）",90,300,()->(float)service.policy().timeoutSeconds(),v->policy(service,p->p.withTimeout(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("巡查間隔（秒）",60,86400,()->(float)service.policy().intervalSeconds(),v->policy(service,p->p.withInterval(Math.round(v)))).withDecimals(0))
-   .add(new ActionSetting("立即收割 Greenhouse",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Greenhouse 未開始","請確認地塊、作物與工具已設定、Garden 允許飛行、快捷列有指定工具，並避免其他動作或手動輸入。");}))
-   .add(new ActionSetting("停止本次收割",()->service.cancel(System.nanoTime())).visibleWhen(service::active))
+   .add(new ActionSetting("關閉選單後收割 Greenhouse",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Greenhouse 未開始","請確認地塊、作物與工具已設定、Garden 允許飛行、快捷列有指定工具，並避免其他動作或手動輸入。");}))
+   .add(new ActionSetting("停止本次收割",()->service.cancel(System.nanoTime())).visibleWhen(()->service.active()||service.pending()))
    .add(new InfoSetting("執行狀態",service::status));
   return new ModulesTab.SubTab("Greenhouse","成熟作物收割與返回",service::autoEnabled,v->enabled(service,v),List.of(core));
  }

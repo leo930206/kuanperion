@@ -1,9 +1,14 @@
 package dev.kuan.kuanperion.ui;
 import dev.kuan.kuanperion.ui.settings.*;
+import dev.kuan.kuanperion.automation.*;
+import dev.kuan.kuanperion.automation.greenhouse.*;
+import dev.kuan.kuanperion.automation.composter.*;
+import dev.kuan.kuanperion.automation.visitor.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
         testPestPendingUi();
+        testMaintenancePendingUi();
         var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");
         require(recipe.outputId().equals("ENCHANTED_WHEAT")&&recipe.inputsPerCraft().equals(Map.of("WHEAT",160)),"explicit exact recipe UI, not a display-name guess");
         for(String bad:List.of("","WHEAT;1;64;WHEAT=1","A;1;64;WHEAT=1,WHEAT=2","A;1;64;WHEAT=1.5","A;1;64;WHEAT=0","A;1;64;WHEAT=1,","A;1;64;WHEAT=1;barn","A;65;64;WHEAT=1"))try{SupercraftModuleSettings.parseRecipe(bad);throw new AssertionError("invalid Supercraft recipe accepted");}catch(IllegalArgumentException expected){}
@@ -187,6 +192,36 @@ public final class UiModelTest {
             require(service.pending()&&actions.get(1).isVisible()&&!service.active()&&!session.active()&&service.status().contains("30"),"real Pest UI queues without effects and exposes stop/status");
             actions.get(1).execute();require(!service.pending()&&!actions.get(1).isVisible()&&!service.autoEnabled()&&!java.nio.file.Files.exists(path.resolve("automation.json")),"actual stop callback cancels queue without persisted runtime intent");
         } finally {java.nio.file.Files.delete(path);}
+    }
+    private static <P> P contextOnlyPort(Class<P> type,AutomationContext context){
+        return type.cast(java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),new Class<?>[]{type},(proxy,method,args)->{if(method.getName().equals("context"))return context;throw new AssertionError("settings invoked native port: "+method.getName());}));
+    }
+    private static void assertPendingUi(ModulesTab.SubTab tab,java.util.function.BooleanSupplier pending,java.util.function.BooleanSupplier active,java.util.function.Supplier<String> status){
+        var actions=tab.groups().getFirst().getSettings().stream().filter(ActionSetting.class::isInstance).map(ActionSetting.class::cast).toList();
+        var run=actions.stream().filter(a->a.getRawName().startsWith("關閉選單後")).findFirst().orElseThrow();
+        var stop=actions.stream().filter(a->a.getRawName().startsWith("停止本次")).findFirst().orElseThrow();
+        require(!pending.getAsBoolean()&&!active.getAsBoolean()&&!stop.isVisible(),"idle maintenance has no phantom stop");run.execute();
+        require(pending.getAsBoolean()&&!active.getAsBoolean()&&stop.isVisible()&&status.get().contains("30"),"real maintenance UI queues, exposes status and stop without native effects");stop.execute();
+        require(!pending.getAsBoolean()&&!active.getAsBoolean()&&!stop.isVisible(),"real maintenance stop callback clears pending intent");
+    }
+    private static void testMaintenancePendingUi() throws Exception {
+        var dir=java.nio.file.Files.createTempDirectory("maintenance-pending-ui-");
+        try {
+            var context=new AutomationContext(1,true,true,Set.of());
+            var session=new AutomationSession(new AutomationCoordinator(),()->context,()->{throw new AssertionError("settings paused Farm");},()->{throw new AssertionError("settings stopped Farm");});
+            var path=dir.resolve("automation.json");var store=AutomationSettingsStore.load(path);
+            store.setGreenhousePolicy(GreenhousePolicy.defaults().withPlots(Set.of(1)).withKinds(Set.of(GreenhouseIdentity.Kind.ASHWREATH)).withTool("FARMING_HOE",new UUID(0,9).toString()));
+            store.setComposterPolicy(ComposterPolicy.defaults().withAnchor(new ComposterPolicy.Anchor(-11,72,-27,"minecraft:player_head")).withMaterials(Map.of("BOX_OF_SEEDS",new ComposterPolicy.Material(ComposterObservation.Kind.ORGANIC,1000))));
+            store.setVisitorPolicy(new VisitorPolicy(new VisitorValuation.Rules(Set.of("Librarian"),Set.of("WHEAT"),1000,0,1),1,1,240,60,true));
+            byte[] original=java.nio.file.Files.readAllBytes(path);java.util.function.Consumer<StashService.Notice> notice=n->{throw new AssertionError("queue/cancel is not gameplay completion");};
+            var greenhouse=new GreenhouseService(store,session,new PlayerPositionReceipts(),new HarvestReceipts(),contextOnlyPort(GreenhouseTask.Port.class,context),()->false,notice);
+            assertPendingUi(GreenhouseModuleSettings.tab(greenhouse),greenhouse::pending,greenhouse::active,greenhouse::status);
+            var composter=new ComposterService(store,session,new PlayerPositionReceipts(),new InventoryReceipts(),new CursorReceipts(),contextOnlyPort(ComposterTask.Port.class,context),()->false,Optional::empty,notice);
+            assertPendingUi(ComposterModuleSettings.tab(composter),composter::pending,composter::active,composter::status);
+            var visitor=new VisitorService(store,session,new PlayerPositionReceipts(),new InventoryReceipts(),new CursorReceipts(),contextOnlyPort(VisitorTask.Port.class,context),()->false,notice);
+            assertPendingUi(VisitorModuleSettings.tab(visitor,SettingGroup.alwaysOn("Notifications","")),visitor::pending,visitor::active,visitor::status);
+            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
+        } finally {try(var paths=java.nio.file.Files.walk(dir)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())java.nio.file.Files.deleteIfExists(p);}}
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}
 }

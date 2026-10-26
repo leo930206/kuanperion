@@ -21,8 +21,8 @@ public final class VisitorModuleSettings {
    .add(new SliderSetting("單次接單上限",1,5,()->(float)service.policy().maxVisitors(),v->policy(service,p->new VisitorPolicy(p.rules(),p.threshold(),Math.round(v),p.timeoutSeconds(),p.cooldownSeconds(),p.onlyWhileFarming()))).withDecimals(0))
    .add(new SliderSetting("整體逾時（秒）",90,300,()->(float)service.policy().timeoutSeconds(),v->policy(service,p->new VisitorPolicy(p.rules(),p.threshold(),p.maxVisitors(),Math.round(v),p.cooldownSeconds(),p.onlyWhileFarming()))).withDecimals(0))
    .add(new SliderSetting("自動接單冷卻（秒）",30,86400,()->(float)service.policy().cooldownSeconds(),v->policy(service,p->new VisitorPolicy(p.rules(),p.threshold(),p.maxVisitors(),p.timeoutSeconds(),Math.round(v),p.onlyWhileFarming()))).withDecimals(0))
-   .add(new ActionSetting("立即接單 Visitor",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Visitor 未開始","請確認清單與估價上限、Garden 飛行權限、訪客資料與背包材料，且沒有其他動作；兩次手動啟動需間隔 20 秒。");}))
-   .add(new ActionSetting("停止本次接單",()->service.cancel(System.nanoTime())).visibleWhen(service::active))
+   .add(new ActionSetting("關閉選單後接單 Visitor",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Visitor 未開始","請確認清單與估價上限、Garden 飛行權限、訪客資料與背包材料，且沒有其他動作；兩次手動啟動需間隔 20 秒。");}))
+   .add(new ActionSetting("停止本次接單",()->service.cancel(System.nanoTime())).visibleWhen(()->service.active()||service.pending()))
    .add(new InfoSetting("執行狀態",service::status));
   return new ModulesTab.SubTab("Visitor","接單與獨立通知設定",service::autoEnabled,v->enabled(service,v),List.of(core,notifications));
  }

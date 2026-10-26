@@ -26,8 +26,8 @@ public final class ComposterModuleSettings {
    .add(new SliderSetting("補充間隔（毫秒）",500,5000,()->(float)service.policy().delayMillis(),v->policy(service,p->p.withDelay(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("整體逾時（秒）",90,300,()->(float)service.policy().timeoutSeconds(),v->policy(service,p->p.withTimeout(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("巡查間隔（秒）",60,86400,()->(float)service.policy().intervalSeconds(),v->policy(service,p->p.withInterval(Math.round(v)))).withDecimals(0))
-   .add(new ActionSetting("立即補充 Composter",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Composter 未開始","請確認已記錄機器位置、設定材料與資源量、Garden 允許飛行，並避免其他動作或手動輸入。");}))
-   .add(new ActionSetting("停止本次補充",()->service.cancel(System.nanoTime())).visibleWhen(service::active))
+   .add(new ActionSetting("關閉選單後補充 Composter",()->{if(!service.manualRequest(System.nanoTime()))NotificationManager.error("Composter 未開始","請確認已記錄機器位置、設定材料與資源量、Garden 允許飛行，並避免其他動作或手動輸入。");}))
+   .add(new ActionSetting("停止本次補充",()->service.cancel(System.nanoTime())).visibleWhen(()->service.active()||service.pending()))
    .add(new InfoSetting("執行狀態",service::status));
   return new ModulesTab.SubTab("Composter","指定背包材料補充與返回",service::autoEnabled,v->enabled(service,v),List.of(group));
  }
