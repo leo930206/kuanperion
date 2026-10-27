@@ -105,3 +105,6 @@
 - [x] Explicit opt-in local four-point sweep when global pests are known but no loaded target is in range; same native flight fence, discovery interrupts sweep, exhaustion returns INCOMPLETE and stops instead of claiming a cleared Garden.
 
 - [x] Vanilla startAttack/startUseItem HEAD manual priority catches released fast clicks before native action, noncancellable; isolated 26.2 applied-Mixin/UI regression passes.
+
+- [x] Current isolated39-state UI rerun and real Book Trade/callback/default/policy persistence/offline rejection/Jerry suspension checks; old Trade route/unsafe offline Supercraft test assumptions updated. No live claim.
+- [ ] Shared long group-introduction wrapping/height/hit/scroll alignment; Book screenshot exposes clipping. Preserve and investigate intermittent phase16 gear smoke failure; one diagnostic pass is not a root-cause fix.

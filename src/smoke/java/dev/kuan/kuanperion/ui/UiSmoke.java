@@ -33,12 +33,13 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine"};
             if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
-            System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" live="+(mc.gui.screen()==ui));
+            System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" filter="+ui.context().navigation.activeFilter+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
+            if(phase==38&&!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
@@ -140,6 +141,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 32 -> {setCapacityFixture(true);}
                 case 33 -> {setCapacityFixture(false);}
                 case 34 -> clickSidebar(2);
+                case 38 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow());
                 case 37 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Junk")).findFirst().orElseThrow());
                 case 36 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow());
                 case 35 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Stash")).findFirst().orElseThrow());
@@ -165,10 +167,13 @@ public final class UiSmoke implements ClientModInitializer {
     }
     private void clickSidebar(int index) {
         var layout=ui.context().layout;
-        click(layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),MainGUISidebar.rowY(index,layout.py,layout.ph)+22);
+        float x=layout.px+(ui.context().animation.sidebarAnim>.95f?100:30),y=MainGUISidebar.rowY(index,layout.py,layout.ph)+22;
+        int before=ui.getActiveMainTab();click(x,y);
+        System.out.println("UI_SIDEBAR_CLICK index="+index+" phase="+phase+" x="+x+" y="+y+" owns="+ui.isSidebarExpandedOverContent(x,y)+" anim="+ui.context().animation.sidebarAnim+" before="+before+" after="+ui.getActiveMainTab()+" filter="+ui.context().navigation.activeFilter);
+        if(index==MainGUISidebar.settingsIndex()&&(ui.getActiveMainTab()<1||ui.getActiveMainTab()>4))throw new AssertionError("gear click did not select Setting immediately");
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest","Greenhouse","Visitor","Composter"},{"Mining"},{"Auto Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook","Supercraft"}};
+        String[][] expected={{"Farming","Pest","Greenhouse","Visitor","Composter"},{"Mining"},{"Auto Sell","Book Combine","Junk","Stash"},{"Jerry 偵測","Discord Webhook","Supercraft"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index+" actual="+sections.stream().map(s->s.subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList()).toList());
     }
@@ -330,10 +335,26 @@ public final class UiSmoke implements ClientModInitializer {
         if(!service.policy().configured())throw new AssertionError("Supercraft UI recipe/caps callbacks must configure exact batch");((dev.kuan.kuanperion.ui.settings.ToggleSetting)group.getSettings().getFirst()).setValue(true);
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.SUPERCRAFT)||!saved.supercraftPolicy().equals(service.policy()))throw new AssertionError("Supercraft exact policy must persist outside jar");
         var controllerField=bridge.getClass().getDeclaredField("supercraftMenu");controllerField.setAccessible(true);var controller=controllerField.get(bridge);var catalog=controller.getClass().getDeclaredField("catalogClient");catalog.setAccessible(true);if(catalog.get(controller)!=null||bridge.session().active())throw new AssertionError("offline UI must not fetch catalog/acquire root");
-        var run=(dev.kuan.kuanperion.ui.settings.ActionSetting)group.getSettings().stream().filter(v->v.getName().equals("關閉選單後執行一批")).findFirst().orElseThrow();run.execute();if(!service.pending()||service.active())throw new AssertionError("explicit UI action must defer, not replace settings");
+        var run=(dev.kuan.kuanperion.ui.settings.ActionSetting)group.getSettings().stream().filter(v->v.getName().equals("關閉選單後執行一批")).findFirst().orElseThrow();run.execute();if(service.pending()||service.active()||bridge.session().active())throw new AssertionError("offline Supercraft UI request must refuse invalid world, not queue a replay");
         byte[] before=java.nio.file.Files.readAllBytes(path);bridge.suspendForJerry();if(service.pending()||service.autoEnabled()||service.active()||!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("Jerry must clear pending and suspend idle automatic craft without settings rewrite");
         if(catalog.get(controller)!=null||bridge.session().active())throw new AssertionError("no offline command/data/gameplay");service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.supercraft.SupercraftPolicy.defaults());clickSidebar(0);assertGroup(0);
-        System.out.println("UI_SMOKE_SUPERCRAFT_PASS real Other/callbacks/external exact policy, pending action/Jerry cancellation, no offline data/gameplay");
+        System.out.println("UI_SMOKE_SUPERCRAFT_PASS real Other/callbacks/external exact policy, invalid-world request refusal/Jerry suspension, no offline data/gameplay");
+    }
+    private void testBookUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var service=bridge.book();
+        if(service.autoEnabled()||service.active()||service.pending()||!service.policy().ceilings().isEmpty())throw new AssertionError("Book defaults grant no authority");
+        clickSidebar(2);assertGroup(2);var tab=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow();ui.openModuleDetailFromCard(tab);
+        var group=tab.groups().getFirst();var toggle=(dev.kuan.kuanperion.ui.settings.ToggleSetting)group.getSettings().getFirst();toggle.setValue(true);if(service.autoEnabled())throw new AssertionError("empty Book authorization cannot enable");
+        var ceilings=(dev.kuan.kuanperion.ui.settings.TextSetting)group.getSettings().stream().filter(v->v.getName().equals("附魔 ID 與最高等級")).findFirst().orElseThrow();ceilings.setValue("harvesting=5");
+        var protectedIds=(dev.kuan.kuanperion.ui.settings.TextSetting)group.getSettings().stream().filter(v->v.getName().equals("保護 UUID")).findFirst().orElseThrow();protectedIds.setValue("0123456789abcdef0123456789abcdef");toggle.setValue(true);
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!service.autoEnabled()||!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.BOOK_COMBINE)||!saved.bookPolicy().equals(service.policy())||!saved.bookPolicy().ceilings().equals(java.util.Map.of("harvesting",5)))throw new AssertionError("Book real UI policy must persist outside JAR");
+        var task=service.getClass().getDeclaredField("task");task.setAccessible(true);if(task.get(service)!=null)throw new AssertionError("Book settings must not construct native gameplay task");
+        var run=(dev.kuan.kuanperion.ui.settings.ActionSetting)group.getSettings().stream().filter(v->v.getName().equals("關閉選單後合書一組")).findFirst().orElseThrow();run.execute();
+        if(service.pending()||service.active()||bridge.session().active()||task.get(service)!=null)throw new AssertionError("offline Book request must refuse, no native construction/lease/command");
+        byte[] before=java.nio.file.Files.readAllBytes(path);bridge.suspendForJerry();if(service.autoEnabled()||service.pending()||service.active()||!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("idle Jerry suspension must not rewrite Book consent");
+        toggle.setValue(false);service.setPolicy(dev.kuan.kuanperion.automation.BookCombineTask.Policy.defaults());clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_BOOK_PASS real Trade route/callbacks, explicit ceilings/protected IDs/external persistence, offline refusal/lazy native task, Jerry runtime suspension; no live Anvil claim");
     }
     private void testJerryHomeGuard(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);
