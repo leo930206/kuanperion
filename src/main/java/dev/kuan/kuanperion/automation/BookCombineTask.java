@@ -10,6 +10,7 @@ public final class BookCombineTask {
   public InventoryProtection protection(){return new InventoryProtection(Set.of("ENCHANTED_BOOK"),protectedUuids);}
  }
  public enum State{IDLE,OPENING,WAIT_MENU,WAIT_FIRST,SECOND_READY,WAIT_SECOND,COMBINE_READY,WAIT_COMBINE,COLLECT_READY,WAIT_RESULT,RECOVERING,WAIT_RECOVERY,COMPLETE,CANCELLED,TIMED_OUT,FAILED}
+ public enum ReturnProgress{WAITING,COMPLETE,FAILED}
  public interface Port{
   AutomationContext context();MenuSnapshot menu();BookAnvilView view();BookInventorySnapshot inventorySnapshot();boolean cursorEmpty();
   boolean open(AutomationSession.Handle handle);
@@ -17,6 +18,7 @@ public final class BookCombineTask {
   GuardedMenuAction.Result combine(AutomationSession.Handle handle,MenuContract.Ticket ticket,long now);
   GuardedMenuAction.Result collect(AutomationSession.Handle handle,MenuContract.Ticket ticket,long now);
   GuardedMenuAction.Result reclaim(AutomationSession.Handle handle,MenuContract.Ticket ticket,InventoryProtection rules,long now);
+  ReturnProgress progressReturn(AutomationSession.Handle handle,long now);
   void closeOwnedMenu(int id);
  }
  private final AutomationSession session;private final InventoryReceipts receipts;private final CursorReceipts cursors;private final Port port;private final BookAnvilView.Layout layout;
@@ -43,6 +45,8 @@ public final class BookCombineTask {
   if(recoveringState){if(now-recoveryStarted<0||now-recoveryStarted>=10_000_000_000L){finish(recoveryOutcome,now,false);return;}}
   else if(now-started<0||now-started>=policy.timeoutSeconds()*1_000_000_000L){abort(State.TIMED_OUT,now);return;}
   if(context.blockers().contains(AutomationContext.Blocker.FOCUS))return;
+  // A separately guarded return may hold only its own server-proven book between pickup and explicit main-slot deposit.
+  if(state==State.WAIT_RESULT||state==State.WAIT_RECOVERY){var progress=port.progressReturn(handle,now);if(progress==null||progress==ReturnProgress.FAILED){finish(State.FAILED,now,false);return;}if(progress==ReturnProgress.WAITING)return;}
   boolean waitingCursor=state==State.WAIT_FIRST||state==State.WAIT_SECOND||state==State.WAIT_COMBINE||state==State.WAIT_RESULT||state==State.WAIT_RECOVERY;
   if(!port.cursorEmpty()){if(!waitingCursor)finish(State.CANCELLED,now,false);return;}
 
@@ -72,7 +76,7 @@ public final class BookCombineTask {
   if(state==State.RECOVERING){
    if(knownInputs.isEmpty()){mayHoldBooks=false;finish(recoveryOutcome,now,true);return;}
    var e=knownInputs.entrySet().iterator().next();recoverSlot=e.getKey();recovering=e.getValue();if(!sameBook(recovering,view.book(recoverSlot))){finish(recoveryOutcome,now,false);return;}
-   arm(now);var ticket=layout.contract().plan(view.menu(),recoverSlot,MenuContract.Click.QUICK_MOVE);
+   arm(now);var ticket=layout.contract().plan(view.menu(),recoverSlot,MenuContract.Click.PICKUP);
    if(action(()->port.reclaim(handle,ticket,policy.protection(),now))!=GuardedMenuAction.Result.SENT){finish(recoveryOutcome,now,false);return;}state=State.WAIT_RECOVERY;lastAction=now;return;
   }
   if(state==State.WAIT_MENU||state==State.SECOND_READY){
@@ -89,7 +93,7 @@ public final class BookCombineTask {
    if(action(()->port.combine(handle,ticket,now))!=GuardedMenuAction.Result.SENT){finish(State.FAILED,now,false);return;}state=State.WAIT_COMBINE;lastAction=now;return;
   }
   if(state==State.COLLECT_READY){
-   if(!expectedInventory.stillMatches(current.inventory())||!expectedResult(view.book(resultSlot))){finish(State.FAILED,now,false);return;}var ticket=layout.contract().plan(view.menu(),resultSlot,MenuContract.Click.QUICK_MOVE);arm(now);
+   if(!expectedInventory.stillMatches(current.inventory())||!expectedResult(view.book(resultSlot))){finish(State.FAILED,now,false);return;}var ticket=layout.contract().plan(view.menu(),resultSlot,MenuContract.Click.PICKUP);arm(now);
    if(action(()->port.collect(handle,ticket,now))!=GuardedMenuAction.Result.SENT){finish(State.FAILED,now,false);return;}state=State.WAIT_RESULT;lastAction=now;
   }
  }

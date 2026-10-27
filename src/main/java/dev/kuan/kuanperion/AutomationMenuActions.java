@@ -28,6 +28,17 @@ public final class AutomationMenuActions {
  private static boolean execute(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,GuardedMenuAction.Space space,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
   return GuardedMenuAction.execute(coordinator,lease,contract,ticket,space,observe,menus,AutomationMenuActions::sendNative,now);
  }
+ /** Only the Book controller may use this narrow carried-item path after its own source/cursor/server/root proof. */
+ static boolean depositBookNative(MenuContract.Ticket request,ItemSnapshot ownBook){
+   var mc=Minecraft.getInstance();
+   if(ownedInput||mc==null||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gameMode==null||request==null||request.observed()==null||ownBook==null||request.click()!=MenuContract.Click.PICKUP||request.slot()<54||request.slot()>=81)return false;
+   if(!ownBook.identified()||ownBook.protectedItem()||ownBook.count()!=1||!ownBook.skyblockId().equals("ENCHANTED_BOOK")||!ownBook.minecraftId().equals("minecraft:enchanted_book")||!ownBook.name().equals("Enchanted Book"))return false;
+   var menu=mc.player.containerMenu;var current=AutomationGameView.menu(mc,request.observed().worldId());
+   if(menu.containerId!=request.observed().containerId()||menu.slots.size()!=90||!request.observed().equals(current)||!ownBook.equals(AutomationGameView.item(menu.getCarried(),false)))return false;
+   var slot=menu.slots.get(request.slot());
+   if(slot.index!=request.slot()||slot.container!=mc.player.getInventory()||slot.getContainerSlot()!=request.slot()-54+9||!slot.getItem().isEmpty()||!slot.isActive()||slot.isFake()||!slot.mayPlace(menu.getCarried())||slot.getMaxStackSize(menu.getCarried())<1)return false;
+   ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,request.slot(),0,ContainerInput.PICKUP,mc.player);return true;}finally{ownedInput=false;}
+ }
  static boolean sendNative(MenuContract.Ticket request){
    var mc=Minecraft.getInstance();if(mc.player==null||mc.gameMode==null||!mc.player.containerMenu.getCarried().isEmpty())return false;
    var input=switch(request.click()){case PICKUP->ContainerInput.PICKUP;case QUICK_MOVE->ContainerInput.QUICK_MOVE;case THROW->ContainerInput.THROW;};

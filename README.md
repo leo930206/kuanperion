@@ -8,6 +8,8 @@ Minecraft **26.2** 的 Fabric 客戶端模組，提供 Mining、Farming 與通�
 
 ## 2.1.0 開發狀態
 
+人員或 AI 接手請先讀 [2.1.0 交接總覽](docs/handoff-2.1.0.md)：包含兩條版本線、最新進度權威、程式入口、測試重跑方式、未完成項目及不得覆蓋正式 JAR／設定的限制。
+
 原生唯讀資料回歸可在 `./scripts/build.sh` 後執行 `python3 scripts/test-native-observations.py`；只用真實 26.2 classes 的無視窗 bootstrap，不連伺服器、不證明 live 功能／Mixin。
 
 本分支是 `feature/2.1.0` 的分階段檢查點，不是完整大升級；正式遊戲使用獨立熱修版 2.0.17，不安裝開發 JAR。完整需求／待辦見 [規格](docs/spec-2.1.0.md)、[進度](tasks/todo-2.1.0.md)，離線驗證與限制見 [驗證紀錄](docs/verification-2.1.0.md)。

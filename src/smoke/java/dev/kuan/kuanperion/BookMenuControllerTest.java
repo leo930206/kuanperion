@@ -8,15 +8,15 @@ public final class BookMenuControllerTest {
  static final BookAnvilView.Layout L=new BookAnvilView.Layout("Anvil",54,20,24,13,22,22,Set.of("minecraft:air"));
  static final BookCombineTask.Policy P=new BookCombineTask.Policy(Map.of("harvesting",5),Set.of(),500,30,true);
  static final class Game implements BookMenuController.Game {
-  final Object level=new Object();Object currentLevel=level,containerIdentity=new Object();boolean visible,ready=true,emptyCursor=true,manual;int clicks,closes,id=4,revision=1;long x;boolean throwClick;
+  final Object level=new Object();Object currentLevel=level,containerIdentity=new Object();boolean visible,ready=true,emptyCursor=true,manual;int clicks,closes,id=4,revision=1,lastDeposit=-1;long x;boolean throwClick;ItemSnapshot carried=empty();
   int inventoryReads,mutateAt=Integer.MAX_VALUE;Runnable mutation;Map<Integer,BookCombinePlanner.Book> inv=new HashMap<>(),placed=new HashMap<>();Map<Integer,ItemSnapshot> extras=new HashMap<>(),icons=new HashMap<>();
   Game(){for(int i=0;i<9;i++)extras.put(i,new ItemSnapshot("TEST_TOOL","minecraft:stone","","Tool","tool-"+i,1,List.of(),true));inv.put(9,book(9,4,"one"));inv.put(10,book(10,4,"two"));icons.put(22,new ItemSnapshot("","minecraft:anvil","","Combine Items","free",1,List.of("Cost: 0 Exp Levels","Click to combine!"),false));}
-  public boolean available(){return ready;}public Object level(){return currentLevel;}public Object menuIdentity(){return containerIdentity;}public boolean idle(){return !visible;}public boolean safePlayer(){return ready&&!manual;}public boolean cursorEmpty(){return emptyCursor;}
+  public boolean available(){return ready;}public Object level(){return currentLevel;}public Object menuIdentity(){return containerIdentity;}public boolean idle(){return !visible;}public boolean safePlayer(){return ready&&!manual;}public boolean cursorEmpty(){return emptyCursor&&carried.count()==0;}public ItemSnapshot cursor(){return carried;}
   public FlightAnchor pose(){return new FlightAnchor(new Point(x,70,0),0,0,0,empty(),false);}
   public BookInventorySnapshot inventory(){if(++inventoryReads==mutateAt&&mutation!=null)mutation.run();var items=new HashMap<Integer,ItemSnapshot>();for(int i=0;i<43;i++)items.put(i,extras.getOrDefault(i,empty()));inv.forEach((i,b)->items.put(i,b.item()));return BookInventorySnapshot.inspect(items,inv).orElseThrow();}
   public MenuSnapshot menu(long world){if(!visible)return null;var slots=new ArrayList<MenuSnapshot.Slot>();for(int i=0;i<90;i++){int raw=i<54?-1:i<81?i-54+9:i-81;var b=i<54?placed.get(i):inv.get(raw);slots.add(new MenuSnapshot.Slot(i,b!=null?b.item():i<54?icons.getOrDefault(i,empty()):extras.getOrDefault(raw,empty()),i>=54));}return new MenuSnapshot(world,id,revision,"Anvil",54,slots);}
   public BookAnvilView anvil(long world,BookAnvilView.Layout layout){var m=menu(world);if(m==null)return null;var books=new HashMap<>(placed);inv.forEach((raw,b)->books.put(raw<9?81+raw:54+raw-9,b));return new BookAnvilView(layout,m,books);}
-  public boolean click(MenuContract.Ticket t){clicks++;if(throwClick)throw new IllegalStateException("unknown native outcome");return true;}public void close(){closes++;visible=false;}
+  public boolean click(MenuContract.Ticket t){clicks++;if(throwClick)throw new IllegalStateException("unknown native outcome");return true;}public boolean deposit(MenuContract.Ticket t,ItemSnapshot own){check(t.click()==MenuContract.Click.PICKUP&&t.slot()>=54&&t.slot()<81&&t.observed().item(t.slot()).count()==0&&own.equals(carried),"explicit empty main-slot deposit of exact own carried book");lastDeposit=t.slot();return click(t);}public void close(){closes++;visible=false;}
  }
  static final class Fixture {
   final Game g=new Game();final InventoryReceipts items=new InventoryReceipts();final CursorReceipts cursor=new CursorReceipts();final long[] now={0};final int[] hooks={0,0};
@@ -28,7 +28,7 @@ public final class BookMenuControllerTest {
   void start(){check(task.request(P,true,0),"authorized pair request");tick(0);check(g.visible,"typed opening callback");}
   // Packet ItemSnapshot has intrinsic protection, not the additional hotbar-slot protection of a native menu projection.
   ItemSnapshot packet(ItemSnapshot i,boolean hotbar){return hotbar&&i.count()>0?new ItemSnapshot(i.skyblockId(),i.minecraftId(),i.uuid(),i.name(),i.fingerprint(),i.count(),i.lore(),false):i;}
-  void server(long t){now[0]=t;var m=g.menu(1);for(var slot:m.slots())items.observe(1,g.id,slot.index(),packet(slot.item(),slot.index()>=81));for(int raw=0;raw<36;raw++)items.observe(1,0,raw,packet(g.inventory().inventory().get(raw),raw<9));cursor.observe(1,g.id,empty(),t);g.revision++;}
+  void server(long t){now[0]=t;var m=g.menu(1);for(var slot:m.slots())items.observe(1,g.id,slot.index(),packet(slot.item(),slot.index()>=81));for(int raw=0;raw<36;raw++)items.observe(1,0,raw,packet(g.inventory().inventory().get(raw),raw<9));cursor.observe(1,g.id,g.cursor(),t);g.revision++;}
   void input(int raw,int target,long t){var b=g.inv.remove(raw);g.placed.put(target,new BookCombinePlanner.Book(-1,b.item(),b.enchantments(),b.compatibility()));server(t);}
   void first(){start();server(S);tick(S);check(g.clicks==1,"first input sent once");input(9,20,2*S);tick(2*S);}
   void both(){first();tick(3*S);check(g.clicks==2,"second exact input");input(10,24,4*S);g.placed.put(13,book(-1,5,"preview"));server(4*S);tick(4*S);}
@@ -51,10 +51,23 @@ public final class BookMenuControllerTest {
   f=new Fixture();f.start();f.server(S);var changed=f;f.g.mutateAt=f.g.inventoryReads+3;f.g.mutation=()->changed.g.extras.put(40,new ItemSnapshot("TEST","minecraft:stone","","late","late",1,List.of(),true));f.tick(S);check(f.g.clicks==0,"full43 drift precisely at final sender refuses effect");
   f=new Fixture();f.start();f.server(S);var takeover=f;f.g.mutateAt=f.g.inventoryReads+3;f.g.mutation=()->takeover.session.invalidate();f.tick(S);check(f.g.clicks==0,"root invalidation during final inventory observation cannot send under stale owner");
   f=new Fixture();f.first();f.g.containerIdentity=new Object();f.server(3*S);f.tick(3*S);check(f.g.clicks==1&&f.g.closes==0,"replaced native menu with identical container ID is not the owned menu");
-  regression("hotbar");regression("occupied-second");
+  regression("controlled-main");regression("controlled-deposit");regression("cancel-carried");regression("uncertain-deposit");regression("late-deposit-drift");regression("two-reclaims");regression("occupied-second");
   System.out.println("BookMenuControllerTest: PASS (real task/controller/session, simulated server opening/input/combine/result/recovery; native/current-live validation remains separate)");
  }
- static void regression(String name){var f=new Fixture();if(name.equals("hotbar")){f.g.extras.remove(0);check(!f.task.request(P,true,0)&&f.hooks[0]==0&&!f.g.visible&&f.g.clicks==0,"unsafe quick-move hotbar refuses before ownership/Farming hold/opening");}
+ static void regression(String name){var f=new Fixture();if(name.equals("controlled-main")||name.equals("controlled-deposit")||name.equals("cancel-carried")||name.equals("uncertain-deposit")||name.equals("late-deposit-drift")){
+   if(name.equals("controlled-main"))f.g.extras.remove(0);f.both();f.tick(5*S);f.g.placed.clear();f.g.placed.put(22,book(-1,5,"result"));f.server(6*S);f.tick(6*S);f.tick(7*S);check(f.g.clicks==4,"result picked up once");
+   f.g.placed.clear();f.g.carried=book(-1,5,"result").item();f.server(8*S);
+   if(name.equals("cancel-carried")){f.task.cancel(8*S);f.tick(9*S);check(f.g.clicks==4&&f.g.closes==0&&f.g.carried.count()==1,"manual cancellation leaves own carried item untouched, no deposit/repair/close");return;}
+   if(name.equals("uncertain-deposit")){f.g.throwClick=true;f.tick(8*S);f.tick(9*S);check(f.g.clicks==5&&!f.task.active()&&f.g.closes==0&&f.g.carried.count()==1,"possibly-sent deposit failure never replays, repairs or closes");return;}
+   if(name.equals("late-deposit-drift")){var target=f;f.g.mutateAt=f.g.inventoryReads+3;f.g.mutation=()->target.g.extras.put(40,new ItemSnapshot("TEST","minecraft:stone","","late","late",1,List.of(),true));f.tick(8*S);check(f.g.clicks==4&&!f.task.active()&&f.g.closes==0&&f.g.carried.count()==1,"full43 drift precisely at carried deposit leaves item untouched for manual handling");return;}
+   f.tick(8*S);check(f.g.clicks==5&&f.g.lastDeposit==54,"server-owned carried book goes only to explicit raw9 empty main slot, never hotbar");
+   f.g.carried=empty();f.g.inv.put(9,book(9,5,"result"));f.tick(8*S+1);check(f.task.active()&&f.g.closes==0,"predicted destination/empty cursor cannot complete transfer");f.server(9*S);f.tick(9*S);check(f.task.state()==BookCombineTask.State.COMPLETE&&f.g.closes==1,"both destination aliases and fresh server empty cursor complete controlled return");
+   if(name.equals("controlled-main"))check(!f.g.extras.containsKey(0),"previously empty protected hotbar remains empty");
+  }
+  else if(name.equals("two-reclaims")){
+   f.both();f.task.cancel(4*S);f.tick(5*S);check(f.g.clicks==3,"first original picked up before combine");f.g.placed.remove(20);f.g.carried=book(-1,4,"one").item();f.server(6*S);f.tick(6*S);check(f.g.lastDeposit==54,"first original returns only to its original raw9 slot");f.g.inv.put(9,book(9,4,"one"));f.g.carried=empty();f.server(7*S);f.tick(7*S);
+   f.tick(8*S);check(f.g.clicks==5,"second original pickup follows proof of first return");f.g.placed.remove(24);f.g.carried=book(-1,4,"two").item();f.server(9*S);f.tick(9*S);check(f.g.lastDeposit==55,"second original returns only to original raw10 slot");f.g.inv.put(10,book(10,4,"two"));f.g.carried=empty();f.server(10*S);f.tick(10*S);check(f.g.clicks==6&&f.task.state()==BookCombineTask.State.CANCELLED&&f.g.closes==1,"both original books server-proven before owned recovery close");
+  }
   else if(name.equals("occupied-second")){f.first();f.g.placed.put(24,book(-1,4,"foreign"));f.server(3*S);f.tick(3*S);check(f.g.clicks==1,"never shift a second book into an already occupied destination role");}
   else throw new IllegalArgumentException(name);
  }
