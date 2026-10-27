@@ -39,7 +39,7 @@ public final class UiSmoke implements ClientModInitializer {
             if(!phaseValidated) {
             if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
-            if(phase==38&&!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");
+            if(phase==38){if(!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");testBookHeaderLayout();}
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
             if(phase==4)testBuiltInPaletteClicks();
@@ -340,6 +340,20 @@ public final class UiSmoke implements ClientModInitializer {
         if(catalog.get(controller)!=null||bridge.session().active())throw new AssertionError("no offline command/data/gameplay");service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.supercraft.SupercraftPolicy.defaults());clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_SUPERCRAFT_PASS real Other/callbacks/external exact policy, invalid-world request refusal/Jerry suspension, no offline data/gameplay");
     }
+    private void testBookHeaderLayout() throws Exception {
+        var tab=ui.getActiveModuleSubTab();var group=tab.groups().getFirst();float width=ui.moduleSettingsWidth();var layout=new MainGUITextLayout();var nvg=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
+        var lines=layout.wrapTextToWidth(nvg,group.getDescription(),"Inter-Regular",UiLayoutMetrics.DESCRIPTION_FONT,layout.groupHeaderDescriptionWidth(group,width));
+        if(lines.size()<2)throw new AssertionError("Book long-help fixture must exercise wrapping");
+        for(var line:lines)if(nvg.textWidth("Inter-Regular",line,UiLayoutMetrics.DESCRIPTION_FONT)>layout.groupHeaderDescriptionWidth(group,width)+.5f)throw new AssertionError("group help exceeds measured width");
+        float bottom=layout.groupHeaderDescriptionTop()+(lines.size()-1)*UiLayoutMetrics.DESCRIPTION_LINE*MainGUI.uiTextScale+UiLayoutMetrics.DESCRIPTION_FONT*MainGUI.uiTextScale+7;
+        if(ui.groupHeaderHeight(group,width)+.01f<bottom)throw new AssertionError("wrapped header clips its last line");
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var service=((dev.kuan.kuanperion.AutomationClientBridge)field.get(null)).book();
+        service.setPolicy(new dev.kuan.kuanperion.automation.BookCombineTask.Policy(java.util.Map.of("harvesting",5),java.util.Set.of(),1000,60,true));
+        var toggle=(dev.kuan.kuanperion.ui.settings.ToggleSetting)group.getSettings().getFirst();var row=rowFor(toggle);click(row[0]+row[2]-31,row[1]+(row[3]-5)/2);
+        if(!service.autoEnabled())throw new AssertionError("actual checkbox hit must follow measured header height");
+        click(row[0]+row[2]-31,row[1]+(row[3]-5)/2);if(service.autoEnabled())throw new AssertionError("wrapped header checkbox must remain independently clickable");service.setPolicy(dev.kuan.kuanperion.automation.BookCombineTask.Policy.defaults());
+        System.out.println("UI_SMOKE_GROUP_HEADER_PASS actual glyph wrap/full-height and checkbox click after expanded intro; no description rewrite");
+    }
     private void testBookUi() throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var service=bridge.book();
         if(service.autoEnabled()||service.active()||service.pending()||!service.policy().ceilings().isEmpty())throw new AssertionError("Book defaults grant no authority");
@@ -435,7 +449,7 @@ public final class UiSmoke implements ClientModInitializer {
         var layout=ui.context().layout;float x=layout.contX+181,w=layout.contW-201;
         float y=layout.contY+129-ui.getActiveScrollY();
         for(var group:ui.activeModuleClickGroups()){
-            y+=65;
+            y+=14+ui.groupHeaderHeight(group,w)+5;
             for(var setting:group.getSettings()){
                 if(!setting.isVisible())continue;float h=ui.settingHeightFor(setting,w);
                 if(setting==target)return new float[]{x,y,w,h};y+=h;

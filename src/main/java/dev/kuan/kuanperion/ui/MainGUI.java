@@ -968,14 +968,19 @@ extends NVGScreen {
     }
 
     private void renderGroupHeader(NVGRenderer nvg, SettingGroup group, float x, float y, float w, float mx, float my, boolean interactive) {
-        nvg.roundedRect(x, y, w, 46.0f, 6.0f, Theme.BG_SECONDARY);
+        float headerH=this.groupHeaderHeight(group,w);
+        nvg.roundedRect(x, y, w, headerH, 6.0f, Theme.BG_SECONDARY);
         float lerp = this.subTabBarAnimValue(group, group.isEnabled() && !group.isAlwaysOn() || group.isAlwaysOn() && interactive);
-        nvg.rectOutline(x, y, w, 46.0f, 6.0f, 0.8f, Theme.blend(Theme.SEPARATOR, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.22f), lerp));
+        nvg.rectOutline(x, y, w, headerH, 6.0f, 0.8f, Theme.blend(Theme.SEPARATOR, Theme.withAlpha(Theme.ACCENT_PRIMARY, 0.22f), lerp));
         int titleColor = interactive ? Theme.TEXT_PRIMARY : Theme.withAlpha(Theme.TEXT_DIM, 210);
         int descColor = interactive ? Theme.TEXT_SECONDARY : Theme.withAlpha(Theme.TEXT_DIM, 170);
         nvg.text("Inter-Regular", UiLang.localize(group.getName()), x + 12.0f, y + UiLayoutMetrics.TITLE_TOP, 13.5f, titleColor);
-        nvg.text("Inter-Regular", UiLang.localize(group.getDescription()), x + 12.0f, y + UiLayoutMetrics.descriptionTop(13.5f), UiLayoutMetrics.DESCRIPTION_FONT, descColor);
-        this.offerHoverHelp("group:" + group.getRawName(), group.getName(), group.getDescription(), x, y, w, 46.0f, mx, my);
+        float helpTop=this.textLayout.groupHeaderDescriptionTop(),helpW=this.textLayout.groupHeaderDescriptionWidth(group,w);
+        var lines=this.wrapTextForWidth(nvg,UiLang.localize(group.getDescription()),"Inter-Regular",UiLayoutMetrics.DESCRIPTION_FONT,helpW);
+        boolean clipped=this.pushContentLocalScissor(nvg,x+12,y+helpTop,helpW,Math.max(1,headerH-helpTop-7));
+        try{for(int i=0;i<lines.size();i++)nvg.text("Inter-Regular",lines.get(i),x+12,y+helpTop+i*UiLayoutMetrics.DESCRIPTION_LINE*uiTextScale,UiLayoutMetrics.DESCRIPTION_FONT,descColor);}
+        finally{this.popContentLocalScissor(nvg,clipped);}
+        this.offerHoverHelp("group:" + group.getRawName(), group.getName(), group.getDescription(), x, y, w, headerH, mx, my);
         if (this.isPetTrackerGroup(group)) {
             this.renderPetTrackerHeaderButtons(nvg, group, x + w - 12.0f, y + 12.0f, 22.0f, mx, my);
         }
@@ -991,7 +996,7 @@ extends NVGScreen {
             }
         }
         if (!interactive) {
-            nvg.roundedRect(x, y, w, 46.0f, 6.0f, Theme.withAlpha(Theme.PANEL_BG, 0.34f));
+            nvg.roundedRect(x, y, w, headerH, 6.0f, Theme.withAlpha(Theme.PANEL_BG, 0.34f));
         }
     }
 
@@ -1982,6 +1987,10 @@ extends NVGScreen {
 
     void renderPetTrackerGroupPanel(NVGRenderer nvg, SettingGroup group, float x, float y, float w, float mx, float my) {
         this.renderPetTrackerGroup(nvg, group, x, y, w, mx, my);
+    }
+
+    float groupHeaderHeight(SettingGroup group,float width) {
+        return this.textLayout.groupHeaderHeight(group,width);
     }
 
     float settingHeightFor(Setting setting, float width) {

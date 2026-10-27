@@ -143,7 +143,7 @@ final class MainGUISettingInteractionController {
         float y2 = 0.0f;
         for (SettingGroup group : this.owner.activeModuleClickGroups()) {
             y2 += 14.0f;
-            y2 += 46.0f;
+            y2 += this.owner.groupHeaderHeight(group,gw);
             if (!this.owner.shouldShowChildren(group) || !group.hasSettings()) continue;
             y2 += 5.0f;
             if (this.owner.isPetTrackerSettingsGroup(group)) {

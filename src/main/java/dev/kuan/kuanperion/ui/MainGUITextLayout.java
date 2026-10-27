@@ -20,6 +20,23 @@ final class MainGUITextLayout {
     MainGUITextLayout() {
     }
 
+    float groupHeaderDescriptionWidth(SettingGroup group,float rowW) {
+        return Math.max(1,rowW-24-(group.isAlwaysOn()?0:52));
+    }
+
+    float groupHeaderDescriptionTop() {
+        return UiLayoutMetrics.TITLE_TOP+13.5f*MainGUI.uiTextScale+UiLayoutMetrics.descriptionGap();
+    }
+
+    float groupHeaderHeight(SettingGroup group,float rowW) {
+        String description=UiLang.localize(group.getDescription());
+        float width=groupHeaderDescriptionWidth(group,rowW);
+        int lines=dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized()
+            ? wrapTextToWidth(dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer(),description,"Inter-Regular",UiLayoutMetrics.DESCRIPTION_FONT,width).size()
+            : estimateWrappedLineCount(description,width,UiLayoutMetrics.DESCRIPTION_FONT*MainGUI.uiTextScale);
+        return Math.max(46,groupHeaderDescriptionTop()+Math.max(0,lines-1)*UiLayoutMetrics.DESCRIPTION_LINE*MainGUI.uiTextScale+UiLayoutMetrics.DESCRIPTION_FONT*MainGUI.uiTextScale+7);
+    }
+
     float descriptionWidth(Setting setting,float rowW){return settingLabelMaxWidth(setting,rowW);}
     float descriptionHeight(Setting setting,float rowW) {
         if(!SettingDescriptionCatalog.inlineHelp(setting))return 0;

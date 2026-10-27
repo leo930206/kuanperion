@@ -83,3 +83,5 @@ Supercraft 的單次 UI 意圖已統一使用 ManualTaskRequest(false)，詳見 
 共用購料的缺量計畫／原root單次購買驗收見 [Bazaar 購料邊界](bazaar-acquisition-2.1.0.md)。估價不能傳成 GUI 證明；下一步是當前原生選單／數量／費用解析與 parent wiring，不是再新增購料分頁或開放未完成開關。
 
 尚缺的原生選單證據集中在 [當前伺服器證據清單](live-evidence-needed-2.1.0.md)。先補 Bazaar／George，已提供的 Anvil 書＋書圖不必重問；其他缺項不准用舊版定時點格位或連向原作者服務代替。
+
+長模組介紹不再固定46px：MainGUITextLayout.groupHeaderHeight 同時供繪製、點擊與搜尋位移使用。勿只改畫面高度卻保留舊65px列偏移；GroupHeaderLayoutTest／shared-wiring guard／實際Book勾選smoke一起守住。原Setting偶發實跑失敗仍留在verification／待辦，未以重跑通過冒充根因修復。

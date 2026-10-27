@@ -107,4 +107,5 @@
 - [x] Vanilla startAttack/startUseItem HEAD manual priority catches released fast clicks before native action, noncancellable; isolated 26.2 applied-Mixin/UI regression passes.
 
 - [x] Current isolated39-state UI rerun and real Book Trade/callback/default/policy persistence/offline rejection/Jerry suspension checks; old Trade route/unsafe offline Supercraft test assumptions updated. No live claim.
-- [ ] Shared long group-introduction wrapping/height/hit/scroll alignment; Book screenshot exposes clipping. Preserve and investigate intermittent phase16 gear smoke failure; one diagnostic pass is not a root-cause fix.
+- [x] Shared module group-introduction measured wrapping/height/culling, checkbox hit and search scroll alignment; actual long Book glyphs and real checkbox clicks verified in39-state isolated runtime, existing text retained.
+- [ ] Preserve and investigate intermittent phase16 gear smoke failure; later diagnostic passes are not a root-cause fix.

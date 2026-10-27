@@ -124,3 +124,5 @@ python3 "$ROOT/scripts/test-book-carried-native.py" "$JAVA_HOME"
 python3 "$ROOT/scripts/test-book-wiring.py"
 
 python3 "$ROOT/scripts/test-dispatch-priority.py"
+
+python3 "$ROOT/scripts/test-group-header-layout.py"

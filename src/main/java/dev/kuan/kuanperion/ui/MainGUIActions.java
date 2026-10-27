@@ -133,7 +133,7 @@ final class MainGUIActions {
         if (targetGroup == null) {
             return 0.0f;
         }
-        float offset = 65.0f;
+        float offset = 14+this.owner.groupHeaderHeight(targetGroup,this.owner.moduleSettingsWidth())+5;
         if (this.owner.isPetTrackerSettingsGroup(targetGroup)) {
             return Math.max(0.0f, offset - this.owner.moduleSettingsHeight() / 3.0f);
         }

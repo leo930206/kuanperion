@@ -133,11 +133,12 @@ final class MainGUIModuleDetailRenderer {
         for (SettingGroup group : renderGroups) {
             y += 14.0f;
             total += 14.0f;
-            if (y + 46.0f > settingsTop && y < settingsTop + settingsH) {
+            float headerH=this.owner.groupHeaderHeight(group,groupW);
+            if (y + headerH > settingsTop && y < settingsTop + settingsH) {
                 this.owner.renderGroupHeaderPanel(nvg, group, groupX, y, groupW, mx, my, subtabEnabled);
             }
-            y += 46.0f;
-            total += 46.0f;
+            y += headerH;
+            total += headerH;
             if (!this.owner.shouldShowChildren(group) || !group.hasSettings()) continue;
             y += 5.0f;
             total += 5.0f;
