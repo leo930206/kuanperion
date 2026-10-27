@@ -30,10 +30,17 @@ public record BookAnvilView(Layout layout,MenuSnapshot menu,Map<Integer,BookComb
  /** Free combine must be explicit; a book's gear-application price is never interpreted as combine cost. */
  public MenuContract.Ticket freeCombine(){
   var item=menu.item(layout.combine());if(item==null||menu.slot(layout.combine()).playerInventory()||!item.name().equals("Combine Items")||item.count()!=1||!item.lore().contains("Click to combine!"))return null;
-  int costs=0;for(String line:item.lore()){
-   if(line.equals("Cost: 0 Exp Levels")||line.equals("Cost: 0 Experience Levels")){costs++;continue;}
-   String lower=line.toLowerCase(Locale.ROOT);if(lower.contains("cost")||lower.contains("coins")||lower.contains("levels")||lower.contains("experience")||lower.contains("xp"))return null;
+  // Full known grammar, not a keyword allowlist: unknown currencies/extra controls must not hide behind zero XP.
+  var lines=item.lore().stream().filter(line->!line.isBlank()).toList();int at=0;
+  if(at<lines.size()&&lines.get(at).equals("Combine the items in the slots to the")){at++;if(at>=lines.size()||!lines.get(at++).equals("left and right below."))return null;}
+  else if(at<lines.size()&&lines.get(at).equals("Combine the items in the slots to the left and right below."))at++;
+  if(at>=lines.size())return null;String cost=lines.get(at++);
+  if(cost.equals("Cost")){if(at>=lines.size()||!lines.get(at++).equals("0 Exp Levels"))return null;}
+  else if(!cost.equals("Cost: 0 Exp Levels")&&!cost.equals("Cost: 0 Experience Levels"))return null;
+  if(at<lines.size()&&lines.get(at).startsWith("Your XP: ")){
+   String xp=lines.get(at++).substring(9);if(!xp.matches("0|[1-9][0-9]{0,9}"))return null;
+   try{if(Long.parseLong(xp)>Integer.MAX_VALUE)return null;}catch(NumberFormatException invalid){return null;}
   }
-  return costs==1?layout.contract().plan(menu,layout.combine(),MenuContract.Click.PICKUP):null;
+  return at+1==lines.size()&&lines.get(at).equals("Click to combine!")?layout.contract().plan(menu,layout.combine(),MenuContract.Click.PICKUP):null;
  }
 }

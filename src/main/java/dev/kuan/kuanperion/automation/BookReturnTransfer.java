@@ -6,8 +6,9 @@ public final class BookReturnTransfer {
  public enum State{IDLE,READY,ARMED,AWAITING,CONFIRMED,REJECTED,UNCERTAIN}
  public enum Step{PICKUP,DEPOSIT}
  public static final class Plan {
-  private final BookAnvilView view;private final BookInventorySnapshot inventory;private final BookCombinePlanner.Book book;private final int source,destination;
-  private Plan(BookAnvilView view,BookInventorySnapshot inventory,BookCombinePlanner.Book book,int source,int destination){this.view=view;this.inventory=inventory;this.book=book;this.source=source;this.destination=destination;}
+  private final BookAnvilView view;private final BookInventorySnapshot inventory;private final BookCombinePlanner.Book book;private final int source,destination;private final InventoryReceipts.Stamp combinedItems;private final CursorReceipts.Stamp combinedCursor;
+  private Plan(BookAnvilView view,BookInventorySnapshot inventory,BookCombinePlanner.Book book,int source,int destination){this(view,inventory,book,source,destination,null,null);}
+  private Plan(BookAnvilView view,BookInventorySnapshot inventory,BookCombinePlanner.Book book,int source,int destination,InventoryReceipts.Stamp combinedItems,CursorReceipts.Stamp combinedCursor){this.view=view;this.inventory=inventory;this.book=book;this.source=source;this.destination=destination;this.combinedItems=combinedItems;this.combinedCursor=combinedCursor;}
   public BookAnvilView view(){return view;}public BookInventorySnapshot inventory(){return inventory;}public BookCombinePlanner.Book book(){return book;}public int source(){return source;}public int destination(){return destination;}
  }
  public static Optional<Plan> select(BookAnvilView view,BookInventorySnapshot inventory,int source,BookCombinePlanner.Book expected,int destination,InventoryProtection rules){
@@ -17,6 +18,15 @@ public final class BookReturnTransfer {
    var book=view.book(source);if(book==null||book.enchantments().isEmpty()||!same(expected,book)||!rules.permits(book.item())||!book.item().skyblockId().equals("ENCHANTED_BOOK")||!book.item().minecraftId().equals("minecraft:enchanted_book")||!book.item().name().equals("Enchanted Book")||book.item().count()!=1||book.compatibility().isBlank()||book.compatibility().length()>16384)return Optional.empty();
    String uuid=uuid(book.item());if(!uuid.isBlank()&&inventory.inventory().values().stream().anyMatch(i->uuid.equals(uuid(i))))return Optional.empty();
    return Optional.of(new Plan(view,inventory,book,source,destination));
+  }catch(RuntimeException malformed){return Optional.empty();}
+ }
+ /** A result already on the cursor after our combine, never an arbitrary carried-item repair. */
+ public static Optional<Plan> carriedResult(BookAnvilView view,BookInventorySnapshot inventory,BookCombinePlanner planner,BookCombinePlanner.Plan pair,BookCombinePlanner.Book result,int destination,InventoryProtection rules,InventoryReceipts.Stamp combinedItems,CursorReceipts.Stamp combinedCursor){
+  try{
+   if(view==null||inventory==null||planner==null||rules==null||combinedItems==null||combinedCursor==null||destination<9||destination>35||!playersMatch(view,inventory)||!empty(inventory.inventory().get(destination))||!planner.isExpectedResult(pair,result)||result.inventorySlot()!=-1||!rules.permits(result.item()))return Optional.empty();
+   var l=view.layout();if(!view.emptyInput(l.firstInput())||!view.emptyInput(l.secondInput())||view.books().keySet().stream().anyMatch(i->i<54)||combinedItems.world()!=view.menu().worldId()||combinedCursor.world()!=view.menu().worldId()||combinedCursor.container()!=view.menu().containerId())return Optional.empty();
+   String uuid=uuid(result.item());if(!uuid.isBlank()&&inventory.inventory().values().stream().anyMatch(i->uuid.equals(uuid(i))))return Optional.empty();
+   return Optional.of(new Plan(view,inventory,result,-1,destination,combinedItems,combinedCursor));
   }catch(RuntimeException malformed){return Optional.empty();}
  }
  private static String uuid(ItemSnapshot i){return i.uuid().replace("-","").toLowerCase(Locale.ROOT);}
@@ -35,17 +45,28 @@ public final class BookReturnTransfer {
  public State state(){return state;}public Step step(){return step;}public MenuContract.Ticket ticket(){return state==State.ARMED?ticket:null;}
  private boolean owns(){try{return owned.getAsBoolean();}catch(RuntimeException unavailable){return false;}}
  public boolean begin(Plan plan,BookAnvilView view,BookInventorySnapshot inventory,ItemSnapshot cursor,long now){
-  if(state!=State.IDLE||plan==null||!owns()||!plan.view.equals(view)||!plan.inventory.equals(inventory)||!empty(cursor))return false;
+  if(state!=State.IDLE||plan==null||plan.source<0||!owns()||!plan.view.equals(view)||!plan.inventory.equals(inventory)||!empty(cursor))return false;
   this.plan=plan;started=phaseAt=now;state=State.READY;return true;
+ }
+ public boolean beginCarried(Plan plan,BookAnvilView view,BookInventorySnapshot inventory,ItemSnapshot cursor,long now){
+  if(state!=State.IDLE||plan==null||plan.source!=-1||plan.combinedItems==null||plan.combinedCursor==null||!owns()||!plan.view.equals(view)||!plan.inventory.equals(inventory)||!plan.book.item().equals(cursor))return false;
+  this.plan=plan;pickupStamp=plan.combinedItems;cursorStamp=pickupCursor=plan.combinedCursor;
+  if(!sourceReceipt(view)||cursors.after(pickupCursor,now,WINDOW).filter(r->plan.book.item().equals(r.item())).isEmpty()){state=State.UNCERTAIN;return false;}
+  started=phaseAt=now;step=Step.DEPOSIT;state=State.READY;return true;
  }
  private boolean scope(BookAnvilView view){return view!=null&&view.layout().equals(plan.view.layout())&&view.menu().worldId()==plan.view.menu().worldId()&&view.menu().containerId()==plan.view.menu().containerId();}
  private boolean stable(BookInventorySnapshot inventory){if(inventory==null)return false;for(int raw=0;raw<43;raw++)if(raw!=plan.destination&&!plan.inventory.inventory().get(raw).equals(inventory.inventory().get(raw)))return false;return true;}
  private boolean gain(BookInventorySnapshot inventory){return same(plan.book,inventory.books().get(plan.destination));}
  private boolean cleared(BookAnvilView view){
+  if(plan.source<0)return view.emptyInput(view.layout().firstInput())&&view.emptyInput(view.layout().secondInput())&&view.books().keySet().stream().noneMatch(i->i<54);
   var item=view.menu().item(plan.source);if(view.book(plan.source)!=null||item==null)return false;if(empty(item))return true;
   return item.count()==1&&!item.identified()&&item.uuid().isEmpty()&&(view.layout().emptyMaterials().contains(item.minecraftId())||plan.source==view.layout().combine()&&item.minecraftId().equals("minecraft:anvil")&&item.name().equals("Combine Items"));
  }
- private boolean sourceReceipt(BookAnvilView view){return cleared(view)&&Objects.equals(items.after(pickupStamp,view.menu().containerId(),plan.source),view.menu().item(plan.source));}
+ private boolean sourceReceipt(BookAnvilView view){
+  if(!cleared(view))return false;
+  if(plan.source<0){for(int slot:List.of(view.layout().firstInput(),view.layout().secondInput()))if(!Objects.equals(items.after(pickupStamp,view.menu().containerId(),slot),view.menu().item(slot)))return false;return true;}
+  return Objects.equals(items.after(pickupStamp,view.menu().containerId(),plan.source),view.menu().item(plan.source));
+ }
  private boolean destinationReceipt(BookAnvilView view,BookInventorySnapshot inventory){return gain(inventory)&&Objects.equals(items.after(itemStamp,view.menu().containerId(),54+plan.destination-9),inventory.inventory().get(plan.destination))&&Objects.equals(items.after(itemStamp,0,plan.destination),inventory.inventory().get(plan.destination));}
  private boolean timely(long now){return now-started>=0&&now-started<30*S&&now-phaseAt>=0&&now-phaseAt<WINDOW;}
  public boolean armNext(BookAnvilView view,BookInventorySnapshot inventory,ItemSnapshot physicalCursor,long now){

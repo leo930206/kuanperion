@@ -3,6 +3,8 @@
 
 ## 2.1.0 — 開發中（未發佈）
 
+- 支援使用者提供的書＋書分行零經驗費用格式；未知／重複／正值／缺費用不放行。補上合成直接產生在游標時的精確結果／輸入消耗回條與指定主背包取回，保留手動接管、不重播與雙回條保護。
+
 - Book Combine 接入預設關閉的 Trade 設定／service：固定 `/anvil`、使用者提供的介面候選角色、同級單附魔書授權、單組操作與所有停止路徑；結果只依新伺服器證據取回主背包。截圖未提供的費用不當免費，目前書＋書費用及連服仍待確認，未更新正式 JAR。
 
 - 2.1.0 development: Greenhouse/Composter interval jobs now defer native preflight while another root is active and preserve due-time dispatch without consuming a busy one-second poll slot. On release they still revalidate current Farm/UI/task authority; no forced start or preference rewrite. Full native maintenance-chain/live gates remain pending.

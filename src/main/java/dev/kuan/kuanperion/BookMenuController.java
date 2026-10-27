@@ -12,7 +12,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  @FunctionalInterface public interface AnvilSender {boolean send(AutomationSession.Handle handle,long now);}
  /** Package-private fixture seam; production always uses the pinned native client implementation below. */
  interface Game {
-  boolean available();Object level();Object menuIdentity();boolean idle();boolean safePlayer();boolean cursorEmpty();ItemSnapshot cursor();FlightAnchor pose();
+  boolean available();Object level();Object menuIdentity();boolean idle();boolean safePlayer();boolean cursorEmpty();ItemSnapshot cursor();BookCombinePlanner.Book cursorBook();FlightAnchor pose();
   BookInventorySnapshot inventory();MenuSnapshot menu(long world);BookAnvilView anvil(long world,BookAnvilView.Layout layout);
   boolean click(MenuContract.Ticket ticket);boolean deposit(MenuContract.Ticket ticket,ItemSnapshot ownBook);void close();
  }
@@ -21,6 +21,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  private final AnvilSender sender;private final Game game;private final LongSupplier clock;
  private AutomationSession.Handle owner;private Object level,menuIdentity;private FlightAnchor pose;private BookInventorySnapshot lastInventory;private BookCombinePlanner.Plan plan;
  private InventoryReceipts.Stamp opening;private CursorReceipts.OpeningStamp openingCursor;private CursorReceipts.Stamp actionCursor;private int container=-1,transfers,reclaimed;private boolean combined,collected,uncertain;
+ private InventoryReceipts.Stamp combinedItems;private CursorReceipts.Stamp combinedCursor;private boolean carriedResult;
  private BookReturnTransfer returning;private BookReturnTransfer.Plan returnPlan;
  public BookMenuController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,InventoryReceipts receipts,CursorReceipts cursors,BookAnvilView.Layout layout,BookCombineTask.Policy policy,AnvilSender sender){this(coordinator,session,observe,receipts,cursors,layout,policy,sender,new NativeGame(),System::nanoTime);}
  BookMenuController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,InventoryReceipts receipts,CursorReceipts cursors,BookAnvilView.Layout layout,BookCombineTask.Policy policy,AnvilSender sender,Game game,LongSupplier clock){
@@ -36,7 +37,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  public boolean open(AutomationSession.Handle h){
   long now=clock.getAsLong();if(!root(h,now)||owner!=null&&session.isCurrent(owner)||!game.idle()||!game.safePlayer()||!cursorEmpty()||lastInventory==null||!lastInventory.equals(game.inventory())||!coordinator.permits(h.lease(),AutomationCoordinator.Resource.COMMAND,AutomationSession.forFeature(context(),AutomationFeature.BOOK_COMBINE),now))return false;
   var selected=planner.select(new ArrayList<>(lastInventory.books().values()));if(selected.isEmpty())return false;
-  owner=h;level=game.level();pose=game.pose();plan=selected.get();opening=receipts.stamp(h.lease().worldId());openingCursor=cursors.openingStamp(h.lease().worldId(),now);actionCursor=null;menuIdentity=null;container=-1;transfers=reclaimed=0;combined=collected=uncertain=false;returning=null;returnPlan=null;
+  owner=h;level=game.level();pose=game.pose();plan=selected.get();opening=receipts.stamp(h.lease().worldId());openingCursor=cursors.openingStamp(h.lease().worldId(),now);actionCursor=null;menuIdentity=null;container=-1;transfers=reclaimed=0;combined=collected=uncertain=false;returning=null;returnPlan=null;combinedItems=null;combinedCursor=null;carriedResult=false;
   // Bind before the only callback; even a possibly-sent failure cannot be replayed under this root.
   try{boolean sent=session.isCurrent(h)&&sender.send(h,now);uncertain=!sent;return sent;}catch(RuntimeException failure){uncertain=true;throw failure;}
  }
@@ -86,7 +87,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  }
  public GuardedMenuAction.Result combine(AutomationSession.Handle h,MenuContract.Ticket ticket,long now){
   var v=ready(h,ticket,now);if(v==null||transfers!=2||combined||reclaimed!=0||!same(plan.first(),v.book(layout.firstInput()))||!same(plan.second(),v.book(layout.secondInput()))||!planner.isExpectedResult(plan,v.book(layout.preview()))||!Objects.equals(ticket,v.freeCombine()))return GuardedMenuAction.Result.REJECTED;
-  combined=true;return send(h,ticket,now);
+  combined=true;combinedItems=receipts.stamp(h.lease().worldId());var result=send(h,ticket,now);combinedCursor=actionCursor;return result;
  }
  public GuardedMenuAction.Result collect(AutomationSession.Handle h,MenuContract.Ticket ticket,long now){
   var v=ready(h,ticket,now);if(v==null||!combined||collected||ticket.slot()!=v.resultSlot(planner,plan)||ticket.click()!=MenuContract.Click.PICKUP||!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||!planner.isExpectedResult(plan,v.book(ticket.slot())))return GuardedMenuAction.Result.REJECTED;
@@ -120,6 +121,23 @@ public final class BookMenuController implements BookCombineTask.Port {
    return deposit?game.deposit(t,returnPlan.book().item()):game.click(t);
   },now);uncertain=result!=GuardedMenuAction.Result.SENT;return result;
  }
+ /** Explicit tick progression for a server-proven result already placed on our cursor by combine. */
+ public BookCombineTask.CombinedReturn progressCombinedResult(AutomationSession.Handle h,long now){
+  if(!combined||combinedItems==null||combinedCursor==null)return BookCombineTask.CombinedReturn.FAILED;
+  if(carriedResult)return combinedProgress(progressReturn(h,now));
+  if(cursorEmpty())return BookCombineTask.CombinedReturn.NOT_PRESENT;
+  var v=returnView(h,now);var current=game.inventory();var book=game.cursorBook();
+  if(v==null||collected||!lastInventory.equals(current)||book==null||!planner.isExpectedResult(plan,book)||!book.item().equals(game.cursor()))return BookCombineTask.CombinedReturn.FAILED;
+  var server=cursors.after(combinedCursor,now,8_000_000_000L);if(server.isEmpty())return BookCombineTask.CombinedReturn.WAITING;
+  if(!server.get().item().equals(book.item()))return BookCombineTask.CombinedReturn.FAILED;
+  for(int slot:List.of(layout.firstInput(),layout.secondInput()))if(!v.emptyInput(slot)||!Objects.equals(receipts.after(combinedItems,container,slot),v.menu().item(slot)))return BookCombineTask.CombinedReturn.WAITING;
+  int destination=-1;for(int raw=9;raw<36;raw++)if(current.inventory().get(raw).count()==0){destination=raw;break;}
+  var selected=BookReturnTransfer.carriedResult(v,current,planner,plan,book,destination,policy.protection(),combinedItems,combinedCursor);if(selected.isEmpty())return BookCombineTask.CombinedReturn.FAILED;
+  var next=new BookReturnTransfer(receipts,cursors,()->owns(h,clock.getAsLong()));var selectedPlan=selected.get();
+  if(!next.beginCarried(selectedPlan,v,current,game.cursor(),now))return BookCombineTask.CombinedReturn.FAILED;
+  returning=next;returnPlan=selectedPlan;carriedResult=collected=true;return combinedProgress(progressReturn(h,now));
+ }
+ private static BookCombineTask.CombinedReturn combinedProgress(BookCombineTask.ReturnProgress result){return switch(result){case WAITING->BookCombineTask.CombinedReturn.WAITING;case COMPLETE->BookCombineTask.CombinedReturn.COMPLETE;case FAILED->BookCombineTask.CombinedReturn.FAILED;};}
  public BookCombineTask.ReturnProgress progressReturn(AutomationSession.Handle h,long now){
   if(returning==null||returnPlan==null)return BookCombineTask.ReturnProgress.FAILED;
   var v=returnView(h,now);if(v==null){returning.cancel();return BookCombineTask.ReturnProgress.FAILED;}
@@ -143,6 +161,7 @@ public final class BookMenuController implements BookCombineTask.Port {
   public Object level(){return mc().level;}public Object menuIdentity(){return mc().player.containerMenu;}public boolean idle(){var m=mc();return available()&&m.gui.screen()==null&&m.gui.overlay()==null&&m.player.containerMenu==m.player.inventoryMenu;}
   public boolean cursorEmpty(){return available()&&mc().player.containerMenu.getCarried().isEmpty();}
   public ItemSnapshot cursor(){return AutomationGameView.item(mc().player.containerMenu.getCarried(),false);}
+  public BookCombinePlanner.Book cursorBook(){return AutomationGameView.book(mc().player.containerMenu.getCarried(),-1,false);}
   public boolean safePlayer(){var m=mc();return available()&&!m.player.isSpectator()&&!m.player.isPassenger()&&!m.player.isUsingItem()&&!m.player.isSleeping()&&!manualInput(m);}
   private boolean manualInput(Minecraft m){
    if(m.options==null||m.getWindow()==null)return true;if(m.gui.screen()!=null)return false;

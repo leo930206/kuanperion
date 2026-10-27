@@ -10,6 +10,7 @@ public final class BookCombineTask {
   public InventoryProtection protection(){return new InventoryProtection(Set.of("ENCHANTED_BOOK"),protectedUuids);}
  }
  public enum State{IDLE,OPENING,WAIT_MENU,WAIT_FIRST,SECOND_READY,WAIT_SECOND,COMBINE_READY,WAIT_COMBINE,COLLECT_READY,WAIT_RESULT,RECOVERING,WAIT_RECOVERY,COMPLETE,CANCELLED,TIMED_OUT,FAILED}
+ public enum CombinedReturn{NOT_PRESENT,WAITING,COMPLETE,FAILED}
  public enum ReturnProgress{WAITING,COMPLETE,FAILED}
  public interface Port{
   AutomationContext context();MenuSnapshot menu();BookAnvilView view();BookInventorySnapshot inventorySnapshot();boolean cursorEmpty();
@@ -18,6 +19,7 @@ public final class BookCombineTask {
   GuardedMenuAction.Result combine(AutomationSession.Handle handle,MenuContract.Ticket ticket,long now);
   GuardedMenuAction.Result collect(AutomationSession.Handle handle,MenuContract.Ticket ticket,long now);
   GuardedMenuAction.Result reclaim(AutomationSession.Handle handle,MenuContract.Ticket ticket,InventoryProtection rules,long now);
+  CombinedReturn progressCombinedResult(AutomationSession.Handle handle,long now);
   ReturnProgress progressReturn(AutomationSession.Handle handle,long now);
   void closeOwnedMenu(int id);
  }
@@ -49,6 +51,7 @@ public final class BookCombineTask {
   if(recoveringState){if(now-recoveryStarted<0||now-recoveryStarted>=10_000_000_000L){finish(recoveryOutcome,now,false);return;}}
   else if(now-started<0||now-started>=policy.timeoutSeconds()*1_000_000_000L){abort(State.TIMED_OUT,now);return;}
   if(context.blockers().contains(AutomationContext.Blocker.FOCUS))return;
+  if(state==State.WAIT_COMBINE){var progress=port.progressCombinedResult(handle,now);if(progress==null||progress==CombinedReturn.FAILED){finish(State.FAILED,now,false);return;}if(progress==CombinedReturn.WAITING)return;}
   // A separately guarded return may hold only its own server-proven book between pickup and explicit main-slot deposit.
   if(state==State.WAIT_RESULT||state==State.WAIT_RECOVERY){var progress=port.progressReturn(handle,now);if(progress==null||progress==ReturnProgress.FAILED){finish(State.FAILED,now,false);return;}if(progress==ReturnProgress.WAITING)return;}
   boolean waitingCursor=state==State.WAIT_FIRST||state==State.WAIT_SECOND||state==State.WAIT_COMBINE||state==State.WAIT_RESULT||state==State.WAIT_RECOVERY;

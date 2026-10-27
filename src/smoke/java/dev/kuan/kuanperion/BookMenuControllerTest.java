@@ -11,7 +11,7 @@ public final class BookMenuControllerTest {
   final Object level=new Object();Object currentLevel=level,containerIdentity=new Object();boolean visible,ready=true,emptyCursor=true,manual;int clicks,closes,id=4,revision=1,lastDeposit=-1;long x;boolean throwClick;ItemSnapshot carried=empty();
   int inventoryReads,mutateAt=Integer.MAX_VALUE;Runnable mutation;Map<Integer,BookCombinePlanner.Book> inv=new HashMap<>(),placed=new HashMap<>();Map<Integer,ItemSnapshot> extras=new HashMap<>(),icons=new HashMap<>();
   Game(){for(int i=0;i<9;i++)extras.put(i,new ItemSnapshot("TEST_TOOL","minecraft:stone","","Tool","tool-"+i,1,List.of(),true));inv.put(9,book(9,4,"one"));inv.put(10,book(10,4,"two"));icons.put(22,new ItemSnapshot("","minecraft:anvil","","Combine Items","free",1,List.of("Cost: 0 Exp Levels","Click to combine!"),false));}
-  public boolean available(){return ready;}public Object level(){return currentLevel;}public Object menuIdentity(){return containerIdentity;}public boolean idle(){return !visible;}public boolean safePlayer(){return ready&&!manual;}public boolean cursorEmpty(){return emptyCursor&&carried.count()==0;}public ItemSnapshot cursor(){return carried;}
+  public boolean available(){return ready;}public Object level(){return currentLevel;}public Object menuIdentity(){return containerIdentity;}public boolean idle(){return !visible;}public boolean safePlayer(){return ready&&!manual;}public boolean cursorEmpty(){return emptyCursor&&carried.count()==0;}public ItemSnapshot cursor(){return carried;}public BookCombinePlanner.Book cursorBook(){var b=book(-1,5,"result");return b.item().equals(carried)?b:null;}
   public FlightAnchor pose(){return new FlightAnchor(new Point(x,70,0),0,0,0,empty(),false);}
   public BookInventorySnapshot inventory(){if(++inventoryReads==mutateAt&&mutation!=null)mutation.run();var items=new HashMap<Integer,ItemSnapshot>();for(int i=0;i<43;i++)items.put(i,extras.getOrDefault(i,empty()));inv.forEach((i,b)->items.put(i,b.item()));return BookInventorySnapshot.inspect(items,inv).orElseThrow();}
   public MenuSnapshot menu(long world){if(!visible)return null;var slots=new ArrayList<MenuSnapshot.Slot>();for(int i=0;i<90;i++){int raw=i<54?-1:i<81?i-54+9:i-81;var b=i<54?placed.get(i):inv.get(raw);slots.add(new MenuSnapshot.Slot(i,b!=null?b.item():i<54?icons.getOrDefault(i,empty()):extras.getOrDefault(raw,empty()),i>=54));}return new MenuSnapshot(world,id,revision,"Anvil",54,slots);}
@@ -51,9 +51,26 @@ public final class BookMenuControllerTest {
   f=new Fixture();f.start();f.server(S);var changed=f;f.g.mutateAt=f.g.inventoryReads+3;f.g.mutation=()->changed.g.extras.put(40,new ItemSnapshot("TEST","minecraft:stone","","late","late",1,List.of(),true));f.tick(S);check(f.g.clicks==0,"full43 drift precisely at final sender refuses effect");
   f=new Fixture();f.start();f.server(S);var takeover=f;f.g.mutateAt=f.g.inventoryReads+3;f.g.mutation=()->takeover.session.invalidate();f.tick(S);check(f.g.clicks==0,"root invalidation during final inventory observation cannot send under stale owner");
   f=new Fixture();f.first();f.g.containerIdentity=new Object();f.server(3*S);f.tick(3*S);check(f.g.clicks==1&&f.g.closes==0,"replaced native menu with identical container ID is not the owned menu");
+  for(String mode:List.of("success","missing-input","missing-cursor","cancel","uncertain","foreign","duplicate","late-drift"))directResult(mode);
   confirmedLayout();
   regression("controlled-main");regression("controlled-deposit");regression("cancel-carried");regression("uncertain-deposit");regression("late-deposit-drift");regression("two-reclaims");regression("two-reclaims-stale-preview");regression("occupied-second");
   System.out.println("BookMenuControllerTest: PASS (real task/controller/session, simulated server opening/input/combine/result/recovery; native/current-live validation remains separate)");
+ }
+ static void directResult(String mode){
+  var f=new Fixture(BookAnvilView.confirmedLayout());f.g.extras.remove(0);f.both();
+  f.g.icons.put(22,new ItemSnapshot("","minecraft:lime_terracotta","","Combine Items","current-book-fee",1,List.of("Combine the items in the slots to the","left and right below.","","Cost","0 Exp Levels","Your XP: 398","","Click to combine!"),false));f.server(5*S);f.tick(5*S);check(f.g.clicks==3,"screenshot multiline explicit zero combine is sent exactly once");
+  f.g.placed.clear();f.g.carried=book(-1,5,mode.equals("foreign")?"stranger":"result").item();if(mode.equals("duplicate"))f.g.placed.put(13,book(-1,5,"result"));f.now[0]=6*S;
+  for(var slot:f.g.menu(1).slots())if(!mode.equals("missing-input")||slot.index()!=33)f.items.observe(1,4,slot.index(),f.packet(slot.item(),slot.index()>=81));
+  if(!mode.equals("missing-cursor"))f.cursor.observe(1,4,f.g.carried,6*S);
+  if(mode.equals("cancel")){f.session.cancel(6*S);f.tick(6*S);check(f.g.clicks==3&&f.g.closes==0&&f.g.carried.count()==1,"manual stop never deposits/repairs combine-produced cursor");return;}
+  if(mode.equals("uncertain"))f.g.throwClick=true;
+  if(mode.equals("late-drift")){var captured=f;f.g.mutateAt=f.g.inventoryReads+4;f.g.mutation=()->captured.g.extras.put(40,new ItemSnapshot("TEST","minecraft:stone","","late","late",1,List.of(),true));}
+  f.tick(6*S);
+  if(mode.equals("missing-input")||mode.equals("missing-cursor")){check(f.g.clicks==3&&f.task.active(),"direct result never relies on a missing consumed input or server cursor: "+mode);f.server(7*S);f.tick(7*S);}
+  if(mode.equals("foreign")||mode.equals("duplicate")||mode.equals("late-drift")){check(f.g.clicks==3&&!f.task.active()&&f.g.closes==0&&f.g.carried.count()==1,"unknown/duplicate/drift direct result is left for player: "+mode);return;}
+  if(mode.equals("uncertain")){f.tick(7*S);check(f.g.clicks==4&&!f.task.active()&&f.g.closes==0,"uncertain direct-result deposit is never retried");return;}
+  check(f.g.clicks==4&&f.g.lastDeposit==54&&f.task.active(),"combine-produced own cursor goes directly to exact empty raw9, no extra pickup");
+  f.g.carried=empty();f.g.inv.put(9,book(9,5,"result"));f.tick(8*S);check(f.task.active()&&f.g.closes==0,"predicted direct gain/empty cursor cannot resume Farm");f.server(9*S);f.tick(9*S);check(f.task.state()==BookCombineTask.State.COMPLETE&&f.g.closes==1&&f.hooks[1]==0&&!f.g.extras.containsKey(0),"direct result requires both destination receipts and keeps protected empty hotbar");
  }
  static void confirmedLayout(){
   var f=new Fixture(BookAnvilView.confirmedLayout());f.g.extras.remove(0);f.both();check(f.g.placed.containsKey(29)&&f.g.placed.containsKey(33),"current screenshot inputs29/33, not fixture20/24");f.tick(5*S);check(f.g.clicks==3,"current layout exact free preview accepted");

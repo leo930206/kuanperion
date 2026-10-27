@@ -22,6 +22,7 @@ public final class BookCombineTaskTest {
   public GuardedMenuAction.Result collect(AutomationSession.Handle h,MenuContract.Ticket ticket,long now){check(ticket.slot()==22&&ticket.click()==MenuContract.Click.PICKUP,"only proved result picked up for controlled return");collects++;actionAt=now;return outcome;}
   public GuardedMenuAction.Result reclaim(AutomationSession.Handle h,MenuContract.Ticket ticket,InventoryProtection rules,long now){check((ticket.slot()==20||ticket.slot()==24)&&ticket.click()==MenuContract.Click.PICKUP,"only confirmed original input pickup, never quick-move");returns++;actionAt=now;return outcome;}
   // This fixture models a direct server fulfillment; the native multi-step port has separate composed controller tests.
+  public BookCombineTask.CombinedReturn progressCombinedResult(AutomationSession.Handle h,long now){return BookCombineTask.CombinedReturn.NOT_PRESENT;}
   public BookCombineTask.ReturnProgress progressReturn(AutomationSession.Handle h,long now){return BookCombineTask.ReturnProgress.COMPLETE;}
   public void closeOwnedMenu(int id){closed++;if(refuseClose)return;visible=false;ctx=new AutomationContext(1,true,true,Set.of());}
   void input(int raw,int target,InventoryReceipts receipts){var before=inventory.remove(raw);placed.put(target,new BookCombinePlanner.Book(-1,before.item(),before.enchantments(),before.compatibility()));receipts.observe(1,4,raw-9+54,empty());receipts.observe(1,0,raw,empty());receipts.observe(1,4,target,placed.get(target).item());stateId++;if(ackCursor)cursor.observe(1,4,empty(),actionAt+S);}

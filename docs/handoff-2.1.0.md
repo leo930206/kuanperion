@@ -31,7 +31,7 @@
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | Sacks／採購、當前選單與連服驗收 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 預算控管採購與當前連服格式／結果驗收 |
-| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢 | Bazaar 實際採購／出售、Book 目前費用文案／合成後實際回覆／開啟權限、George 估價／交易／取回接線、各項連服驗收 |
+| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢 | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
 進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。先前提供的約 60% 是整體交付粗估，不可用測試數或打勾比例冒充驗收率。
@@ -71,7 +71,7 @@ git diff --check
 ## 6. 接下來怎麼做
 
 1. 先核對最新 Book 任務、指定格取回與原生操作的測試；新 `Port.progressReturn` 是明確推進點，禁止把原生操作藏到 getter／tick 以外的背景回呼。
-2. Book 的外部設定、單次／自動 service、Trade UI、全域停止與固定 `/anvil` 已接線。先讀 [目前 Anvil 證據](anvil-current-evidence-2.1.0.md)：Kuan 的截圖提供29/33/13/22角色候選，但未證明書＋書費用、按下後處置或所有帳號權限。維持明確零費用及伺服器回條守門；不能改回 `/av`＋定時點22，不能把缺費用當免費。
+2. Book 的外部設定、單次／自動 service、Trade UI、全域停止與固定 `/anvil` 已接線。先讀 [目前 Anvil 證據](anvil-current-evidence-2.1.0.md)：Kuan 的截圖提供29/33/13/22角色候選及書＋書分行明確零費用格式；亦支援有新伺服器回條的合成直接游標結果。不假設按下後處置或所有帳號權限，維持當次費用及回條守門；不能改回 `/av`＋定時點22，不能把缺費用當免費。
 3. 依進度清單完成其他採購、Pet／Pest 及串接；必要的當前選單證據不足時，保持拒絕，不猜材料／金額／容量／按鈕角色。
 4. 每次小步驟先 RED→GREEN，再跑相應完整回歸／原生編譯與稽核，檢查未完成模組未公開、設定未變、原模組未回歸。
 5. Git commit／push 至 `feature/2.1.0`。**整體完成且驗收後**才考慮 main／2.1.0 tag／正式安裝；不要把開發 JAR 複製到使用者 `mods/` 來冒充已完成。
