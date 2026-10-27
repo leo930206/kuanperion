@@ -1,6 +1,9 @@
 # Changelog
 
+
 ## 2.1.0 — 開發中（未發佈）
+
+- 2.1.0 development: add an unpublished fixed-owner native Book operation port with complete applied-menu/cursor opening proof, exact guarded input/combine/result/recovery and concrete container/pose/full-inventory revalidation. Refuse unsafe hotbar quick-move destinations before ownership; current live menus/general destinations/service/UI remain pending. No stable installation or preferences changed.
 - Book Combine 每次輸入、合成、領取與復原都要有新的同容器伺服器空游標回條；過期、錯誤容器／世代、早於操作時間或非空回條不可當作完成。等待中的本機預測可在期限內結清，但不操作或修復未知游標；取消復原及成功關閉前再次驗證，失敗不誤續耕。仍未接入原生合書入口。
 - Book Combine 抽象執行層改用完整 43 格背包基準：每步只接受該次已授權的來源移出或單一結果／復原增量，其他物品與裝備變動會停止；來源須同時有容器與標準背包回條，結果不能借用其他格位的回條。安全停止錯誤不再被重複收尾掩蓋；原生操作、游標接線與線上驗收仍待完成。
 - Book Combine 補上原生唯讀前置：完整 43 格不可變背包、精確書籍 NBT／受保護格位與重複身分檢查，並將實際鐵砧原生 Slot 對應至明確指定版面；未提供預設線上格位、開啟選單、合書操作或未完成的功能開關。

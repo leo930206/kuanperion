@@ -28,7 +28,7 @@ public final class AutomationMenuActions {
  private static boolean execute(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,GuardedMenuAction.Space space,Supplier<AutomationContext> observe,Supplier<MenuSnapshot> menus,long now){
   return GuardedMenuAction.execute(coordinator,lease,contract,ticket,space,observe,menus,AutomationMenuActions::sendNative,now);
  }
- private static boolean sendNative(MenuContract.Ticket request){
+ static boolean sendNative(MenuContract.Ticket request){
    var mc=Minecraft.getInstance();if(mc.player==null||mc.gameMode==null||!mc.player.containerMenu.getCarried().isEmpty())return false;
    var input=switch(request.click()){case PICKUP->ContainerInput.PICKUP;case QUICK_MOVE->ContainerInput.QUICK_MOVE;case THROW->ContainerInput.THROW;};
    int button=request.click()==MenuContract.Click.THROW?1:0;

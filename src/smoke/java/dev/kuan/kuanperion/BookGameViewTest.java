@@ -18,6 +18,10 @@ public final class BookGameViewTest {
   var oldExternal=nativeSlots.get(5);var externalAlias=new Slot(external,6,0,0);externalAlias.index=5;nativeSlots.set(5,externalAlias);check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"empty external native alias is not an independent role");nativeSlots.set(5,oldExternal);
   nativeSlots.get(54).index=55;check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"native menu index alias rejected");nativeSlots.get(54).index=54;
   player.setItem(9,book("changed"));check(BookGameView.projectAnvil(layout,menu,nativeSlots,player).isEmpty(),"changed native stack cannot borrow earlier menu snapshot");
-  System.out.println("BookGameViewTest: PASS (actual26.2 book NBT/slots, complete43/protected aliases, malformed/native drift denial, declared-layout projection only; no GUI mutation/live layout claim)");
+  var stone=AutomationGameViewTest.fixture(Items.STONE,1);var hotbar=new MenuSnapshot.Slot(81,AutomationGameView.item(stone,true),true);var packet=AutomationGameView.item(stone,false);
+  check(hotbar.item().protectedItem()&&!packet.protectedItem()&&BookMenuController.sameServerItem(hotbar,packet),"actual native packet lacks only derived hotbar protection, retaining exact identity");
+  check(!BookMenuController.sameServerItem(new MenuSnapshot.Slot(54,hotbar.item(),true),packet)&&!BookMenuController.sameServerItem(new MenuSnapshot.Slot(81,hotbar.item(),false),packet),"nonhotbar/external slots cannot borrow derived protection normalization");
+  stone.setCount(2);check(!BookMenuController.sameServerItem(hotbar,AutomationGameView.item(stone,false)),"hotbar normalization never hides native count/metadata drift");
+  System.out.println("BookGameViewTest: PASS (actual26.2 book NBT/slots, complete43/protected aliases, exact packet/hotbar protection, malformed/native drift denial, declared-layout projection only; no GUI mutation/live layout claim)");
  }
 }
