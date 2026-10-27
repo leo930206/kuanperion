@@ -320,3 +320,10 @@ Staging five gates passed. Isolated pinned26.2 offline client passed19:23:12 inc
 - The earlier intermittent Setting click failure was not reproduced in the diagnostic nor wrapping run; production navigation was not modified and no root-cause fix is claimed. All final native-menu/live acceptance/release gates remain open.
 
 Final sync checkpoint: 完整 test.sh（含 shared-header wiring）、實際專案重建／來源與封裝稽核通過。15個同步檔案與542個JAR entries 全等；實際專案產物亦與通過39狀態的獨立客戶端JAR逐entry全等。四個nested helper只有debug行號改動，javap指令全等；其他gameplay／交易／網路classes未改。正式2.0.17 checksum未變，未安裝2.1.0。
+
+
+## 2026-10-28 — Pest read-only crop/event strategy checkpoint
+
+- Added pure Feast/Jacob/Jacob-then-Feast explicit target selection with default Off, independent exact priorities/profiles, bounded fresh same-world facts and fallback only after positive inactive evidence. Unknown or unlisted active crops never become first-crop guesses. No current profile mapping, event parser/feed, runtime caller, native apply task or unfinished toggle was added; complete strategy scope stays unchecked.
+- Genuine missing-API RED precedes implementation. Focused pure models, complete test.sh including a no-runtime-caller/no-network boundary, pinned26.2 build/source+archive audits, UI/GroupHeader/Chat models, migration and eight actual Java25 Pest/compatibility models passed. All542previous JAR entries are byte-identical; only11new leaf-policy classes were added. The earlier39-state UI result applies to unchanged UI code; no new GUI run or live strategy application is claimed for this pure-policy addition.
+- Official Public API reference was checked read-only for a public event source; no documented global Feast/Jacob feed was established. No undocumented URL, historical third-party feed, account/profile lookup or new runtime endpoint was introduced. Details/remaining data and native-effect gates are in pest-strategy-2.1.0.md and live-evidence-needed-2.1.0.md.

@@ -12,6 +12,7 @@ These unblock current semantic/native menu adapters. Shared public estimates, fr
 ## Subsequent unresolved adapters
 
 - **Pest bait:** current trap/bait role tooltips before refill, explicit bait material and remaining capacity/quantity, and how that menu is reached. Existing pure direct-item-slot fixtures deliberately do not assert a real layout.
+- **Pest crop/events:** the current Jacob/Harvest Feast activity block with crop names and clear active/inactive state. Unknown/missing text cannot be relabeled inactive; do not add the historical third-party feed or profile lookup as a shortcut.
 - **Pest exchange:** actual offer/confirmation/cost/reward fields. Preserve explicit thresholds and the original return point; historical helper `/setspawn` or unconditional Farming restart is not authorization.
 - **Sprayonator:** current material-selection/selected-material facts, actual resource/count cost and exact server success/plot information. Do not infer selected material or a spray result from elapsed time.
 - **Composter Sacks:** current source-selection/available-unit/refill/resource fields and the actual server acknowledgement route. Inventory-source deposit proof is not a Sacks balance proof.

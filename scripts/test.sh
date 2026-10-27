@@ -126,3 +126,5 @@ python3 "$ROOT/scripts/test-book-wiring.py"
 python3 "$ROOT/scripts/test-dispatch-priority.py"
 
 python3 "$ROOT/scripts/test-group-header-layout.py"
+
+python3 "$ROOT/scripts/test-pest-strategy-boundaries.py"

@@ -85,3 +85,5 @@ Supercraft 的單次 UI 意圖已統一使用 ManualTaskRequest(false)，詳見 
 尚缺的原生選單證據集中在 [當前伺服器證據清單](live-evidence-needed-2.1.0.md)。先補 Bazaar／George，已提供的 Anvil 書＋書圖不必重問；其他缺項不准用舊版定時點格位或連向原作者服務代替。
 
 長模組介紹不再固定46px：MainGUITextLayout.groupHeaderHeight 同時供繪製、點擊與搜尋位移使用。勿只改畫面高度卻保留舊65px列偏移；GroupHeaderLayoutTest／shared-wiring guard／實際Book勾選smoke一起守住。原Setting偶發實跑失敗仍留在verification／待辦，未以重跑通過冒充根因修復。
+
+Pest 策略的純目標選擇見 [策略規劃邊界](pest-strategy-2.1.0.md)：未知活動資料不可當未舉辦，未授權作物不可選第一個硬套；沒有複製舊第三方活動 feed／預設映射或提供未完成開關，實際套用仍待原生接線。

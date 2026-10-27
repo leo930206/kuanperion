@@ -51,6 +51,7 @@
 - [x] Bait declared direct-item transfer protocol/subtask: explicit protected43 material/count/capacity preflight, fresh pickup/deposit/owned remainder-return/cursor/NoBait receipts, same original Pest/Farm root and exact owned close; no native caller or live layout claim.
 - [ ] Bait actual current native role/capacity/transfer gate, Pest parent navigation/dispatch, settings/UI/acquisition and live trap formats.
 - [ ] Exchange/spray.
+- [x] Read-only explicit Feast/Jacob/Jacob-then-Feast target selection: independent exact priorities/profiles, fresh world-bound known facts, inactive-only explicit fallback, no first-crop guess or copied event feed. No runtime caller/action/UI or current mapping claim.
 - [ ] Event/crop strategies and due-task scheduling.
 
 ## 5 — farm maintenance
