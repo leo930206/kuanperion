@@ -1,0 +1,26 @@
+package dev.kuan.kuanperion.automation;
+import dev.kuan.kuanperion.automation.visitor.*;import dev.kuan.kuanperion.automation.supercraft.*;import java.lang.reflect.*;import java.nio.file.*;import java.util.*;import java.util.concurrent.atomic.AtomicBoolean;
+/** Real services/tasks/session, controlled existing ports; borrowed Pest root is not native Pest proof. */
+public final class DispatchBusyRootTest {
+ static final long S=1_000_000_000L;static void check(boolean b,String why){if(!b)throw new AssertionError(why);}
+ interface Job{void tick(long now);boolean active();void cancel(long now);}
+ static Object field(Class<?> type,String name,Object target)throws Exception{var f=type.getDeclaredField(name);f.setAccessible(true);return f.get(target);}
+ static void run(AutomationFeature feature,String mode)throws Exception{
+  Path dir=Files.createTempDirectory("dispatch-busy-");Job job=null;AutomationSession session=null;
+  try{
+   String prefix="dev.kuan.kuanperion.automation."+(feature==AutomationFeature.VISITOR?"visitor.VisitorTaskTest":"supercraft.SupercraftTaskTest");var fakeType=Class.forName(prefix+"$Fake");var constructor=fakeType.getDeclaredConstructor();constructor.setAccessible(true);var fake=constructor.newInstance();var type=feature==AutomationFeature.VISITOR?VisitorTask.Port.class:SupercraftTask.Port.class;
+   int[] reads={0},hooks={0,0};AutomationSession.Handle[] started={null};var port=Proxy.newProxyInstance(type.getClassLoader(),new Class<?>[]{type},(p,m,a)->{if(Set.of("context","frame").contains(m.getName()))reads[0]++;if(Set.of("requestData","requestCatalog").contains(m.getName()))started[0]=(AutomationSession.Handle)a[0];try{return m.invoke(fake,a);}catch(InvocationTargetException e){throw e.getCause();}});
+   var context=type.getMethod("context");java.util.function.Supplier<AutomationContext> observe=()->{try{return (AutomationContext)context.invoke(port);}catch(ReflectiveOperationException e){throw new AssertionError(e);}};
+   session=new AutomationSession(new AutomationCoordinator(),observe,()->hooks[0]++,()->hooks[1]++);var allowed=new AtomicBoolean(true);var path=dir.resolve("automation.json");var settings=AutomationSettingsStore.load(path);
+   if(feature==AutomationFeature.VISITOR){var service=new VisitorService(settings,session,new PlayerPositionReceipts(),new InventoryReceipts(),new CursorReceipts(),(VisitorTask.Port)port,allowed::get,n->{});service.setPolicy((VisitorPolicy)field(Class.forName(prefix),"POLICY",null));service.setEnabled(true);job=new Job(){public void tick(long n){service.tick(n);}public boolean active(){return service.active();}public void cancel(long n){service.cancel(n);}};}
+   else{var service=new SupercraftService(settings,session,new InventoryReceipts(),new CursorReceipts(),(SupercraftTask.Port)port,allowed::get,n->{});service.setPolicy(new SupercraftPolicy((SupercraftTask.Policy)field(Class.forName(prefix),"POLICY",null),60));service.setEnabled(true);job=new Job(){public void tick(long n){service.tick(n);}public boolean active(){return service.active();}public void cancel(long n){service.cancel(n);}};}
+   byte[] saved=Files.readAllBytes(path);var prior=session.begin(AutomationFeature.PEST,0,60*S);check(prior!=null,"preceding original Farm held");reads[0]=0;job.tick(S);
+   if(mode.equals("busy")){check(reads[0]==0&&started[0]==null&&session.isCurrent(prior)&&Arrays.equals(saved,Files.readAllBytes(path)),feature+" must not preflight/query/steal/consume busy poll");return;}
+   check(session.finish(prior,true,S),"preceding successful root releases original hold");
+   if(mode.equals("farm-off")){session.invalidate();var ctx=fakeType.getDeclaredField("ctx");ctx.setAccessible(true);ctx.set(fake,new AutomationContext(1,false,true,Set.of()));job.tick(S);check(!job.active()&&!session.active()&&started[0]==null&&Arrays.equals(saved,Files.readAllBytes(path)),"manual Farm-off cannot force due dispatch or rewrite consent");return;}
+   if(mode.equals("ui")){allowed.set(false);job.tick(S);check(!job.active()&&started[0]==null,"UI remains priority after release");allowed.set(true);}
+   job.tick(S);check(job.active()&&started[0]!=null&&hooks[0]==2&&hooks[1]==0&&session.holdsFarming(),feature+" due work must dispatch at SAME timestamp after busy owner, no one-second poll loss");check(started[0].lease().owner()==feature&&started[0].generation()==prior.generation()&&started[0].hold().farmingSession()==prior.hold().farmingSession()&&Arrays.equals(saved,Files.readAllBytes(path)),"fresh feature root retains only original manual Farm generation, no preference rewrite");
+  }finally{if(job!=null)job.cancel(2*S);if(session!=null)session.invalidate();try(var files=Files.walk(dir)){for(var p:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
+ }
+ public static void main(String[]args)throws Exception{if(args.length==2)run(AutomationFeature.valueOf(args[0]),args[1]);else for(var f:List.of(AutomationFeature.SUPERCRAFT,AutomationFeature.VISITOR))for(String mode:List.of("busy","handoff","ui","farm-off"))run(f,mode);System.out.println("DispatchBusyRootTest: PASS (real Visitor/Supercraft services, zero busy preflight, preserved poll/due time, current UI/Farm authority/original generation; no live-chain claim)");}
+}

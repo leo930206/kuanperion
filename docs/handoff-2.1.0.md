@@ -36,7 +36,7 @@
 
 進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。先前提供的約 60% 是整體交付粗估，不可用測試數或打勾比例冒充驗收率。
 
-Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放後重新守門派送」，見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)；不代表整條原生 Pest 後續任務鏈已驗收。
+Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放後重新守門派送」，見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)。Bridge 另有單次 UI 意圖優先、Stash 隔離及 Supercraft 在 Visitor 前的 due 順序；不代表整條原生 Pest 後續任務鏈已驗收。
 
 ## 4. 快速找到程式
 

@@ -4,9 +4,9 @@ import dev.kuan.kuanperion.automation.*;import java.io.IOException;import java.u
 /** Dispatch only an explicit exact batch. UI requests expire and wait for the user's screen to close. */
 public final class SupercraftService {
  private static final long SECOND=1_000_000_000L;
- private final AutomationSettingsStore settings;private final SupercraftTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
+ private final AutomationSession session;private final AutomationSettingsStore settings;private final SupercraftTask task;private final BooleanSupplier automaticAllowed;private final Consumer<StashService.Notice> feedback;
  private boolean suspended,pending,attempted,polled;private long pendingAt,lastAttempt,lastPoll;private SupercraftTask.State reported=SupercraftTask.State.IDLE;
- public SupercraftService(AutomationSettingsStore settings,AutomationSession session,InventoryReceipts receipts,CursorReceipts cursors,SupercraftTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;this.automaticAllowed=automaticAllowed;this.feedback=feedback;task=new SupercraftTask(session,receipts,cursors,port);}
+ public SupercraftService(AutomationSettingsStore settings,AutomationSession session,InventoryReceipts receipts,CursorReceipts cursors,SupercraftTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.session=session;this.settings=settings;this.automaticAllowed=automaticAllowed;this.feedback=feedback;task=new SupercraftTask(session,receipts,cursors,port);}
  public SupercraftPolicy policy(){return settings.supercraftPolicy();}public boolean autoEnabled(){return !suspended&&settings.enabled(AutomationFeature.SUPERCRAFT)&&settings.supercraftPolicyValid()&&policy().configured();}public boolean active(){return task.active();}public boolean pending(){return pending;}public boolean ownsMenu(){return task.ownsMenu();}
  public void setEnabled(boolean value)throws IOException{if(value&&(!settings.supercraftPolicyValid()||!policy().configured()))throw new IllegalArgumentException("請先設定 Supercraft 配方、材料及數量上限");if(!value){suspended=true;cancel(System.nanoTime());}settings.setEnabled(AutomationFeature.SUPERCRAFT,value);suspended=!value;}
  public void setPolicy(SupercraftPolicy value)throws IOException{pending=false;if(active())cancel(System.nanoTime());try{settings.setSupercraftPolicy(value);}catch(IOException failure){suspended=true;throw failure;}}
@@ -15,6 +15,7 @@ public final class SupercraftService {
  public void tick(long now){
   if(active()){if(!automaticAllowed.getAsBoolean()&&!task.ownsMenu())cancel(now);else{task.tick(now);report();}return;}
   if(pending){if(now-pendingAt<0||now-pendingAt>=30*SECOND){pending=false;return;}if(!automaticAllowed.getAsBoolean())return;pending=false;request(true,now);return;}
+  if(session.active()){polled=false;return;}
   if(!autoEnabled()||!automaticAllowed.getAsBoolean()||attempted&&(now-lastAttempt<0||now-lastAttempt<policy().intervalSeconds()*SECOND)||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }

@@ -39,16 +39,16 @@ public final class AutomationClientBridge {
   stash=new StashService(settings,coordinator,this::observe,this::send,feedback);
   session=new AutomationSession(coordinator,this::observe,pauseFarm,safeStopFarm);
   flight=new PestFlightController(coordinator,session,this::observe,this::sendPestTravel);
-  pest=new PestService(settings,session,flight,positions,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  pest=new PestService(settings,session,flight,positions,()->screenReady(AutomationFeature.PEST),feedback);
   greenhouseFlight=new GreenhouseFlightController(coordinator,session,this::observe,this::sendGreenhouseTravel);
-  greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->screenReady(AutomationFeature.GREENHOUSE),feedback);
   composterFlight=new ComposterFlightController(coordinator,session,this::observe,this::sendComposterTravel);
-  composter=new ComposterService(settings,session,positions,receipts,cursors,composterFlight,()->Minecraft.getInstance().gui.screen()==null,()->ComposterGameView.capture(Minecraft.getInstance(),observe()),feedback);
+  composter=new ComposterService(settings,session,positions,receipts,cursors,composterFlight,()->screenReady(AutomationFeature.COMPOSTER),()->ComposterGameView.capture(Minecraft.getInstance(),observe()),feedback);
   visitorFlight=new VisitorFlightController(coordinator,session,this::observe,this::sendVisitorTravel);
-  visitor=new VisitorService(settings,session,positions,receipts,cursors,visitorFlight,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  visitor=new VisitorService(settings,session,positions,receipts,cursors,visitorFlight,()->screenReady(AutomationFeature.VISITOR),feedback);
   supercraftMenu=new SupercraftMenuController(coordinator,session,this::observe,receipts,this::sendSupercraftRecipe);
-  supercraft=new SupercraftService(settings,session,receipts,cursors,supercraftMenu,()->Minecraft.getInstance().gui.screen()==null,feedback);
-  book=new BookService(settings,session,receipts,cursors,this::observe,p->new BookMenuController(coordinator,session,this::observe,receipts,cursors,BookAnvilView.confirmedLayout(),p,this::sendBookAnvil),BookAnvilView.confirmedLayout(),()->Minecraft.getInstance().gui.screen()==null,feedback);
+  supercraft=new SupercraftService(settings,session,receipts,cursors,supercraftMenu,()->screenReady(AutomationFeature.SUPERCRAFT),feedback);
+  book=new BookService(settings,session,receipts,cursors,this::observe,p->new BookMenuController(coordinator,session,this::observe,receipts,cursors,BookAnvilView.confirmedLayout(),p,this::sendBookAnvil),BookAnvilView.confirmedLayout(),()->screenReady(AutomationFeature.BOOK_COMBINE),feedback);
   autoSell=new AutoSellService(settings,session,receipts,new AutoSellTask.Port(){
    public AutomationContext context(){return observe();}
    public MenuSnapshot menu(){return AutomationGameView.menu(Minecraft.getInstance(),currentWorldId());}
@@ -56,7 +56,7 @@ public final class AutomationClientBridge {
    public boolean command(AutomationSession.Handle handle,AutomationCommand command){return sendGameplay(handle,command);}
    public boolean sell(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection protection,long now){return session.isCurrent(handle)&&AutomationMenuActions.inventoryAction(coordinator,handle.lease(),contract,ticket,protection,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,AutomationClientBridge.this::observe,this::menu,now);}
    public void closeOwnedMenu(int id){var mc=Minecraft.getInstance();var menu=menu();if(mc.player!=null&&menu!=null&&menu.containerId()==id)mc.player.closeContainer();}
-  },()->Minecraft.getInstance().gui.screen()==null,feedback);
+  },()->screenReady(AutomationFeature.AUTO_SELL),feedback);
   junk=new JunkService(settings,session,receipts,new JunkTask.Port(){
    public AutomationContext context(){return observe();}
    public JunkPolicy.Location location(){var mc=Minecraft.getInstance();return mc.level==null||mc.player==null?null:new JunkPolicy.Location(mc.level.dimension().toString(),mc.player.getX(),mc.player.getY(),mc.player.getZ());}
@@ -68,7 +68,7 @@ public final class AutomationClientBridge {
    }
    public boolean drop(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection rules,long now){return session.isCurrent(handle)&&handle.lease().owner()==AutomationFeature.JUNK&&AutomationMenuActions.inventoryAction(coordinator,handle.lease(),contract,ticket,rules,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,AutomationClientBridge.this::observe,this::menu,now);}
    public void closeOwnedMenu(int id){var mc=Minecraft.getInstance();var menu=menu();if(mc.player!=null&&menu!=null&&menu.containerId()==id)mc.player.closeContainer();}
-  },()->Minecraft.getInstance().gui.screen()==null,feedback);
+  },()->screenReady(AutomationFeature.JUNK),feedback);
  }
  public BookService book(){return book;}
  public SupercraftService supercraft(){return supercraft;}
@@ -91,7 +91,15 @@ public final class AutomationClientBridge {
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}
  public JunkService junk(){return junk;}
- public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);visitor.tick(now);supercraft.tick(now);book.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
+ /** Idle arbitration only: an explicit deferred UI intent wins over automatic timers, never over a live root. */
+ private AutomationFeature manualOwner(){
+  if(pest.pending())return AutomationFeature.PEST;if(greenhouse.pending())return AutomationFeature.GREENHOUSE;if(composter.pending())return AutomationFeature.COMPOSTER;if(supercraft.pending())return AutomationFeature.SUPERCRAFT;if(visitor.pending())return AutomationFeature.VISITOR;if(book.pending())return AutomationFeature.BOOK_COMBINE;if(autoSell.pending())return AutomationFeature.AUTO_SELL;if(junk.pending())return AutomationFeature.JUNK;return null;
+ }
+ private boolean screenReady(AutomationFeature feature){
+  if(Minecraft.getInstance().gui.screen()!=null)return false;if(session.active())return true;
+  var requested=manualOwner();return requested==null||requested==feature;
+ }
+ public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);supercraft.tick(now);visitor.tick(now);book.tick(now);if(manualOwner()==null)stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
  /** Local settings must not replace a leased task or an inventory/cursor still owned by the server. No queued replay. */
  public boolean canOpenSettings(){

@@ -26,6 +26,7 @@ public final class VisitorService {
     if(!accepted&&reported==previous)feedback.accept(new StashService.Notice("Visitor 單次請求未開始：目前設定、目標、材料、Garden 或控制權條件不符；未繼續執行。",false,"Visitor"));
    }return;
   }
+  if(session.active()){polled=false;return;}
   if(!autoEnabled()||!automaticAllowed.getAsBoolean()||attempted&&(now-lastAttempt<0||now-lastAttempt<policy().cooldownSeconds()*SECOND)||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }
