@@ -61,6 +61,7 @@
 - [ ] Composter Sacks source, budgeted material purchases and current live menu/machine/receipt validation.
 
 ## 6 — Visitor/Supercraft
+- [x] Supercraft single UI intent uses shared original-world/Farming-state binding, foreign-root/blocker/clock/30s/policy/manual cancellation; real-service regression and standalone-safe dispatch verified offline.
 - [x] Shared official item catalog: bounded strict JSON, unambiguous exact names/IDs, demand-only anonymous transport/receipt-time cache; no startup consumer or remote author lookup.
 - [x] Visitor exact selected-title/semantic-role offer parsing, explicit material IDs, protected main-inventory deficits and full opportunity-cost estimates; native43-slot fixtures.
 - [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; runtime inventory-backed caller wired.

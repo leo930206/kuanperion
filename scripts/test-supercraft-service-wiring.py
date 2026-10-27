@@ -52,5 +52,6 @@ ui=(main/'ui/SupercraftModuleSettings.java').read_text()
 for forbidden in ['sendCommand(','sendSupercraftRecipe(','.craft(','HypixelItemCatalogClient','Minecraft.getInstance()']:assert forbidden not in ui,forbidden
 assert 'service.manualRequest(System.nanoTime())' in ui and '關閉選單後執行一批' in ui
 service=(main/'automation/supercraft/SupercraftService.java').read_text()
-assert 'now-pendingAt>=30*SECOND' in service and 'pending=false;request(true,now)' in service
+assert 'new ManualTaskRequest(false)' in service and 'manual.offer(pendingContext(),session.active(),now)' in service and 'manual.take(pendingContext(),session.active(),automaticAllowed.getAsBoolean(),now)' in service
+shared=(main/'automation/ManualTaskRequest.java').read_text();assert 'elapsed>=30_000_000_000L' in shared and 'context.worldId()!=world' in shared and 'context.farmingActive()!=farming' in shared
 print('SupercraftLifecycleWiringTest: PASS (single fixed-owner service/Other UI, deferred expiring requests, exact task/native guards, manual/world/shutdown/Jerry cancellation; no purchase/maximize or live compatibility claim)')

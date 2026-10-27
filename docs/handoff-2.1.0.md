@@ -77,3 +77,5 @@ git diff --check
 5. Git commit／push 至 `feature/2.1.0`。**整體完成且驗收後**才考慮 main／2.1.0 tag／正式安裝；不要把開發 JAR 複製到使用者 `mods/` 來冒充已完成。
 
 交接不需要提供帳號、token、Webhook、正式設定或完整個人日誌；只提供此分支／文件／測試與必要且去識別的選單證據。
+
+Supercraft 的單次 UI 意圖已統一使用 ManualTaskRequest(false)，詳見 [Supercraft 邊界](supercraft-protocol-notes.md#single-ui-intent-lifecycle)；原世界／Farm／外來root失效不得因關選單而重播。這不等於已支援尚未確認的 quantity-setting 選單。
