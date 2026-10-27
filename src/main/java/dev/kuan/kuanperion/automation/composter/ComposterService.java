@@ -33,6 +33,8 @@ public final class ComposterService {
   if(!autoEnabled())return;
   if(!scheduled){scheduled=true;lastScheduled=now;return;}
   if(now-lastScheduled<0){lastScheduled=now;return;}
+  // Keep the maintenance interval due while another root owns the original Farm; retry only after a fresh dispatch gate.
+  if(session.active()){polled=false;return;}
   if(now-lastScheduled<policy().intervalSeconds()*SECOND||!automaticAllowed.getAsBoolean()||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }

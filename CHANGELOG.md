@@ -3,6 +3,8 @@
 
 ## 2.1.0 — 開發中（未發佈）
 
+- 2.1.0 development: Greenhouse/Composter interval jobs now defer native preflight while another root is active and preserve due-time dispatch without consuming a busy one-second poll slot. On release they still revalidate current Farm/UI/task authority; no forced start or preference rewrite. Full native maintenance-chain/live gates remain pending.
+
 - 2.1.0 development: replace Book result/recovery quick-move with source pickup, own server-carried book proof and an explicit empty main-slot deposit, including both destination aliases/full43/empty-cursor confirmation and actual native physical-slot guards. Empty hotbar slots stay untouched; previous occupied-hotbar restriction is removed. Add a portable human/AI handoff index. Book current live opening/layout/service/UI remain pending; stable installation/settings are unchanged.
 
 - 2.1.0 development: add an unpublished fixed-owner native Book operation port with complete applied-menu/cursor opening proof, exact guarded input/combine/result/recovery and concrete container/pose/full-inventory revalidation. Refuse unsafe hotbar quick-move destinations before ownership; current live menus/general destinations/service/UI remain pending. No stable installation or preferences changed.

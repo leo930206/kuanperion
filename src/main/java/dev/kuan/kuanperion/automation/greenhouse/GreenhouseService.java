@@ -31,6 +31,8 @@ public final class GreenhouseService {
   if(!autoEnabled())return;
   if(!scheduled){scheduled=true;lastScheduled=now;return;}
   if(now-lastScheduled<0){lastScheduled=now;return;}
+  // A different task must not consume the due poll slot or expose its temporary tool/pose to this preflight.
+  if(session.active()){polled=false;return;}
   if(now-lastScheduled<policy().intervalSeconds()*SECOND||!automaticAllowed.getAsBoolean()||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }

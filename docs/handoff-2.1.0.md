@@ -6,7 +6,7 @@
 
 - Repository：<https://github.com/leo930206/kuanperion>，開發分支 `feature/2.1.0`。先讀 `git status`、`git log -5 --oneline`，不要假設 HEAD 就是穩定版。
 - 正式穩定線：`main`／`v2.0.17`，commit `a126ea51f1f916efd69d4c2374f58f2373512363`。這次開發不可覆蓋使用者正在用的 JAR 或設定。
-- 原生合書操作基底檢查點：`8469514`。本次再加入指定主背包格的取回協定／原生接線；實際最新 revision 以 Git 為準，無需仰賴聊天記憶。
+- 原生合書操作基底：`8469514`；指定主背包格取回與本交接入口：`e7055e5`；官方 Wiki 證據註記：`25b58aa`。後續最新 revision 以 Git 為準，無需仰賴聊天記憶。
 - 來源與可重跑測試都在 repository。`/private/tmp` 僅為分段工作／測試場，不是交接必需的唯一來源；個人 agent memory 不是權威文件。
 - 開發產物：`build/libs/kuanperion-2.1.0.jar`。建出 JAR 不等於可發佈、已安裝或已連服驗收；build 會重建 `build/`。
 
@@ -35,6 +35,8 @@
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
 進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。先前提供的約 60% 是整體交付粗估，不可用測試數或打勾比例冒充驗收率。
+
+Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放後重新守門派送」，見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)；不代表整條原生 Pest 後續任務鏈已驗收。
 
 ## 4. 快速找到程式
 
