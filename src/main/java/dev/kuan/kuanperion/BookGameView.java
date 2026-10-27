@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import java.util.*;import net.minecraft.client.Minecraft;import net.minecraft.world.Container;import net.minecraft.world.inventory.Slot;import net.minecraft.world.item.ItemStack;
-/** Read-only pinned26.2 projections. No live anvil layout default, GUI action, cost assumption or caller. */
+/** Read-only pinned26.2 projections. No GUI action or cost assumption; layout is supplied by the caller. */
 public final class BookGameView {
  private BookGameView(){}
  private static boolean available(Minecraft mc){return mc!=null&&mc.isSameThread()&&mc.player!=null&&mc.level!=null;}

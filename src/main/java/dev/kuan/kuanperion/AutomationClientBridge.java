@@ -31,6 +31,7 @@ public final class AutomationClientBridge {
  private final GreenhouseService greenhouse;private final GreenhouseFlightController greenhouseFlight;
  private final PestService pest;private final PestFlightController flight;
  private final JunkService junk;private final AutoSellService autoSell;private boolean ownGameplayCommand,observedGameplayCommand;
+ private final BookService book;
  private final StashService stash;private Object levelIdentity;private long worldGeneration;
  public AutomationClientBridge(Path configDir,Supplier<LegacyState> legacy,Function<Minecraft,List<String>> sidebar,Consumer<StashService.Notice> feedback,Runnable pauseFarm,Runnable safeStopFarm){
   this.feedback=feedback;this.legacy=legacy;this.sidebar=sidebar;
@@ -47,6 +48,7 @@ public final class AutomationClientBridge {
   visitor=new VisitorService(settings,session,positions,receipts,cursors,visitorFlight,()->Minecraft.getInstance().gui.screen()==null,feedback);
   supercraftMenu=new SupercraftMenuController(coordinator,session,this::observe,receipts,this::sendSupercraftRecipe);
   supercraft=new SupercraftService(settings,session,receipts,cursors,supercraftMenu,()->Minecraft.getInstance().gui.screen()==null,feedback);
+  book=new BookService(settings,session,receipts,cursors,this::observe,p->new BookMenuController(coordinator,session,this::observe,receipts,cursors,BookAnvilView.confirmedLayout(),p,this::sendBookAnvil),BookAnvilView.confirmedLayout(),()->Minecraft.getInstance().gui.screen()==null,feedback);
   autoSell=new AutoSellService(settings,session,receipts,new AutoSellTask.Port(){
    public AutomationContext context(){return observe();}
    public MenuSnapshot menu(){return AutomationGameView.menu(Minecraft.getInstance(),currentWorldId());}
@@ -68,14 +70,16 @@ public final class AutomationClientBridge {
    public void closeOwnedMenu(int id){var mc=Minecraft.getInstance();var menu=menu();if(mc.player!=null&&menu!=null&&menu.containerId()==id)mc.player.closeContainer();}
   },()->Minecraft.getInstance().gui.screen()==null,feedback);
  }
+ public BookService book(){return book;}
  public SupercraftService supercraft(){return supercraft;}
  public VisitorService visitor(){return visitor;}
  public PestService pest(){return pest;}
  public GreenhouseService greenhouse(){return greenhouse;}
  public ComposterService composter(){return composter;}
  public void beforeMovementTick(){
-  if(!pest.active()&&!greenhouse.active()&&!composter.active()&&!visitor.active()&&!supercraft.active())return;
+  if(!pest.active()&&!greenhouse.active()&&!composter.active()&&!visitor.active()&&!supercraft.active()&&!book.active())return;
   var context=observe();
+  if(book.active()&&(Minecraft.getInstance().gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI||context.worldId()<=0||context.blockers().stream().anyMatch(b->b!=AutomationContext.Blocker.MENU&&b!=AutomationContext.Blocker.INVENTORY_FULL)||context.blockers().contains(AutomationContext.Blocker.MENU)&&!book.ownsMenu()))book.cancel(System.nanoTime());
   if(supercraft.active()&&(Minecraft.getInstance().gui.screen() instanceof dev.kuan.kuanperion.ui.MainGUI||context.blockers().stream().anyMatch(b->b!=AutomationContext.Blocker.MENU)||!context.canIssueCommand()&&!supercraft.ownsMenu()||supercraftMenu.manualInput()))supercraft.cancel(System.nanoTime());
   if(visitor.active()&&(!context.garden()||context.blockers().stream().anyMatch(b->b!=AutomationContext.Blocker.MENU)||!context.canIssueCommand()&&!visitor.ownsMenu()||visitorFlight.manualInput()))visitor.cancel(System.nanoTime());
   if(composter.active()&&(!context.garden()||context.blockers().stream().anyMatch(b->b!=AutomationContext.Blocker.MENU)||!context.canIssueCommand()&&!composter.ownsMenu()||composterFlight.manualInput()))composter.cancel(System.nanoTime());
@@ -83,11 +87,11 @@ public final class AutomationClientBridge {
   if(greenhouse.active()&&(!context.canIssueCommand()||!context.garden()||greenhouseFlight.manualInput()))greenhouse.cancel(System.nanoTime());
  }
 
- public void onManualLook(){if(Minecraft.getInstance().gui.screen()==null){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}}
+ public void onManualLook(){if(Minecraft.getInstance().gui.screen()==null){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}}
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}
  public JunkService junk(){return junk;}
- public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);visitor.tick(now);supercraft.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
+ public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);visitor.tick(now);supercraft.tick(now);book.tick(now);stash.tick(now);autoSell.tick(now);junk.tick(now);}
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
  /** Local settings must not replace a leased task or an inventory/cursor still owned by the server. No queued replay. */
  public boolean canOpenSettings(){
@@ -146,15 +150,15 @@ public final class AutomationClientBridge {
  public AutomationSession session(){return session;}
  public AutomationCoordinator coordinator(){return coordinator;}
  public boolean holdsFarming(){return session.holdsFarming();}
- public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);visitor.onSystemMessage(currentWorldId(),text);}
  /** Unlike lifecycle cancellation, Jerry also suspends configured but idle automatic jobs. */
- public void suspendForJerry(){long now=System.nanoTime();pest.suspend(now);greenhouse.suspend(now);composter.suspend(now);visitor.suspend(now);supercraft.suspend(now);autoSell.suspend(now);junk.suspend(now);stash.suspend("Jerry 停止動作");}
- public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void suspendForJerry(){long now=System.nanoTime();pest.suspend(now);greenhouse.suspend(now);composter.suspend(now);visitor.suspend(now);supercraft.suspend(now);book.suspend(now);autoSell.suspend(now);junk.suspend(now);stash.suspend("Jerry 停止動作");}
+ public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
  public void onManualWorldInput(){onManualInventoryInput();}
- public void onManualInventoryInput(){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
- public void shutdown(){try{supercraft.cancel(System.nanoTime());}finally{try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}}}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}visitorClose=null;receipts.clear();positions.clear();cursors.clear();harvests.clear();}
+ public void onManualInventoryInput(){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void shutdown(){try{book.cancel(System.nanoTime());}finally{try{supercraft.cancel(System.nanoTime());}finally{try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}}}}
+ public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}visitorClose=null;receipts.clear();positions.clear();cursors.clear();harvests.clear();}
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);
@@ -220,6 +224,14 @@ public final class AutomationClientBridge {
   if(!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.screen()!=null||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
   ownGameplayCommand=true;observedGameplayCommand=false;
   try{mc.player.connection.sendCommand("recipe "+recipe.outputId());if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /recipe "+recipe.outputId(),false,"Supercraft"));return true;}finally{ownGameplayCommand=false;}
+ }
+ /** User-confirmed /anvil only. A sent command is not proof of permission or a compatible menu. */
+ private boolean sendBookAnvil(AutomationSession.Handle handle,long now){
+  if(handle==null||!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.BOOK_COMBINE)return false;
+  var mc=Minecraft.getInstance();var context=AutomationSession.forFeature(observe(),AutomationFeature.BOOK_COMBINE);
+  if(!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.screen()!=null||mc.gui.overlay()!=null||mc.player.containerMenu!=mc.player.inventoryMenu||!mc.player.containerMenu.getCarried().isEmpty()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
+  ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand("anvil");if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /anvil",false,"Book Combine"));return true;}finally{ownGameplayCommand=false;}
  }
  private boolean sendGameplay(AutomationSession.Handle handle,AutomationCommand command){
   if(!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.AUTO_SELL||command!=AutomationCommand.BOOSTER_COOKIE)return false;

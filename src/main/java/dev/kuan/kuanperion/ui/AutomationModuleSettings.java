@@ -12,7 +12,7 @@ public final class AutomationModuleSettings {
  private AutomationModuleSettings(){}
  @FunctionalInterface private interface Change {void run()throws IOException;}
  private static void change(Change action){try{action.run();}catch(IOException|IllegalArgumentException error){NotificationManager.error("自動化設定未套用",error.getMessage()==null?"原設定保留":error.getMessage());}}
- public static List<ModulesTab.SubTab> trade(StashService stash,AutoSellService sell,JunkService junk){
+ public static List<ModulesTab.SubTab> trade(StashService stash,AutoSellService sell,JunkService junk,BookService book){
   var group=SettingGroup.alwaysOn("Stash","領取待領物品；不會出售、丟棄、切換裝備或更動 Farming／Mining")
    .add(new ToggleSetting("自動領取 Stash",stash::autoEnabled,value->change(()->stash.setEnabled(value))))
    .add(new ToggleSetting("只在 Farming 執行中自動領取",()->stash.settings().stashPolicy().onlyWhileFarming(),value->change(()->{var p=stash.settings().stashPolicy();stash.setPolicy(new StashTask.Policy(p.delaySeconds(),p.maxAttempts(),p.timeoutSeconds(),value));})))
@@ -22,7 +22,7 @@ public final class AutomationModuleSettings {
    .add(new ActionSetting("立即領取 Stash",()->{if(!stash.manualRequest(System.nanoTime()))NotificationManager.error("Stash 未開始","請確認位於 SkyBlock、背包有空位、沒有 Mining／回程／選取任務，且沒有重複執行或設定錯誤");}))
    .add(new ActionSetting("停止本次領取",()->stash.cancel("手動停止本次領取")).visibleWhen(stash::active))
    .add(new InfoSetting("執行狀態",stash::status));
-  return List.of(autoSell(sell),junk(junk),new ModulesTab.SubTab("Stash","自動或手動領取待領物品",stash::autoEnabled,value->change(()->stash.setEnabled(value)),List.of(group)));
+  return List.of(autoSell(sell),BookModuleSettings.tab(book),junk(junk),new ModulesTab.SubTab("Stash","自動或手動領取待領物品",stash::autoEnabled,value->change(()->stash.setEnabled(value)),List.of(group)));
  }
  private static ModulesTab.SubTab autoSell(AutoSellService sell){
   var group=SettingGroup.alwaysOn("Auto Sell","僅 NPC 出售；空白名單不執行，保護物品優先排除。")

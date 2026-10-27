@@ -7,6 +7,9 @@ import dev.kuan.kuanperion.automation.visitor.*;
 import java.util.*;
 public final class UiModelTest {
     public static void main(String[] args) throws Exception {
+        require(BookModuleSettings.parseCeilings("harvesting=5, efficiency=10").equals(Map.of("harvesting",5,"efficiency",10)),"exact explicit book ceiling parser");
+        require(BookModuleSettings.parseCeilings(" ").isEmpty(),"blank authorization never means all enchants");
+        for(String bad:List.of("harvesting=0","harvesting=11","harvesting=1.5","harvesting=5,harvesting=6","harvesting=5,","HARVESTING=5","harvesting=05","harvesting; barn=5"))try{BookModuleSettings.parseCeilings(bad);throw new AssertionError("invalid book consent accepted: "+bad);}catch(IllegalArgumentException expected){}
         testPestPendingUi();
         testMaintenancePendingUi();
         var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");
@@ -215,6 +218,7 @@ public final class UiModelTest {
             store.setVisitorPolicy(new VisitorPolicy(new VisitorValuation.Rules(Set.of("Librarian"),Set.of("WHEAT"),1000,0,1),1,1,240,60,true));
             store.setAutoSellPolicy(new AutoSellPolicy(Set.of("WHEAT"),Set.of(),2,128,1000,60,60,85,true));
             store.setJunkPolicy(new JunkPolicy(Set.of("SEEDS"),Set.of(),3,192,1000,60,60,85,true,new JunkPolicy.Location("overworld",10,70,10),1.5));
+            store.setBookPolicy(new BookCombineTask.Policy(Map.of("harvesting",5),Set.of(),1000,60,true));
             byte[] original=java.nio.file.Files.readAllBytes(path);java.util.function.Consumer<StashService.Notice> notice=n->{throw new AssertionError("queue/cancel is not gameplay completion");};
             var greenhouse=new GreenhouseService(store,session,new PlayerPositionReceipts(),new HarvestReceipts(),contextOnlyPort(GreenhouseTask.Port.class,context),()->false,notice);
             assertPendingUi(GreenhouseModuleSettings.tab(greenhouse),greenhouse::pending,greenhouse::active,greenhouse::status);
@@ -226,10 +230,12 @@ public final class UiModelTest {
             var sell=new AutoSellService(store,session,new InventoryReceipts(),contextOnlyPort(AutoSellTask.Port.class,hub),()->false,notice);
             var junk=new JunkService(store,session,new InventoryReceipts(),contextOnlyPort(JunkTask.Port.class,context),()->false,notice);
             var stash=new StashService(store,new AutomationCoordinator(),()->context,command->{throw new AssertionError("Trade settings sent Stash command");},notice);
-            var trade=AutomationModuleSettings.trade(stash,sell,junk);
+            var book=new BookService(store,session,new InventoryReceipts(),new CursorReceipts(),()->context,p->{throw new AssertionError("settings created native Book port");},BookAnvilView.confirmedLayout(),()->false,notice);
+            var trade=AutomationModuleSettings.trade(stash,sell,junk,book);
+            assertPendingUi(trade.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow(),book::pending,book::active,book::status);
             assertPendingUi(trade.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow(),sell::pending,sell::active,sell::status);
             assertPendingUi(trade.stream().filter(t->t.name().equals("Junk")).findFirst().orElseThrow(),junk::pending,junk::active,junk::status);
-            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&!sell.autoEnabled()&&!junk.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
+            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&!sell.autoEnabled()&&!junk.autoEnabled()&&!book.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
         } finally {try(var paths=java.nio.file.Files.walk(dir)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())java.nio.file.Files.deleteIfExists(p);}}
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}

@@ -27,7 +27,7 @@ public final class AutomationSettingsStore {
    if(version==null||!version.isJsonPrimitive()||!version.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Missing schema");
    int schema=version.getAsBigDecimal().intValueExact();
    if(schema!=SCHEMA){writable=false;issue="設定格式版本不相容，未啟用自動化或覆寫檔案";return;}
-   for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse","composter","visitor","supercraft"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
+   for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse","composter","visitor","supercraft","bookCombine"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
    root=candidate;
   }catch(IOException|RuntimeException invalid){writable=false;issue="自動化設定無法讀取，原檔保留且自動化停用";}
  }
@@ -93,6 +93,14 @@ public final class AutomationSettingsStore {
  private static long visitorLong(JsonObject s,String key,long fallback){if(!s.has(key))return fallback;var v=s.get(key);if(!v.isJsonPrimitive()||!v.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Invalid Visitor budget");long n=v.getAsBigDecimal().longValueExact();if(n<0||n>1000000000000L)throw new IllegalArgumentException("Invalid Visitor budget");return n;}
  private static java.util.Set<String> visitorStrings(JsonObject s,String key,int limit){var v=s.get(key);if(v==null)return java.util.Set.of();if(!v.isJsonArray()||v.getAsJsonArray().size()>limit)throw new IllegalArgumentException("Invalid Visitor list");var result=new java.util.HashSet<String>();for(var entry:v.getAsJsonArray()){if(!entry.isJsonPrimitive()||!entry.getAsJsonPrimitive().isString()||!result.add(entry.getAsString()))throw new IllegalArgumentException("Invalid/duplicate Visitor entry");}return java.util.Set.copyOf(result);}
  public void setVisitorPolicy(dev.kuan.kuanperion.automation.visitor.VisitorPolicy p)throws IOException{update(copy->{var s=object(copy,"visitor");var r=p.rules();s.add("visitors",JSON.toJsonTree(new java.util.TreeSet<>(r.visitors())));s.add("materialIds",JSON.toJsonTree(new java.util.TreeSet<>(r.materialIds())));s.addProperty("maximumOfferCoins",r.maximumOfferCoins());s.addProperty("maximumBuyCoins",r.maximumBuyCoins());s.addProperty("minimumCopper",r.minimumCopper());s.addProperty("threshold",p.threshold());s.addProperty("maxVisitors",p.maxVisitors());s.addProperty("timeoutSeconds",p.timeoutSeconds());s.addProperty("cooldownSeconds",p.cooldownSeconds());s.addProperty("onlyWhileFarming",p.onlyWhileFarming());});}
+ public boolean bookPolicyValid(){try{readBookPolicy();return writable;}catch(RuntimeException invalid){return false;}}
+ public BookCombineTask.Policy bookPolicy(){try{return readBookPolicy();}catch(RuntimeException invalid){return BookCombineTask.Policy.defaults();}}
+ private BookCombineTask.Policy readBookPolicy(){
+  var s=section(root,"bookCombine");var ceilings=new java.util.TreeMap<String,Integer>();
+  if(s.has("ceilings")){var raw=s.get("ceilings");if(!raw.isJsonObject()||raw.getAsJsonObject().size()>64)throw new IllegalArgumentException("Invalid book authorization");for(var e:raw.getAsJsonObject().entrySet())ceilings.put(e.getKey(),strictInteger(raw.getAsJsonObject(),e.getKey(),0,1,10));}
+  return new BookCombineTask.Policy(ceilings,visitorStrings(s,"protectedUuids",128),strictInteger(s,"delayMillis",1000,500,5000),strictInteger(s,"timeoutSeconds",60,10,180),strictBoolean(s,"onlyWhileFarming",true));
+ }
+ public void setBookPolicy(BookCombineTask.Policy p)throws IOException{update(copy->{var s=object(copy,"bookCombine");s.add("ceilings",JSON.toJsonTree(new java.util.TreeMap<>(p.ceilings())));s.add("protectedUuids",JSON.toJsonTree(new java.util.TreeSet<>(p.protectedUuids())));s.addProperty("delayMillis",p.delayMillis());s.addProperty("timeoutSeconds",p.timeoutSeconds());s.addProperty("onlyWhileFarming",p.onlyWhileFarming());});}
  public boolean supercraftPolicyValid(){try{readSupercraftPolicy();return writable;}catch(RuntimeException invalid){return false;}}
  public dev.kuan.kuanperion.automation.supercraft.SupercraftPolicy supercraftPolicy(){try{return readSupercraftPolicy();}catch(RuntimeException invalid){return dev.kuan.kuanperion.automation.supercraft.SupercraftPolicy.defaults();}}
  private dev.kuan.kuanperion.automation.supercraft.SupercraftPolicy readSupercraftPolicy(){

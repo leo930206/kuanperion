@@ -2,7 +2,7 @@
 package dev.kuan.kuanperion.automation;
 import java.util.*;
 /** One protected pair, explicit zero-cost preview, server-acknowledged moves/result and owned recovery.
- * Native layout binding/UI remain a separate release gate; this class has no runtime caller. */
+ * Current server menu/cost/receipt compatibility remains a live release gate. */
 public final class BookCombineTask {
  public record Policy(Map<String,Integer> ceilings,Set<String> protectedUuids,int delayMillis,int timeoutSeconds,boolean onlyWhileFarming){
   public Policy{ceilings=Map.copyOf(ceilings);protectedUuids=Set.copyOf(protectedUuids);new BookCombinePlanner(ceilings,protectedUuids);if(protectedUuids.size()>128||delayMillis<500||delayMillis>5000||timeoutSeconds<10||timeoutSeconds>180)throw new IllegalArgumentException("Invalid book policy");}
@@ -26,6 +26,10 @@ public final class BookCombineTask {
  private long started,lastAction,recoveryStarted,world;private int container=-1,pendingSource,pendingRaw,resultSlot,recoverSlot;private boolean inputPending,combineIssued,mayHoldBooks;
  private InventoryReceipts.Stamp stamp;private CursorReceipts.Stamp cursorStamp;private ItemSnapshot pendingItem;private BookInventorySnapshot expectedInventory;private final Map<Integer,BookCombinePlanner.Book> knownInputs=new LinkedHashMap<>();private BookCombinePlanner.Book recovering;
  public BookCombineTask(AutomationSession session,InventoryReceipts receipts,CursorReceipts cursors,Port port,BookAnvilView.Layout layout){this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.cursors=Objects.requireNonNull(cursors);this.port=Objects.requireNonNull(port);this.layout=Objects.requireNonNull(layout);}
+ /** Also recognizes the expected opening while awaiting receipts; this is never click authority. */
+ public boolean ownsMenu(){if(!active()||!session.isCurrent(handle))return false;try{var m=port.menu();return layout.contract().matches(m)&&m.worldId()==world&&(container<0?state==State.WAIT_MENU:m.containerId()==container);}catch(RuntimeException unavailable){return false;}}
+ /** A user/global interruption must not schedule original-item recovery under later manual input. */
+ public void interrupt(long now){if(active())finish(State.CANCELLED,now,false);}
  public State state(){return state;}public boolean manualRecoveryRequired(){return mayHoldBooks;}public boolean active(){return state!=State.IDLE&&state!=State.COMPLETE&&state!=State.CANCELLED&&state!=State.TIMED_OUT&&state!=State.FAILED;}
  public boolean request(Policy policy,boolean manual,long now){
   if(active()||policy==null)return false;AutomationContext context;BookInventorySnapshot initial;
@@ -63,8 +67,8 @@ public final class BookCombineTask {
   if(state==State.WAIT_COMBINE){
    if(!cleared(stamp,layout.firstInput(),view)||!cleared(stamp,layout.secondInput(),view))return;
    if(resultArrived(stamp,current)){mayHoldBooks=false;finish(State.COMPLETE,now,true);return;}
-   var result=view.book(layout.result());var acknowledged=receipts.after(stamp,container,layout.result());
-   if(expectedResult(result)&&acknowledged!=null&&acknowledged.equals(result.item())){resultSlot=layout.result();state=State.COLLECT_READY;lastAction=now;}return;
+   int candidate=view.resultSlot(planner,plan);var result=view.book(candidate);var acknowledged=receipts.after(stamp,container,candidate);
+   if(expectedResult(result)&&acknowledged!=null&&acknowledged.equals(result.item())){resultSlot=candidate;state=State.COLLECT_READY;lastAction=now;}return;
   }
   if(state==State.WAIT_RESULT){if(cleared(stamp,resultSlot,view)&&resultArrived(stamp,current)){mayHoldBooks=false;finish(State.COMPLETE,now,true);}return;}
   if(state==State.WAIT_RECOVERY){

@@ -7,7 +7,7 @@ import java.util.*;import java.util.function.*;
 import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
-/** Fixed-owner native Book port. Declared layout/policy and a typed opener are mandatory; no default command or runtime caller. */
+/** Fixed-owner native Book port. Declared layout/policy and a typed opener are mandatory; command permission and live menu compatibility must still be verified. */
 public final class BookMenuController implements BookCombineTask.Port {
  @FunctionalInterface public interface AnvilSender {boolean send(AutomationSession.Handle handle,long now);}
  /** Package-private fixture seam; production always uses the pinned native client implementation below. */
@@ -81,7 +81,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  }
  public GuardedMenuAction.Result transfer(AutomationSession.Handle h,MenuContract.Ticket ticket,InventoryProtection rules,long now){
   var v=ready(h,ticket,now);if(v==null||!policy.protection().equals(rules)||combined||reclaimed!=0||transfers>=2||ticket.click()!=MenuContract.Click.QUICK_MOVE)return GuardedMenuAction.Result.REJECTED;
-  var wanted=transfers==0?plan.first():plan.second();if(!Objects.equals(v.inputTicket(wanted),ticket)||!rules.permits(wanted.item())||transfers==0&&(!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||v.book(layout.preview())!=null||v.book(layout.result())!=null)||transfers==1&&(!v.emptyInput(layout.secondInput())||!same(plan.first(),v.book(layout.firstInput()))))return GuardedMenuAction.Result.REJECTED;
+  var wanted=transfers==0?plan.first():plan.second();if(!Objects.equals(v.inputTicket(wanted),ticket)||!rules.permits(wanted.item())||transfers==0&&(!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||v.book(layout.preview())!=null||layout.resultSlots().stream().anyMatch(slot->v.book(slot)!=null))||transfers==1&&(!v.emptyInput(layout.secondInput())||!same(plan.first(),v.book(layout.firstInput()))))return GuardedMenuAction.Result.REJECTED;
   transfers++;return send(h,ticket,now);
  }
  public GuardedMenuAction.Result combine(AutomationSession.Handle h,MenuContract.Ticket ticket,long now){
@@ -89,9 +89,9 @@ public final class BookMenuController implements BookCombineTask.Port {
   combined=true;return send(h,ticket,now);
  }
  public GuardedMenuAction.Result collect(AutomationSession.Handle h,MenuContract.Ticket ticket,long now){
-  var v=ready(h,ticket,now);if(v==null||!combined||collected||ticket.slot()!=layout.result()||ticket.click()!=MenuContract.Click.PICKUP||!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||!planner.isExpectedResult(plan,v.book(layout.result())))return GuardedMenuAction.Result.REJECTED;
+  var v=ready(h,ticket,now);if(v==null||!combined||collected||ticket.slot()!=v.resultSlot(planner,plan)||ticket.click()!=MenuContract.Click.PICKUP||!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||!planner.isExpectedResult(plan,v.book(ticket.slot())))return GuardedMenuAction.Result.REJECTED;
   int destination=-1;for(int raw=9;raw<36;raw++)if(lastInventory.inventory().get(raw).count()==0){destination=raw;break;}
-  var result=beginReturn(h,ticket,v.book(layout.result()),destination,now);if(result==GuardedMenuAction.Result.SENT)collected=true;return result;
+  var result=beginReturn(h,ticket,v.book(ticket.slot()),destination,now);if(result==GuardedMenuAction.Result.SENT)collected=true;return result;
  }
  public GuardedMenuAction.Result reclaim(AutomationSession.Handle h,MenuContract.Ticket ticket,InventoryProtection rules,long now){
   var v=ready(h,ticket,now);if(v==null||combined||!policy.protection().equals(rules)||ticket.click()!=MenuContract.Click.PICKUP)return GuardedMenuAction.Result.REJECTED;
@@ -134,7 +134,7 @@ public final class BookMenuController implements BookCombineTask.Port {
  }
  public void closeOwnedMenu(int id){
   long now=clock.getAsLong();var h=owner;if(!owns(h,now)||uncertain||id!=container||lastInventory==null||!lastInventory.equals(game.inventory())||!ownedContext().canIssueCommand()||!cursorEmpty()||actionCursor!=null&&!cursors.emptyAfter(actionCursor,now,10_000_000_000L))return;
-  var v=view();if(v==null||!serverMatches(v)||v.menu().containerId()!=id||!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||v.book(layout.result())!=null||returning!=null&&!returning.confirmedStillMatches(v,lastInventory,game.cursor(),now)||!coordinator.permits(h.lease(),AutomationCoordinator.Resource.SCREEN,ownedContext(),now))return;
+  var v=view();if(v==null||!serverMatches(v)||v.menu().containerId()!=id||!v.emptyInput(layout.firstInput())||!v.emptyInput(layout.secondInput())||layout.resultSlots().stream().anyMatch(slot->v.book(slot)!=null)||returning!=null&&!returning.confirmedStillMatches(v,lastInventory,game.cursor(),now)||!coordinator.permits(h.lease(),AutomationCoordinator.Resource.SCREEN,ownedContext(),now))return;
   if(session.isCurrent(h)&&menuIdentity==game.menuIdentity())game.close();
  }
  private static final class NativeGame implements Game {

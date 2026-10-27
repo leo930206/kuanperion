@@ -13,7 +13,7 @@ public final class BookReturnTransfer {
  public static Optional<Plan> select(BookAnvilView view,BookInventorySnapshot inventory,int source,BookCombinePlanner.Book expected,int destination,InventoryProtection rules){
   try{
    if(view==null||inventory==null||rules==null||expected==null||destination<9||destination>35||!playersMatch(view,inventory)||!empty(inventory.inventory().get(destination)))return Optional.empty();
-   var l=view.layout();if(source!=l.firstInput()&&source!=l.secondInput()&&source!=l.result())return Optional.empty();
+   var l=view.layout();if(source!=l.firstInput()&&source!=l.secondInput()&&!l.resultSlots().contains(source))return Optional.empty();
    var book=view.book(source);if(book==null||book.enchantments().isEmpty()||!same(expected,book)||!rules.permits(book.item())||!book.item().skyblockId().equals("ENCHANTED_BOOK")||!book.item().minecraftId().equals("minecraft:enchanted_book")||!book.item().name().equals("Enchanted Book")||book.item().count()!=1||book.compatibility().isBlank()||book.compatibility().length()>16384)return Optional.empty();
    String uuid=uuid(book.item());if(!uuid.isBlank()&&inventory.inventory().values().stream().anyMatch(i->uuid.equals(uuid(i))))return Optional.empty();
    return Optional.of(new Plan(view,inventory,book,source,destination));

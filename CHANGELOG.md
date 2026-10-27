@@ -3,6 +3,8 @@
 
 ## 2.1.0 — 開發中（未發佈）
 
+- Book Combine 接入預設關閉的 Trade 設定／service：固定 `/anvil`、使用者提供的介面候選角色、同級單附魔書授權、單組操作與所有停止路徑；結果只依新伺服器證據取回主背包。截圖未提供的費用不當免費，目前書＋書費用及連服仍待確認，未更新正式 JAR。
+
 - 2.1.0 development: Greenhouse/Composter interval jobs now defer native preflight while another root is active and preserve due-time dispatch without consuming a busy one-second poll slot. On release they still revalidate current Farm/UI/task authority; no forced start or preference rewrite. Full native maintenance-chain/live gates remain pending.
 
 - 2.1.0 development: replace Book result/recovery quick-move with source pickup, own server-carried book proof and an explicit empty main-slot deposit, including both destination aliases/full43/empty-cursor confirmation and actual native physical-slot guards. Empty hotbar slots stay untouched; previous occupied-hotbar restriction is removed. Add a portable human/AI handoff index. Book current live opening/layout/service/UI remain pending; stable installation/settings are unchanged.

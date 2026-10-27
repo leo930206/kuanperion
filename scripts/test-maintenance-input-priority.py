@@ -11,7 +11,7 @@ import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class MaintenanceInputPriorityTest {
  static class Service {boolean running,owned;int cancelled;boolean active(){return running;}boolean ownsMenu(){return owned;}void cancel(long now){if(running)cancelled++;running=false;}}
  static class Flight {boolean manual;boolean manualInput(){return manual;}}
- Service composter=new Service(),pest=new Service(),greenhouse=new Service(),visitor=new Service(),supercraft=new Service();Flight composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight(),supercraftMenu=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
+ Service composter=new Service(),pest=new Service(),greenhouse=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service();Flight composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight(),supercraftMenu=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
  static class OwnMenu{}static class Gui{Object current;Object screen(){return current;}}static class Minecraft{static final Minecraft INSTANCE=new Minecraft();Gui gui=new Gui();static Minecraft getInstance(){return INSTANCE;}}
  METHOD
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
@@ -30,6 +30,10 @@ public final class MaintenanceInputPriorityTest {
   h.context=new AutomationContext(1,true,true,Set.of());h.supercraft.running=true;Minecraft.INSTANCE.gui.current=new OwnMenu();h.beforeMovementTick();check(!h.supercraft.running,"own settings screen cannot be replaced by a running craft");Minecraft.INSTANCE.gui.current=null;
   h.supercraft.running=true;h.supercraftMenu.manual=true;h.beforeMovementTick();check(!h.supercraft.running,"physical manual input beats craft");
   for(var b:AutomationContext.Blocker.values())if(b!=AutomationContext.Blocker.MENU){h.context=new AutomationContext(1,true,true,Set.of(b));h.supercraft.running=true;h.supercraft.owned=true;h.beforeMovementTick();check(!h.supercraft.running,"recipe ownership cannot mask blocker: "+b);}
+  h=new MaintenanceInputPriorityTest();h.book.running=true;h.beforeMovementTick();check(h.book.running,"inactive flight tasks do not cancel Book");h.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU));h.book.owned=true;h.beforeMovementTick();check(h.book.running,"expected/owned Anvil may settle under existing receipt gate");h.book.owned=false;h.beforeMovementTick();check(!h.book.running,"foreign menu preempts Book before movement");
+  h.context=new AutomationContext(1,true,true,Set.of());h.book.running=true;Minecraft.INSTANCE.gui.current=new OwnMenu();h.beforeMovementTick();check(!h.book.running,"settings never replaces active Book");Minecraft.INSTANCE.gui.current=null;
+  for(var b:AutomationContext.Blocker.values())if(b!=AutomationContext.Blocker.MENU&&b!=AutomationContext.Blocker.INVENTORY_FULL){h.context=new AutomationContext(1,true,true,Set.of(b));h.book.running=true;h.book.owned=true;h.beforeMovementTick();check(!h.book.running,"Anvil ownership cannot mask blocker: "+b);}
+  h.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.INVENTORY_FULL));h.book.running=true;h.beforeMovementTick();check(h.book.running,"Book full-inventory exception cannot be cancelled by unrelated movement guard");
   System.out.println("MaintenanceInputPriorityTest: PASS (actual bridge body, no cross-cancellation, exact owned GUI only, all blockers/Garden/physical priority, preserved Pest/Greenhouse guards)");
  }
 }'''.replace('METHOD',method)
