@@ -31,7 +31,7 @@
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | Sacks／採購、當前選單與連服驗收 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 預算控管採購與當前連服格式／結果驗收 |
-| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢 | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
+| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢與原root單次成交證明元件（無原生caller） | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
 進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。目前對使用者保守提供約 65% 的整體交付粗估，不可用測試數或打勾比例冒充驗收率；採購、Pet Sell、Pest 後續及連服驗證仍是實質缺項，不是只剩測試。
@@ -95,3 +95,5 @@ Jerry 全域停止現在也會在單一服務回呼失敗後繼續通知其餘�
 Stash 的 [讀取錯誤／run 世代檢查點](stash-observation-2.1.0.md) 補上獨立 command lease 的未知狀態取消、原請求限定與首發計時重置。不要把 Shared AutomationSession 的守門誤認為已保護這條獨立 Stash 路徑；也不要讓舊讀取／舊 sender 結果覆寫新的手動領取任務。此為實際 service/task/coordinator 離線證據，沒有更動原生指令或宣稱連服領取成功。
 
 2026-10-29 首次完整 GUI 在 phase33 由 Mining 跳到 Trade，失敗記錄已保留。後續加入僅 smoke 啟用的[切頁呼叫來源診斷](ui-smoke-diagnostics-2.1.0.md)，新的完整39狀態／39截圖及原生關閉驗證通過；該次記錄73個 fixture click，沒有其他 native click。這不是舊偶發問題的根因修復：phase33 與較早 gear 問題均未重現／定位，輸入干擾仍只是未證實假設，驗收項目不能因此打勾。詳見 verification／todo。
+
+Pet 的[單次成交驗證底層](pet-sale-attempt-2.1.0.md)只接受明確原pet／最低價及 declared quote/ack，再驗證成對伺服器物品／游標回條；不是 George 原生估價／賣出功能，不能將 typed notice 當成現有伺服器格式。

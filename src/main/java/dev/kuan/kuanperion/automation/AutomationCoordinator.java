@@ -15,6 +15,8 @@ public final class AutomationCoordinator {
   if(active!=null||!context.canIssueCommand()||owner.requiresGarden()&&!context.garden())return null;
   return active=new Lease(++nextToken,owner,context.worldId(),now,lifetime,owner.resources());
  }
+ /** Passive exact identity query only: never validates/expires a lease or grants action permission. */
+ public boolean holdsIdentity(Lease lease){return lease!=null&&lease.equals(active);}
  public boolean isOwner(Lease lease,AutomationContext context,long now){validate(context,now);return lease!=null&&active!=null&&active.token()==lease.token();}
  public boolean permits(Lease lease,Resource resource,AutomationContext context,long now){return isOwner(lease,context,now)&&context.canIssueCommand()&&lease.resources().contains(resource)&&(!lease.owner().requiresGarden()||context.garden());}
  public boolean release(Lease lease){if(lease==null||active==null||active.token()!=lease.token())return false;active=null;return true;}
