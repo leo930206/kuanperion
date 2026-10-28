@@ -17,12 +17,14 @@ public final class StashTask {
  }
  private final AutomationCoordinator coordinator;
  private AutomationCoordinator.Lease lease;private Policy policy=Policy.defaults();
- private State state=State.IDLE;private long started,world,lastSent;private int attempts;private boolean manual,everSent;
+ private State state=State.IDLE;private long started,world,lastSent,runId;private int attempts;private boolean manual,everSent;
  public StashTask(AutomationCoordinator coordinator){this.coordinator=Objects.requireNonNull(coordinator);}
  public boolean active(){return state==State.WAITING;}public State state(){return state;}public int attempts(){return attempts;}
+ /** Service observations and sender returns can belong only to this accepted request, not a later one. */
+ long runId(){return runId;}
  public boolean request(AutomationContext context,Policy policy,boolean manual,long now){
   if(active()||context.hardBlocked()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
-  this.policy=Objects.requireNonNull(policy);this.manual=manual;started=now;world=context.worldId();attempts=0;lease=null;state=State.WAITING;return true;
+  this.policy=Objects.requireNonNull(policy);this.manual=manual;started=now;world=context.worldId();attempts=0;lease=null;lastSent=0;everSent=false;runId++;state=State.WAITING;return true;
  }
  public void tick(AutomationContext context,long now,AutomationCommand.Sender sender){
   if(!active())return;
@@ -37,8 +39,9 @@ public final class StashTask {
   if(attempts>=policy.maxAttempts()){finish(State.EXHAUSTED);return;}
   if(lease==null)lease=coordinator.tryAcquire(AutomationFeature.STASH,context,now,Math.max(1,policy.timeoutSeconds()*SECOND-elapsed));
   if(!coordinator.permits(lease,AutomationCoordinator.Resource.COMMAND,context,now))return;
-  boolean accepted;
+  long sentFor=runId;var sentLease=lease;boolean accepted;
   try{accepted=sender.send(AutomationCommand.PICKUP_STASH);}catch(RuntimeException failure){accepted=false;}
+  if(sentFor!=runId||sentLease!=lease||!active())return;
   if(!accepted){finish(State.FAILED);return;}
   lastSent=now;everSent=true;attempts++;
  }

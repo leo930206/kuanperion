@@ -35,10 +35,12 @@ public final class StashService {
   try{settings.setStashPolicy(policy);}catch(IOException failure){sessionSuspended=true;throw failure;}
  }
  public boolean manualRequest(long now){
-  var observed=context.get();
-  if(!settings.writable()||observed.hardBlocked()||observed.blockers().contains(AutomationContext.Blocker.INVENTORY_FULL))return false;
+  if(active()||!settings.writable())return false;long run=task.runId();var observed=current();
+  if(run!=task.runId()||observed==null||observed.hardBlocked()||observed.blockers().contains(AutomationContext.Blocker.INVENTORY_FULL))return false;
   return request(observed,true,now);
  }
+ private AutomationContext current(){try{return context.get();}catch(RuntimeException unavailable){return null;}}
+ private void stopForUnavailable(){sessionSuspended=true;cancel("無法確認遊戲狀態");}
  private boolean request(AutomationContext observed,boolean manual,long now){
   if(!task.request(observed,settings.stashPolicy(),manual,now))return false;
   reportedStart=false;reported=StashTask.State.WAITING;return true;
@@ -46,15 +48,24 @@ public final class StashService {
  /** Only the Fabric server GAME callback calls this; player CHAT is intentionally excluded. */
  public void onSystemMessage(String text,long now){
   var signal=StashTask.classify(text);if(signal==StashTask.Signal.NONE)return;
-  if(signal==StashTask.Signal.ADDED){if(autoEnabled())request(context.get(),false,now);return;}
-  if(active()){task.onSignal(signal,context.get());reportTerminal();}
+  if(signal==StashTask.Signal.ADDED){
+   if(active()||!autoEnabled())return;long run=task.runId();var observed=current();
+   if(run==task.runId()&&!active()&&autoEnabled()&&observed!=null)request(observed,false,now);return;
+  }
+  if(active()){
+   long run=task.runId();var observed=current();if(run!=task.runId()||!active())return;
+   if(observed==null){stopForUnavailable();return;}task.onSignal(signal,observed);reportTerminal();
+  }
  }
  public void tick(long now){
   if(!active())return;
-  task.tick(context.get(),now,command->{
-   sendingOwnCommand=true;
-   try{return sender.send(command);}finally{sendingOwnCommand=false;}
+  long run=task.runId();var observed=current();if(run!=task.runId()||!active())return;
+  if(observed==null){stopForUnavailable();return;}
+  task.tick(observed,now,command->{
+   boolean previous=sendingOwnCommand;sendingOwnCommand=true;
+   try{return sender.send(command);}finally{sendingOwnCommand=previous;}
   });
+  if(run!=task.runId())return;
   if(task.attempts()>0&&!reportedStart){reportedStart=true;feedback.accept(new Notice("已發送 /pickupstash，開始領取 Stash。",false));}
   reportTerminal();
  }
