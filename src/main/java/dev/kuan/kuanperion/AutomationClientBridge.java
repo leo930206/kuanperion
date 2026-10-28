@@ -87,7 +87,9 @@ public final class AutomationClientBridge {
   if(greenhouse.active()&&(!context.canIssueCommand()||!context.garden()||greenhouseFlight.manualInput()))greenhouse.cancel(System.nanoTime());
  }
 
- public void onManualLook(){if(Minecraft.getInstance().gui.screen()==null){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}}
+ public void onManualLook(){if(Minecraft.getInstance().gui.screen()==null){
+  long now=System.nanoTime();AutomationStops.run(()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
+ }}
  public StashService stash(){return stash;}
  public AutoSellService autoSell(){return autoSell;}
  public JunkService junk(){return junk;}
@@ -158,15 +160,25 @@ public final class AutomationClientBridge {
  public AutomationSession session(){return session;}
  public AutomationCoordinator coordinator(){return coordinator;}
  public boolean holdsFarming(){return session.holdsFarming();}
- public void invalidateFarmSession(){session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void invalidateFarmSession(){
+  long now=System.nanoTime();AutomationStops.run(()->session.invalidate(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
+ }
  public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);visitor.onSystemMessage(currentWorldId(),text);}
  /** Unlike lifecycle cancellation, Jerry also suspends configured but idle automatic jobs. */
  public void suspendForJerry(){long now=System.nanoTime();AutomationStops.run(()->pest.suspend(now),()->greenhouse.suspend(now),()->composter.suspend(now),()->visitor.suspend(now),()->supercraft.suspend(now),()->book.suspend(now),()->autoSell.suspend(now),()->junk.suspend(now),()->stash.suspend("Jerry 停止動作"));}
- public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}stash.onOutgoingCommand();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
+ public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}
+  long now=System.nanoTime();AutomationStops.run(()->stash.onOutgoingCommand(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
+ }
  public void onManualWorldInput(){onManualInventoryInput();}
- public void onManualInventoryInput(){pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());session.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());}
- public void shutdown(){try{book.cancel(System.nanoTime());}finally{try{supercraft.cancel(System.nanoTime());}finally{try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}}}}
- public void worldChanged(){stash.cancel("切換世界");session.invalidate();pest.cancel(System.nanoTime());greenhouse.cancel(System.nanoTime());composter.cancel(System.nanoTime());visitor.cancel(System.nanoTime());supercraft.cancel(System.nanoTime());book.cancel(System.nanoTime());autoSell.cancel(System.nanoTime());junk.cancel(System.nanoTime());try{visitorFlight.shutdownData();}finally{supercraftMenu.shutdownData();}visitorClose=null;receipts.clear();positions.clear();cursors.clear();harvests.clear();}
+ public void onManualInventoryInput(){
+  long now=System.nanoTime();AutomationStops.run(()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
+ }
+ public void shutdown(){
+  long now=System.nanoTime();AutomationStops.run(()->book.cancel(now),()->supercraft.cancel(now),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->stash.cancel("關閉遊戲"),()->session.invalidate(),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->cursors.clear(),()->harvests.clear());
+ }
+ public void worldChanged(){
+  long now=System.nanoTime();AutomationStops.run(()->stash.cancel("切換世界"),()->session.invalidate(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->cursors.clear(),()->harvests.clear());
+ }
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){
   Minecraft mc=Minecraft.getInstance();var flags=legacy.get();var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);

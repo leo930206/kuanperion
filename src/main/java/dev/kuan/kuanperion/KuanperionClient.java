@@ -258,7 +258,7 @@ public final class KuanperionClient implements ClientModInitializer {
             for(var entry:oldKeys.entrySet())bindings.get(entry.getKey()).setKey(InputConstants.getKey(entry.getValue()));
             KeyMapping.resetMapping();
         }catch(java.io.IOException|IllegalArgumentException error){LOGGER.warn("Legacy keybinding migration skipped",error);}
-        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {automation.shutdown();dev.kuan.kuanperion.renderer.NanoVGManager.destroy();});
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {dev.kuan.kuanperion.automation.AutomationStops.run(()->automation.shutdown(),()->dev.kuan.kuanperion.renderer.NanoVGManager.destroy());});
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> {
             SCREEN_NOTIFICATIONS.clear();
             automation.worldChanged();

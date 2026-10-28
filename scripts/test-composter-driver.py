@@ -49,8 +49,11 @@ assert 'slot.playerInventory()' in task and 'slot.item().equals(pending.item())'
 assert 'new ComposterPolicy(null,Map.of(),Set.of()' in policy and 'matches==1' in view and 'visited>4096' in view
 assert view.count('.getChunk(')==view.count('ChunkStatus.FULL,false')
 for forbidden in ['.setPos(','.setDeltaMovement(','.noPhysics','mayfly=','mayfly =','HttpClient','.sendCommand(','.useItem(']:assert forbidden not in d,forbidden
-for name in ['onManualInventoryInput','onOutgoingCommand','worldChanged','invalidateFarmSession','onManualLook']:
- start=s.index('public void '+name+'(');end=s.index('\n ',start);assert 'composter.cancel(' in s[start:end],name
+for name in ['onManualInventoryInput','onOutgoingCommand','worldChanged','invalidateFarmSession','onManualLook','shutdown']:
+ start=s.index('public void '+name+'(');end=s.index('{',start)+1;depth=1
+ while depth:
+  depth+=(s[end]=='{')-(s[end]=='}');end+=1
+ assert 'composter.cancel(' in s[start:end] and 'AutomationStops.run(' in s[start:end],name
 print('ComposterDriverWiringTest: PASS (exact configured native machine/marker, fixed lease/menu/movement, whole-stack protected source, triple applied receipts, no prices/sacks/blind slots/cursor repair)')
 
 service=(m/"automation/composter/ComposterService.java").read_text();assert "AutomationFeature.GREENHOUSE" not in service and service.count("AutomationFeature.COMPOSTER")==3,"Composter settings must never mutate Greenhouse feature bits"

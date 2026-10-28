@@ -47,6 +47,9 @@ assert '2.75*2.75' in d and 'flight.loaded(' in d and 'flight.clear(' in d and '
 assert 'harvests.after(stamp,now)' in task and 'policy.timeoutSeconds()-45' in task and 'state=State.WAITING_HARVEST' in task
 for forbidden in ['.setPos(','.setDeltaMovement(','.noPhysics','mayfly=','mayfly =','HttpClient','.sendCommand(','.useItem(']:assert forbidden not in d,forbidden
 assert 'greenhouse.tick(now)' in s and 'this::sendGreenhouseTravel' in s
-for name in ['onManualInventoryInput','onOutgoingCommand','worldChanged','invalidateFarmSession','onManualLook']:
- start=s.index('public void '+name+'(');end=s.index('\n ',start);assert 'greenhouse.cancel(' in s[start:end],name
+for name in ['onManualInventoryInput','onOutgoingCommand','worldChanged','invalidateFarmSession','onManualLook','shutdown']:
+ start=s.index('public void '+name+'(');end=s.index('{',start)+1;depth=1
+ while depth:
+  depth+=(s[end]=='{')-(s[end]=='}');end+=1
+ assert 'greenhouse.cancel(' in s[start:end] and 'AutomationStops.run(' in s[start:end],name
 print('GreenhouseDriverWiringTest: PASS (fixed-owner ATTACK only, live exact tool/target + loaded reach/clip/body, one attempt/server-proof, native manual/world/Farm cancellation)')

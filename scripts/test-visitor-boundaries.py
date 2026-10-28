@@ -14,8 +14,11 @@ controller=(main/'VisitorFlightController.java').read_text();bridge=(main/'Autom
 for required in ['new GardenFlightCore(coordinator,session,observe,AutomationFeature.VISITOR)','targets(queue())','target::equals','entity.getUUID().equals(target.uuid())','flight.loaded(','ClipContext.Block.COLLIDER','mc.gameMode.interact(','VisitorOffer.inspect(','offer.get().acceptSlot()!=ticket.slot()','AutomationMenuActions.purchaseClick(']:assert required in controller,required
 for forbidden in ['.useItem(','.attack(','.startDestroyBlock(','.sendCommand(','.setPos(','.setDeltaMovement(','.handleContainerInput(','.resolveProfile(','Thread.sleep','whenComplete(','.thenAccept(']:assert forbidden not in strip(controller),forbidden
 assert 'public VisitorService visitor()' in bridge and 'visitor.tick(now)' in bridge and 'visitor.onSystemMessage(currentWorldId(),text)' in bridge
-for name in ['invalidateFarmSession','onOutgoingCommand','onManualInventoryInput','worldChanged','onManualLook']:
- body=bridge.split('public void '+name+'(',1)[1].split('\n ',1)[0];assert 'visitor.cancel(' in body,name
+for name in ['invalidateFarmSession','onOutgoingCommand','onManualInventoryInput','worldChanged','onManualLook','shutdown']:
+ start=bridge.index('public void '+name+'(');end=bridge.index('{',start)+1;depth=1
+ while depth:
+  depth+=(bridge[end]=='{')-(bridge[end]=='}');end+=1
+ body=bridge[start:end];assert 'visitor.cancel(' in body and 'AutomationStops.run(' in body,name
 for phase in ['before','after']:
  body=bridge.split('private void '+phase+'VisitorServerClose(',1)[1].split('\n }',1)[0]
  assert '!mc.isSameThread()' in body

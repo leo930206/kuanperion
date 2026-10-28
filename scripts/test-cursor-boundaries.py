@@ -10,7 +10,14 @@ assert 'observeAutomationCursor(packet)' in mixin and 'observeAutomationContaine
 assert 'packet.containerId()!=mc.player.containerMenu.containerId' in bridge
 assert 'AutomationCursorView.applied(server,menu.getCarried())' in bridge
 assert 'cursors.observe(currentWorldId(),menu.containerId,item,System.nanoTime())' in bridge
-assert 'positions.clear();cursors.clear()' in bridge
+for name in ['worldChanged','shutdown']:
+ match=re.search(r' public void '+name+r'\(\)\{',bridge);assert match,name
+ end=match.end();depth=1
+ while depth:
+  depth+=(bridge[end]=='{')-(bridge[end]=='}');end+=1
+ cleanup=bridge[match.start():end]
+ assert 'AutomationStops.run(' in cleanup,name
+ assert cleanup.index('()->session.invalidate()')<cleanup.index('()->positions.clear()')<cleanup.index('()->cursors.clear()'),name
 for path in m.rglob('*.java'):
  code=strip(path.read_text())
  if path.name!='AutomationClientBridge.java':assert 'cursors.observe(' not in code,path

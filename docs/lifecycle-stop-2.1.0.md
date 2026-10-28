@@ -1,0 +1,27 @@
+# Manual, world and shutdown stop dispatch
+
+2026-10-28, development only. This extends the earlier Jerry stop checkpoint; it does not complete2.1.0 or establish native/live lifecycle acceptance.
+
+## Dispatch changes
+
+- Manual world look (only with no screen), inventory/world input and ordinary outgoing commands attempt every existing cancellation even when an earlier RuntimeException occurs. The trusted typed-command early return and mouse-in-screen exception remain unchanged. One monotonic time is captured per event.
+- Original session revocation still precedes Auto Sell/Junk cancellation during manual takeover. A callback failure cannot leave later pending requests untouched or let Trade cleanup close the player's newly taken-over menu merely because earlier work threw.
+- Farming-generation invalidation stays before affected service cancellation. A world change first attempts Stash cancellation and invalidation, then all eight gameplay cancellations; Visitor/Supercraft data shutdown, both pending server-close tickets and all four receipt ledgers are attempted even after earlier failures. No close receipt or item/cursor outcome is fabricated.
+- Shutdown retains the existing Book/Supercraft-first cleanup, extends cancellation to the other implemented gameplay services and Stash, revokes any remaining session before Trade cleanup, invalidates the generation and clears clients/tickets/receipts. Cleanup has no new buy/sell/drop/repair/return authority. Existing service cancellation/reporting policies still apply; this is not a promise that active cancellation preserves every enabled flag at runtime.
+- The actual CLIENT_STOPPING closure separately attempts automation shutdown and NanoVG destruction through the same helper. An automation RuntimeException no longer skips renderer cleanup; distinct later RuntimeExceptions are suppressed onto the exact first failure. Arbitrary JVM Error remains outside this best-effort contract.
+
+`AutomationStops` retries nothing, catches only RuntimeException, and exposes the first failure after all explicitly listed callbacks. A service that fails before its own cleanup is finished still needs attention; attempting every callback is not proof that every native cleanup succeeded. Settings, network, inventory, movement and Farming enable authority are not added to the helper.
+
+## Evidence
+
+- Genuine pre-implementation behavioral RED: the earlier Bridge bodies failed131 of151 actor scenarios, and the actual client-stopping closure skipped renderer destruction when automation shutdown failed. This was a running-method failure, not missing API/fixture compilation.
+- The expanded final `test-global-stop-lifecycle.py` executes seven actual Bridge method bodies with controlled service/data actors and a real AutomationSession/original Farming hold:209 scenarios covering every callback failure position, all callbacks failing, each of eight original gameplay owners with a failed actual session stop, combinations of owner-stop and later failures, repeated world/shutdown, trusted command and open-screen look. It checks exact order/once-only attempts, no stale intent/root/hold, revocation before Trade cleanup, both close-ticket resets, receipt/data clearing and exact first/later error identities.
+- Four actual client-stopping closure combinations verify automation and renderer RuntimeException ordering and retained failures. The renderer is a controlled actor, not a native GL context. Existing actual Auto Sell/Junk manual-takeover and Jerry dispatcher models also pass.
+- The Farming handoff source guard was updated from an old `System.nanoTime()` spelling requirement to inspect each relevant actual method, fail-tolerant dispatch, session invalidation and revocation-before-Trade order. The behavioral models remain the primary evidence.
+- Position/cursor source guards likewise now inspect world-change and shutdown bodies, invalidation-before-clear order and the error-tolerant dispatcher rather than requiring obsolete adjacent semicolons. Server-only packet evidence/projection restrictions remain unchanged; actual-body fault scenarios check that later clears are still attempted.
+
+- Greenhouse/Composter/Visitor wiring guards now use balanced method extraction for the multi-line lifecycle bodies and additionally check shutdown; old first-line/adjacent-token assertions failed after the dispatcher change. Their native authority checks and the actual behavioral models were retained.
+
+These actors do not prove per-service native cleanup, real renderer teardown, all delayed server packets, normal cancel/reporting preferences, manual takeover after every native action or a live cross-module chain. Future Pet Sell must join all explicit stop matrices. Current Bazaar/George/bait/etc. evidence and remaining release gates stay open in the main checklist. No new runtime menu format, endpoint or feature toggle is introduced, and the installed stable line is not changed by development synchronization.
+
+A later isolated native phase0-only UI run does establish normal renderer destruction after initialization and an idle service/session/hold at client stop, with both explicit success markers and process exit0. It does not inject a native failure or execute active server jobs. The full39-state navigation attempt failed independently at phase33 Mining-to-Trade route drift; see verification/todo. No full-GUI pass or root-cause fix is claimed. The launcher now rejects missing shutdown evidence/nonzero exits, with five harmless child fixtures.

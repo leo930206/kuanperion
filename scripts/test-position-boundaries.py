@@ -16,7 +16,14 @@ assert all('Relative.'+axis in view for axis in ['X','Y','Z'])
 assert '@Inject(method="handleMovePlayer",at=@At("TAIL"))' in mixin
 assert 'kuanperion$position' in mixin and 'observeAutomationPosition(packet)' in mixin
 assert 'AutomationPositionView.absolute(packet)' in bridge and 'positions.observe(currentWorldId(),packet.id(),point,point!=null,System.nanoTime())' in bridge
-assert 'receipts.clear();positions.clear();' in bridge
+for name in ['worldChanged','shutdown']:
+    match=re.search(r' public void '+name+r'\(\)\{',bridge);assert match,name
+    end=match.end();depth=1
+    while depth:
+        depth+=(bridge[end]=='{')-(bridge[end]=='}');end+=1
+    cleanup=bridge[match.start():end]
+    assert 'AutomationStops.run(' in cleanup,name
+    assert cleanup.index('()->session.invalidate()')<cleanup.index('()->receipts.clear()')<cleanup.index('()->positions.clear()'),name
 method=client.split('public static void observeAutomationPosition(',1)[1].split('public static void observeAutomationSlot(',1)[0]
 assert 'mc.isSameThread()' in method and 'mc.player==null' in method and 'mc.level==null' in method
 for path in main.rglob('*.java'):
