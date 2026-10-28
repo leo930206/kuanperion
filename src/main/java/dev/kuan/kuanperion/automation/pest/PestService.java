@@ -19,7 +19,7 @@ public final class PestService {
  public void setPolicy(PestPolicy policy)throws IOException{cancel(System.nanoTime());try{settings.setPestPolicy(policy);}catch(IOException failure){suspended=true;throw failure;}}
  /** A settings click is intent only; do not acquire a flight/Farming root until the user's screen closes. */
  public boolean manualRequest(long now){
-  if(active()||pending||!settings.writable()||!settings.pestPolicyValid()||attempted&&(now-lastAttempt<0||now-lastAttempt<SECOND))return false;
+  if(active()||pending||session.active()||!settings.writable()||!settings.pestPolicyValid()||attempted&&(now-lastAttempt<0||now-lastAttempt<SECOND))return false;
   if(automaticAllowed.getAsBoolean())return request(true,now);
   var context=pendingContext();if(session.active()||context==null||!context.canIssueCommand()||!context.garden())return false;
   pending=true;pendingAt=now;pendingWorld=context.worldId();pendingFarming=context.farmingActive();return true;
@@ -34,6 +34,8 @@ public final class PestService {
    if(!automaticAllowed.getAsBoolean())return;pending=false;
    if(request(true,now)){task.tick(now);report();}else feedback.accept(new StashService.Notice("Pest 單次請求未開始：目前目標、工具、Garden 或控制權條件不符；未繼續執行。",false,"Pest"));return;
   }
+  // Do not inspect another task's temporary tool/pose or spend the due poll slot while its root is held.
+  if(session.active()){polled=false;return;}
   if(!autoEnabled()||!automaticAllowed.getAsBoolean()||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(attempted&&now-lastAttempt>=0&&now-lastAttempt<policy().cooldownSeconds()*SECOND)return;
   if(request(false,now)){task.tick(now);report();}

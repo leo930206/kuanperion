@@ -20,17 +20,20 @@ public final class BookService {
  }
  public void setPolicy(BookCombineTask.Policy value)throws IOException{Objects.requireNonNull(value);cancel(System.nanoTime());try{settings.setBookPolicy(value);}catch(IOException failure){suspended=true;throw failure;}}
  private AutomationContext current(){try{var c=context.get();return c==null?null:AutomationSession.forFeature(c,AutomationFeature.BOOK_COMBINE);}catch(RuntimeException unavailable){return null;}}
+ /** Unknown is not an open owned menu, nor permission to keep a queued request alive. */
+ private Boolean screenState(){try{return screenClosed.getAsBoolean();}catch(RuntimeException unavailable){return null;}}
  private boolean cooling(long now){return attempted&&(now-lastAttempt<0||now-lastAttempt<COOLDOWN);}
  public boolean manualRequest(long now){if(active()||pending()||!configured()||cooling(now))return false;return manual.offer(current(),session.active(),now);}
  private boolean request(boolean user,long now){
   if(!configured()||session.active())return false;var c=current();if(c==null||!c.canIssueCommand()||!user&&policy().onlyWhileFarming()&&!c.farmingActive())return false;
-  var p=policy();var port=Objects.requireNonNull(ports.apply(p));var next=new BookCombineTask(session,receipts,cursors,port,layout);
+  var p=policy();BookCombineTask.Port port;try{port=Objects.requireNonNull(ports.apply(p));}catch(RuntimeException unavailable){return false;}
+  var next=new BookCombineTask(session,receipts,cursors,port,layout);
   if(!next.request(p,user,now))return false;task=next;attempted=true;lastAttempt=now;reported=false;task.tick(now);report();return true;
  }
  public void tick(long now){
-  if(active()){if(!screenClosed.getAsBoolean()&&!ownsMenu())cancel(now);else{task.tick(now);report();}return;}
-  if(pending()){if(manual.take(current(),session.active(),screenClosed.getAsBoolean(),now)&&!request(true,now))feedback.accept(new StashService.Notice("Book Combine 未開始：找不到符合授權且未受保護的同級書，或目前狀態不允許操作。",false,"Book Combine"));return;}
-  if(!autoEnabled()||!screenClosed.getAsBoolean()||cooling(now))return;
+  if(active()){var closed=screenState();if(closed==null||!closed&&!ownsMenu())cancel(now);else{task.tick(now);report();}return;}
+  if(pending()){var closed=screenState();if(closed==null){manual.clear();return;}if(manual.take(current(),session.active(),closed,now)&&!request(true,now))feedback.accept(new StashService.Notice("Book Combine 未開始：找不到符合授權且未受保護的同級書，或目前狀態不允許操作。",false,"Book Combine"));return;}
+  if(!autoEnabled()||!Boolean.TRUE.equals(screenState())||cooling(now))return;
   if(session.active()){polled=false;return;}
   if(polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;polled=true;lastPoll=now;request(false,now);
  }

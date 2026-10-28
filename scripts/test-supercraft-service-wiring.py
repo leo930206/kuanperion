@@ -52,6 +52,12 @@ ui=(main/'ui/SupercraftModuleSettings.java').read_text()
 for forbidden in ['sendCommand(','sendSupercraftRecipe(','.craft(','HypixelItemCatalogClient','Minecraft.getInstance()']:assert forbidden not in ui,forbidden
 assert 'service.manualRequest(System.nanoTime())' in ui and '關閉選單後執行一批' in ui
 service=(main/'automation/supercraft/SupercraftService.java').read_text()
-assert 'new ManualTaskRequest(false)' in service and 'manual.offer(pendingContext(),session.active(),now)' in service and 'manual.take(pendingContext(),session.active(),automaticAllowed.getAsBoolean(),now)' in service
+assert 'new ManualTaskRequest(false)' in service and 'manual.offer(pendingContext(),session.active(),now)' in service
+# Read failures are not the normal known-open owned-menu case. Behavioral fault/healthy-path
+# coverage lives in SupercraftObservationTest; retain intent wiring and fail-closed gates here.
+assert 'manual.take(pendingContext(),session.active(),closed,now)' in service
+assert 'private Boolean screenState()' in service and service.count('automaticAllowed.getAsBoolean()')==1
+assert 'closed==null||!closed&&!task.ownsMenu()' in service
+assert 'if(closed==null){manual.clear();return;}' in service and 'Boolean.TRUE.equals(screenState())' in service
 shared=(main/'automation/ManualTaskRequest.java').read_text();assert 'elapsed>=30_000_000_000L' in shared and 'context.worldId()!=world' in shared and 'context.farmingActive()!=farming' in shared
 print('SupercraftLifecycleWiringTest: PASS (single fixed-owner service/Other UI, deferred expiring requests, exact task/native guards, manual/world/shutdown/Jerry cancellation; no purchase/maximize or live compatibility claim)')

@@ -12,17 +12,20 @@ public final class SupercraftService {
  public void setPolicy(SupercraftPolicy value)throws IOException{cancel(System.nanoTime());try{settings.setSupercraftPolicy(value);}catch(IOException failure){suspended=true;throw failure;}}
  public boolean manualRequest(long now){if(active()||pending()||!settings.writable()||!settings.supercraftPolicyValid()||!policy().configured()||attempted&&(now-lastAttempt<0||now-lastAttempt<20*SECOND))return false;return manual.offer(pendingContext(),session.active(),now);}
  private AutomationContext pendingContext(){try{return port.context();}catch(RuntimeException unavailable){return null;}}
+ /** A failed read is distinct from a known-open expected recipe menu. */
+ private Boolean screenState(){try{return automaticAllowed.getAsBoolean();}catch(RuntimeException unavailable){return null;}}
  private boolean request(boolean manual,long now){if(!task.request(policy().task(),manual,now)){report();return false;}attempted=true;lastAttempt=now;reported=SupercraftTask.State.DATA;return true;}
  public void tick(long now){
-  if(active()){if(!automaticAllowed.getAsBoolean()&&!task.ownsMenu())cancel(now);else{task.tick(now);report();}return;}
+  if(active()){var closed=screenState();if(closed==null||!closed&&!task.ownsMenu())cancel(now);else{task.tick(now);report();}return;}
   if(pending()){
-   if(manual.take(pendingContext(),session.active(),automaticAllowed.getAsBoolean(),now)){
+   var closed=screenState();if(closed==null){manual.clear();return;}
+   if(manual.take(pendingContext(),session.active(),closed,now)){
     var previous=reported;boolean accepted=request(true,now);
     if(!accepted&&reported==previous)feedback.accept(new StashService.Notice("Supercraft 單次請求未開始：目前設定、材料或控制權條件不符；未繼續執行。",false,"Supercraft"));
    }return;
   }
   if(session.active()){polled=false;return;}
-  if(!autoEnabled()||!automaticAllowed.getAsBoolean()||attempted&&(now-lastAttempt<0||now-lastAttempt<policy().intervalSeconds()*SECOND)||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
+  if(!autoEnabled()||!Boolean.TRUE.equals(screenState())||attempted&&(now-lastAttempt<0||now-lastAttempt<policy().intervalSeconds()*SECOND)||polled&&now-lastPoll>=0&&now-lastPoll<SECOND)return;
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }
  public void suspend(long now){suspended=true;cancel(now);}public void cancel(long now){if(manual.clear())suspended=true;if(!active())return;suspended=true;task.cancel(now);report();}

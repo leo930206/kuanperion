@@ -23,18 +23,21 @@ public final class SupercraftTask {
  public SupercraftTask(AutomationSession session,InventoryReceipts receipts,CursorReceipts cursors,Port port){this.session=Objects.requireNonNull(session);this.receipts=Objects.requireNonNull(receipts);this.cursors=Objects.requireNonNull(cursors);this.port=Objects.requireNonNull(port);}
  public State state(){return state;}public int confirmedOutput(){return confirmed;}public boolean active(){return state==State.DATA||state==State.WAIT_MENU||state==State.WAIT_RESULT||state==State.CLOSING;}
  private boolean owned(MenuSnapshot menu){return contract!=null&&contract.matches(menu)&&menu.worldId()==world&&(container<0||menu.containerId()==container);}
- public boolean ownsMenu(){return active()&&session.isCurrent(handle)&&owned(port.menu());}
+ public boolean ownsMenu(){if(!active()||!session.isCurrent(handle))return false;try{return owned(port.menu());}catch(RuntimeException unavailable){return false;}}
  private AutomationContext context(){var c=port.context();if(!c.blockers().contains(AutomationContext.Blocker.MENU)||!owned(port.menu()))return c;var b=EnumSet.noneOf(AutomationContext.Blocker.class);b.addAll(c.blockers());b.remove(AutomationContext.Blocker.MENU);return new AutomationContext(c.worldId(),c.farmingActive(),c.garden(),b);}
  private boolean sameOrigin(Frame f){return f.pose().position().distanceSquared(original.position())<=.35*.35&&f.pose().slot()==original.slot()&&PestIdentity.sameTool(original.item(),f.pose().item())&&f.pose().flying()==original.flying()&&Math.abs(PestSteering.rotate(f.pose().yaw(),original.yaw(),30,true)-f.pose().yaw())<=1&&Math.abs(f.pose().pitch()-original.pitch())<=1;}
  public boolean request(Policy policy,boolean manual,long now){
   if(active()||policy==null||!policy.configured())return false;
-  try{var c=port.context();var f=port.frame(now);
+  AutomationContext c;Frame f;
+  try{c=port.context();f=port.frame(now);
    if(!c.canIssueCommand()||!f.fresh(c.worldId(),now)||f.manualInput()||!f.cursorEmpty()||c.farmingActive()&&!c.garden()||!manual&&policy.onlyWhileFarming()&&!c.farmingActive()||SupercraftPlan.select(policy.recipe(),policy.outputCount(),policy.rules(),port.inventory()).isEmpty())return false;
-   var next=session.begin(AutomationFeature.SUPERCRAFT,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
-   handle=next;this.policy=policy;original=f.pose();world=c.worldId();started=phaseStart=now;contract=null;container=-1;confirmed=0;proof=null;names=null;state=State.DATA;port.requestCatalog(handle);return true;
-  }catch(RuntimeException invalid){if(handle!=null)finish(State.FAILED,now);return false;}
+  }catch(RuntimeException unavailable){return false;}
+  // Session.begin may fail while safely stopping a failed pause; do not swallow that stop failure.
+  var next=session.begin(AutomationFeature.SUPERCRAFT,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
+  handle=next;this.policy=policy;original=f.pose();world=c.worldId();started=phaseStart=now;contract=null;container=-1;confirmed=0;proof=null;names=null;state=State.DATA;
+  try{port.requestCatalog(handle);}catch(RuntimeException invalid){if(!active())throw invalid;finish(State.FAILED,now);return false;}return true;
  }
- public void tick(long now){if(active())try{run(now);}catch(RuntimeException invalid){finish(State.FAILED,now);}}
+ public void tick(long now){if(active())try{run(now);}catch(RuntimeException invalid){if(!active())throw invalid;finish(State.FAILED,now);}}
  private void run(long now){
   var c=context();var f=port.frame(now);
   if(!session.isCurrent(handle)||!c.canIssueCommand()||c.worldId()!=world||handle.hold()!=null&&(!c.farmingActive()||!c.garden())||!f.fresh(world,now)||f.manualInput()||!sameOrigin(f)){finish(State.CANCELLED,now);return;}
@@ -70,6 +73,6 @@ public final class SupercraftTask {
   var done=handle;handle=null;state=terminal;if(proof!=null)proof.cancel();
   // This port owns data/menu bookkeeping only, no key overlay: cleanup must succeed before releasing a successful Farm hold.
   try{port.dispose(done);}catch(RuntimeException cleanup){state=State.FAILED;}
-  boolean success=terminal==State.COMPLETE&&state==terminal;try{if(!session.finish(done,success,now)&&success)state=State.FAILED;}catch(RuntimeException cleanup){state=State.FAILED;}
+  boolean success=terminal==State.COMPLETE&&state==terminal;try{if(!session.finish(done,success,now)&&success)state=State.FAILED;}catch(RuntimeException cleanup){state=State.FAILED;throw cleanup;}
  }
 }

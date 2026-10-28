@@ -1,6 +1,6 @@
 # 2.1.0 交接總覽（先讀這份）
 
-更新日期：2026-10-27。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
+更新日期：2026-10-28。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
 
 ## 1. 哪份才是目前成果
 
@@ -34,7 +34,7 @@
 | Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢 | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
-進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。先前提供的約 60% 是整體交付粗估，不可用測試數或打勾比例冒充驗收率。
+進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。目前對使用者保守提供約 65% 的整體交付粗估，不可用測試數或打勾比例冒充驗收率；採購、Pet Sell、Pest 後續及連服驗證仍是實質缺項，不是只剩測試。
 
 Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放後重新守門派送」，見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)。Bridge 另有單次 UI 意圖優先、Stash 隔離及 Supercraft 在 Visitor 前的 due 順序；不代表整條原生 Pest 後續任務鏈已驗收。
 
@@ -65,7 +65,7 @@ git diff --check
 - `test.sh`：舊功能、純任務／service、擷取實際方法的可控邊界、原生源碼／bytecode 及負向變異回歸。Book carried-native 測試執行實際方法本體，但遊戲狀態是 fixtures。
 - `build.sh`：真實 pinned26.2 API 編譯與來源／JAR 網路端點、依賴、私密路徑／測試 payload、授權稽核。
 - `test-native-observations.py`：真實26.2 ItemStack／NBT／Slot 等無視窗 fixtures，以及真實 controller／task 配可控環境；不是伺服器交易或完整 native GUI 實跑。
-- `scripts/ui-smoke/`：獨立測試 game 目錄／虛構身份的 GUI／Mixin 驗證，不能改用使用者正式 instance 或把 dummy token 啟動說成 Hypixel 實測。最近完整既有 UI 檢查點為38狀態；不表示其後每一個 JAR 都重新啟動過 GUI。
+- `scripts/ui-smoke/`：獨立測試 game 目錄／虛構身份的 GUI／Mixin 驗證，不能改用使用者正式 instance 或把 dummy token 啟動說成 Hypixel 實測。最近完整既有 UI 檢查點為39狀態；不表示其後每一個 JAR 都重新啟動過 GUI。
 - 本機預測、唯讀配方、估價、未知選單、單一兄弟 slot 回條或別的 root／world／container 的證據，不能當成本次成功。
 
 ## 6. 接下來怎麼做
@@ -87,3 +87,7 @@ Supercraft 的單次 UI 意圖已統一使用 ManualTaskRequest(false)，詳見 
 長模組介紹不再固定46px：MainGUITextLayout.groupHeaderHeight 同時供繪製、點擊與搜尋位移使用。勿只改畫面高度卻保留舊65px列偏移；GroupHeaderLayoutTest／shared-wiring guard／實際Book勾選smoke一起守住。原Setting偶發實跑失敗仍留在verification／待辦，未以重跑通過冒充根因修復。
 
 Pest 策略的純目標選擇見 [策略規劃邊界](pest-strategy-2.1.0.md)：未知活動資料不可當未舉辦，未授權作物不可選第一個硬套；沒有複製舊第三方活動 feed／預設映射或提供未完成開關，實際套用仍待原生接線。
+
+Book／Supercraft 狀態讀取錯誤及 Pest 忙碌派送的最新檢查點見 [工作流程觀察邊界](workflow-observation-2.1.0.md)。未知視窗不能冒充自己的正常選單；停止回呼錯誤不可被廣泛 catch 吞掉；Pest 不應消耗其他 root 期間的預檢或 poll。這些離線回歸不代表完整九服務／原生接續或交易操作已完成。
+
+Jerry 全域停止現在也會在單一服務回呼失敗後繼續通知其餘八個服務，最後保留原始與後續錯誤；見同份文件的 dispatcher fault matrix。此為實際 Bridge 方法＋可控服務 actors／真 session 驗證，不代表每個服務原生清理都已成功；一般手動／換世界／shutdown 等入口仍須獨立審核。
