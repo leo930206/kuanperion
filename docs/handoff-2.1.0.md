@@ -90,4 +90,8 @@ Pest 策略的純目標選擇見 [策略規劃邊界](pest-strategy-2.1.0.md)：
 
 Book／Supercraft 狀態讀取錯誤及 Pest 忙碌派送的最新檢查點見 [工作流程觀察邊界](workflow-observation-2.1.0.md)。未知視窗不能冒充自己的正常選單；停止回呼錯誤不可被廣泛 catch 吞掉；Pest 不應消耗其他 root 期間的預檢或 poll。這些離線回歸不代表完整九服務／原生接續或交易操作已完成。
 
-Jerry 全域停止現在也會在單一服務回呼失敗後繼續通知其餘八個服務，最後保留原始與後續錯誤；見同份文件的 dispatcher fault matrix。此為實際 Bridge 方法＋可控服務 actors／真 session 驗證，不代表每個服務原生清理都已成功；一般手動／換世界／shutdown 等入口仍須獨立審核。
+Jerry 全域停止現在也會在單一服務回呼失敗後繼續通知其餘八個服務，最後保留原始與後續錯誤；見同份文件的 dispatcher fault matrix。其後的 [手動／換世界／shutdown 檢查點](lifecycle-stop-2.1.0.md) 已擴大 dispatcher 覆蓋，另保護 client-stopping 的 renderer 清理。實際 Bridge 方法＋可控服務 actors／真 session 驗證仍不代表每個服務原生清理、真實 GL teardown 或整個連服矩陣都已成功。
+
+Stash 的 [讀取錯誤／run 世代檢查點](stash-observation-2.1.0.md) 補上獨立 command lease 的未知狀態取消、原請求限定與首發計時重置。不要把 Shared AutomationSession 的守門誤認為已保護這條獨立 Stash 路徑；也不要讓舊讀取／舊 sender 結果覆寫新的手動領取任務。此為實際 service/task/coordinator 離線證據，沒有更動原生指令或宣稱連服領取成功。
+
+最新完整 GUI 重跑未通過：2026-10-29 phase33 在 Mining 容量測試後跳到 Trade，已保留記錄，原因仍待定位；不能把關閉清理的 phase0-only 重點測試說成39狀態通過。原生輸入干擾只是待查假設，不是已確認根因。詳見 verification／todo。

@@ -12,3 +12,5 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/java" -Djava.awt.headless=true -cp "$TMP:$CP" dev.kuan.kuanperion.ui.GroupHeaderLayoutTest
 
 python3 "$ROOT/scripts/test-chat-style.py" "$JDK" "$CP"
+
+python3 "$ROOT/scripts/test-ui-smoke-exit.py"

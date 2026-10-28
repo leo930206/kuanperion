@@ -11,6 +11,6 @@ with (root/'client.log').open('w') as log:
  print('Client exit',p.returncode)
 
 log=(root/"client.log").read_text()
-if "UI_SMOKE_PASS" not in log or "UI_SMOKE_FAIL" in log:
+if p.returncode!=0 or "UI_SMOKE_PASS" not in log or "UI_SMOKE_SHUTDOWN_PASS" not in log or "UI_SMOKE_FAIL" in log:
  raise SystemExit("UI smoke failed; inspect "+str(root/"client.log"))
 print("UI_SMOKE_PASS verified")

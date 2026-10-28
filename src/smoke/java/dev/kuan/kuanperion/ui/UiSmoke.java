@@ -8,12 +8,26 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 public final class UiSmoke implements ClientModInitializer {
     private java.lang.reflect.Method mouseMove;
-    private int ticks,phase=-1;private MainGUI ui;private boolean waiting,phaseValidated;
+    private int ticks,phase=-1;private MainGUI ui;private boolean waiting,phaseValidated,completed,sawRenderer;
     public void onInitializeClient(){ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
+    private void registerStopObserver(){
+        // First title-screen tick follows all mod initializers, so observe after the production stop listener.
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->{
+            if(!completed)return;
+            try{
+                if(!sawRenderer||dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized()||dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer()!=null||dev.kuan.kuanperion.renderer.NanoVGManager.getVg()!=-1||dev.kuan.kuanperion.renderer.NanoVGManager.isDrawing())throw new AssertionError("native renderer not destroyed before dependent stop listener");
+                var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);
+                if(bridge.session().active()||bridge.holdsFarming()||bridge.stash().active()||bridge.pest().active()||bridge.pest().pending()||bridge.greenhouse().active()||bridge.greenhouse().pending()||bridge.composter().active()||bridge.composter().pending()||bridge.visitor().active()||bridge.visitor().pending()||bridge.supercraft().active()||bridge.supercraft().pending()||bridge.book().active()||bridge.book().pending()||bridge.autoSell().active()||bridge.autoSell().pending()||bridge.junk().active()||bridge.junk().pending())throw new AssertionError("service/root survived native client stop");
+                System.out.println("UI_SMOKE_SHUTDOWN_PASS");
+            }catch(Throwable failure){System.out.println("UI_SMOKE_FAIL");failure.printStackTrace();throw new IllegalStateException("native shutdown smoke failed",failure);}
+        });
+    }
     private void tick(Minecraft mc){
         try{
+            sawRenderer|=dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized();
             if(phase<0){
                 if(mc.gui.overlay()!=null||!(mc.gui.screen() instanceof TitleScreen))return;
+                registerStopObserver();
                 ui=new MainGUI();mc.setScreenAndShow(ui);phase=0;ticks=0;if(Boolean.getBoolean("kuanperion.smoke.hoverOnly")){ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Mining")).findFirst().orElseThrow());phase=29;}if(Boolean.getBoolean("kuanperion.smoke.capacityOnly")){setCapacityFixture(true);phase=32;}System.out.println("UI_SMOKE_OPEN");return;
             }
             boolean expanded = phase >= 13 && phase <= 16 || phase == 21 || phase==30;
@@ -34,10 +48,10 @@ public final class UiSmoke implements ClientModInitializer {
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
             String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine"};
-            if(phase>=names.length){System.out.println("UI_SMOKE_PASS");mc.stop();return;}
+            if(phase>=names.length){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" filter="+ui.context().navigation.activeFilter+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
             if(phase==38){if(!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");testBookHeaderLayout();}
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
