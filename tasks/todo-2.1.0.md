@@ -120,3 +120,5 @@
 - [ ] Investigate retained2026-10-29 full-smoke phase33 Mining-to-Trade route drift. Phase32 full-capacity and immediate next fixture guards passed; later route was Trade. No captured native-input stack yet, so input interference is not established. Current phase0-only shutdown proof cannot count as39-state acceptance.
 
 - [x] Opt-in smoke-only navigation call-site trace, disabled by default and isolated mixin namespace; actual configuration regression and instrumented39-state/39-image/native-shutdown run pass.73 fixture clicks/no other native clicks in that run. Earlier phase33/gear intermittent causes remain unchecked; no production navigation fix is claimed.
+
+- [x] Read-only Bazaar whole-commodity sale plan: explicitly pinned native exemplar/raw ID and positive unit-net floor, protected full43 baseline, whole-product/count/stack limits, fresh gross depth estimate separate from actual-net bounds, immutable no-runtime/no-tax/no-backend scope. Actual sale adapter/receipts/service/UI/live scope remains unfinished.

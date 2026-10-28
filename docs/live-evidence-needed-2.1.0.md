@@ -11,6 +11,8 @@ These unblock current semantic/native menu adapters. Shared public estimates, fr
 
 ## Subsequent unresolved adapters
 
+- **Bazaar sale:** current product-specific instant-sell confirmation showing the complete selected product/quantity/net-proceeds/fee fields and actual confirm-button tooltip. No sale required. A generic Sell Inventory button or public gross estimate cannot establish scoped item/quantity/net authority.
+
 - **Pest bait:** current trap/bait role tooltips before refill, explicit bait material and remaining capacity/quantity, and how that menu is reached. Existing pure direct-item-slot fixtures deliberately do not assert a real layout.
 - **Pest crop/events:** the current Jacob/Harvest Feast activity block with crop names and clear active/inactive state. Unknown/missing text cannot be relabeled inactive; do not add the historical third-party feed or profile lookup as a shortcut.
 - **Pest exchange:** actual offer/confirmation/cost/reward fields. Preserve explicit thresholds and the original return point; historical helper `/setspawn` or unconditional Farming restart is not authorization.

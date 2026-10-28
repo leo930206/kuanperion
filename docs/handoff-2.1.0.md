@@ -97,3 +97,5 @@ Stash 的 [讀取錯誤／run 世代檢查點](stash-observation-2.1.0.md) 補�
 2026-10-29 首次完整 GUI 在 phase33 由 Mining 跳到 Trade，失敗記錄已保留。後續加入僅 smoke 啟用的[切頁呼叫來源診斷](ui-smoke-diagnostics-2.1.0.md)，新的完整39狀態／39截圖及原生關閉驗證通過；該次記錄73個 fixture click，沒有其他 native click。這不是舊偶發問題的根因修復：phase33 與較早 gear 問題均未重現／定位，輸入干擾仍只是未證實假設，驗收項目不能因此打勾。詳見 verification／todo。
 
 Pet 的[單次成交驗證底層](pet-sale-attempt-2.1.0.md)只接受明確原pet／最低價及 declared quote/ack，再驗證成對伺服器物品／游標回條；不是 George 原生估價／賣出功能，不能將 typed notice 當成現有伺服器格式。
+
+Bazaar 的[整批商品出售規劃](bazaar-sale-plan-2.1.0.md)區分 API gross estimate 與明確最低實收設定，固定經批准的原生商品 exemplar／完整43格與整批上限。它仍無 native caller，不可用估價授權 Sell Inventory，也未切換原 NPC Auto Sell backend。

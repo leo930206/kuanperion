@@ -1,0 +1,21 @@
+# Bazaar whole-commodity sale planning
+
+2026-10-29, development only. `BazaarSalePlan` is a read-only configuration/inventory/estimate component, **not** an instant-sell backend, current GUI parser, fee calculator or authorization to dispose of items. Existing NPC Auto Sell remains unchanged. There is no runtime caller, added endpoint, startup fetch or unfinished UI toggle.
+
+## Explicit scope
+
+- Defaults authorize no product. Each allowed raw Bazaar/SkyBlock product ID requires an explicitly approved native exemplar, declared stack limit and positive bounded exact minimum net proceeds per unit. The exemplar pins native item ID, UUID absence, raw component fingerprint, display name and lore; a matching raw ID alone cannot silently approve an upgraded/renamed/extra-metadata variant. A future settings/UI layer must obtain explicit approval: it must not construct approvals from whatever item happens to be present or derive a fingerprint from its name.
+- A complete43-slot immutable inventory is required. Any same-ID candidate in hotbar/equipment, protected or UUID-bearing, variant metadata, malformed/oversized stack or ambiguous duplicate identity vetoes the plan. Unrelated items remain in the complete baseline, never acquire sale permission and must be independently preserved by the future transaction proof.
+- The plan selects **all** matching main-inventory stacks for each configured product. Product/stack/item limits refuse an oversized whole plan rather than silently taking the first few stacks or assuming an unknown partial-quantity GUI. Products are ordered by their first main slot. Listed slots are player-inventory data, never proof of a clickable native menu slot or of a Sell Inventory role.
+- Existing fresh bounded public order-book depth supplies only an approximate **gross** total. Missing/stale/insufficient depth, overflow, unknown data or a gross estimate below the configured minimum net refuses planning. There is no extrapolation, quick-status price substitution, fee percentage assumption or claim of a current live price.
+- `withinConfiguredBounds(product,quantity,actualGuiNet)` tests only exact configured ID/quantity/positive net floor and numerical bounds. It is not a native quote validator or permission. Gross API estimates cannot be passed as actual GUI net proceeds. A future adapter must prove the exact selected product/amount, all fees and actual net payout from current native evidence, current root/world/menu/cursor/metadata, fresh post-send losses/payout and safe original-parent completion. Re-plan after any inventory or explicit authorization change; no queued/persisted sale is introduced.
+
+## Evidence / remaining work
+
+Missing-API RED preceded implementation. Actual planner tests cover pinned identity, all protected/variant/UUID/hotbar/equipment/empty/partial/overstack cases, whole-product caps, insufficient/stale book depth, lower minimum refusal, stable multi-product order/total, immutable approval/baseline/slot data and distinct actual-net configuration checks. Existing market/buy-planning/NPC sale regressions remain separate evidence; none runs a Bazaar sale.
+
+A new source guard initially expected the wrong constructor parameter name for the immutable baseline; its spelling was corrected to match the implementation. Actual immutability tests remained unchanged. Source guards retain no runtime caller/native operation/network/guessed fee or backend switch.
+
+Actual instant-sell navigation/quantity/confirmation/fee/net parsing, transaction receipts, protected-item routing, policy persistence, service/Trade UI selection and live validation remain unfinished. A generic Sell Inventory button cannot be authorized merely because a safe single-product plan exists. No stable JAR or game settings are changed by developing this component.
+
+Primary documentation check (2026-10-29): the [official Bazaar API documentation](https://api.hypixel.net/) describes both summaries as limited order-book depth and quick-status prices as weighted aggregates. Its example orders are consistent with the existing estimator’s side ordering. This is a documented-data check, not a current native sell/fee/payout-format guarantee. Only the public documentation was read during development; no profile/auth request or new runtime endpoint was introduced.
