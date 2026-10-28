@@ -14,3 +14,5 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 python3 "$ROOT/scripts/test-chat-style.py" "$JDK" "$CP"
 
 python3 "$ROOT/scripts/test-ui-smoke-exit.py"
+
+python3 "$ROOT/scripts/test-ui-smoke-trace.py"

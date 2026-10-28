@@ -1,6 +1,6 @@
 # 2.1.0 交接總覽（先讀這份）
 
-更新日期：2026-10-28。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
+更新日期：2026-10-29。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
 
 ## 1. 哪份才是目前成果
 
@@ -94,4 +94,4 @@ Jerry 全域停止現在也會在單一服務回呼失敗後繼續通知其餘�
 
 Stash 的 [讀取錯誤／run 世代檢查點](stash-observation-2.1.0.md) 補上獨立 command lease 的未知狀態取消、原請求限定與首發計時重置。不要把 Shared AutomationSession 的守門誤認為已保護這條獨立 Stash 路徑；也不要讓舊讀取／舊 sender 結果覆寫新的手動領取任務。此為實際 service/task/coordinator 離線證據，沒有更動原生指令或宣稱連服領取成功。
 
-最新完整 GUI 重跑未通過：2026-10-29 phase33 在 Mining 容量測試後跳到 Trade，已保留記錄，原因仍待定位；不能把關閉清理的 phase0-only 重點測試說成39狀態通過。原生輸入干擾只是待查假設，不是已確認根因。詳見 verification／todo。
+2026-10-29 首次完整 GUI 在 phase33 由 Mining 跳到 Trade，失敗記錄已保留。後續加入僅 smoke 啟用的[切頁呼叫來源診斷](ui-smoke-diagnostics-2.1.0.md)，新的完整39狀態／39截圖及原生關閉驗證通過；該次記錄73個 fixture click，沒有其他 native click。這不是舊偶發問題的根因修復：phase33 與較早 gear 問題均未重現／定位，輸入干擾仍只是未證實假設，驗收項目不能因此打勾。詳見 verification／todo。

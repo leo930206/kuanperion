@@ -30,6 +30,10 @@ cp=list(dict.fromkeys(cp));(R/'classpath.txt').write_text(':'.join(cp))
 compilecp=cp+[str(W/'build/classes')]+[str(p) for p in (W/'build/tmp/fabric-api').rglob('*.jar')]+[str(p) for p in (W/'src/main/resources/META-INF/jars').glob('*.jar')]
 subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/javac'),'--release','25','-encoding','UTF-8','-cp',':'.join(compilecp),'-d',str(R/'classes'),*[str(p) for p in (W/'src/smoke/java').rglob('*.java')]],check=True)
 (R/'classes/fabric.mod.json').write_text(json.dumps({'schemaVersion':1,'id':'kuanperion_ui_smoke','version':'1.0','name':'Isolated UI Smoke Test','environment':'client','entrypoints':{'client':['dev.kuan.kuanperion.ui.UiSmoke']},'depends':{'kuanperion':'2.1.0','fabric-api':'*'}}))
+if os.environ.get('KUANPERION_SMOKE_NAV_TRACE')=='1':
+ metadata=R/'classes/fabric.mod.json';mod=json.loads(metadata.read_text());mod['mixins']=['ui-navigation-trace.mixins.json'];metadata.write_text(json.dumps(mod))
+ (R/'classes/ui-navigation-trace.mixins.json').write_text(json.dumps({'required':True,'minVersion':'0.8','package':'dev.kuan.kuanperion.smokemixin','compatibilityLevel':'JAVA_25','client':['UiNavigationTraceMixin'],'injectors':{'defaultRequire':1}}))
+
 subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/jar'),'--create','--file',str(R/'game/mods/ui-smoke.jar'),'-C',str(R/'classes'),'.'],check=True)
 shutil.copy2(W/'build/libs/kuanperion-2.1.0.jar',R/'game/mods/kuanperion-2.1.0.jar')
 shutil.copy2(P/'instances/Hypixel SkyBlock/minecraft/mods/fabric-api-0.161.0+26.2.jar',R/'game/mods/fabric-api.jar')
