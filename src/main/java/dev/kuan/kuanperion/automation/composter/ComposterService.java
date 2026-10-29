@@ -39,6 +39,7 @@ public final class ComposterService {
   polled=true;lastPoll=now;if(request(false,now)){task.tick(now);report();}
  }
  /** Explicit safety stop also suppresses idle automatic dispatch until the user re-enables it. */
+ public void onSystemMessage(long world,String text){task.onSystemMessage(world,text);}
  public void suspend(long now){suspended=true;cancel(now);}
  public void cancel(long now){if(manual.clear())suspended=true;if(!active())return;suspended=true;task.cancel(now);report();}
  private void report(){

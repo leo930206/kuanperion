@@ -10,8 +10,10 @@ public final class BazaarAcquisitionControllerTest {
   final SpendingBudget budget=new SpendingBudget(1000);final BazaarAcquisitionPlan.Plan initial=BazaarPurchaseViewTest.plan(budget,7);
   boolean farm=true,available=true,safe=true,empty=true,sign,foreign;long now=1;int opens,nav,bought,typed,closed,committedIdentityReads;boolean replaceBeforeClose;Object level=new Object(),identity=new Object(),screen;MenuSnapshot menu;Map<Integer,ItemSnapshot> inventory=BazaarPurchaseViewTest.inventory();Runnable callback=()->{};
   AutomationContext context(){return new AutomationContext(1,farm,true,screen==null?Set.of():Set.of(AutomationContext.Blocker.MENU));}
-  final AutomationSession session=new AutomationSession(coordinator,this::context,()->{},()->farm=false);final AutomationSession.Handle parent=session.begin(AutomationFeature.VISITOR,0,120_000_000_000L);
-  final BazaarAcquisitionController flow=new BazaarAcquisitionController(coordinator,session,this::context,items,cursors,parent,initial,budget,this,()->now);
+  final AutomationSession session=new AutomationSession(coordinator,this::context,()->{},()->farm=false);final AutomationSession.Handle parent;
+  final BazaarAcquisitionController flow;
+  H(){this(AutomationFeature.VISITOR);}
+  H(AutomationFeature owner){parent=session.begin(owner,0,120_000_000_000L);flow=new BazaarAcquisitionController(coordinator,session,this::context,items,cursors,parent,initial,budget,this,()->now);}
   public boolean available(){return available;}public boolean safe(){return safe&&!foreign;}public boolean cursorEmpty(){return empty;}public Object level(){return level;}public Object menuIdentity(){if(replaceBeforeClose&&budget.spent()>0&&++committedIdentityReads==2)identity=new Object();return identity;}public Object screenIdentity(){return screen;}public boolean sign(){return sign;}
   public Map<Integer,ItemSnapshot> inventory(){return Map.copyOf(inventory);}public MenuSnapshot menu(long world){return menu;}public long purse(){return 1000;}
   public boolean open(AutomationSession.Handle h,BazaarAcquisitionPlan.Request r,long now){opens++;return session.isCurrent(h)&&r==initial.requests().getFirst();}
@@ -32,6 +34,7 @@ public final class BazaarAcquisitionControllerTest {
   var text=new String[]{"64"};var editor=new net.minecraft.client.gui.font.TextFieldHelper(()->text[0],v->text[0]=v,()->"",v->{},v->v.length()<16);
   editor.keyPressed(AutomationMenuActions.bazaarSelectAllKey());editor.keyPressed(new net.minecraft.client.input.KeyEvent(261,0,0));editor.charTyped(new net.minecraft.client.input.CharacterEvent('7'));check(text[0].equals("7"),"actual pinned26.2 native text editor replaces old amount on macOS/other platforms; no clipboard");
 
+  var composter=new H(AutomationFeature.COMPOSTER);composter.toPurchase();composter.deliver();composter.tick();check(composter.flow.state()==BazaarAcquisitionController.State.COMPLETE&&composter.budget.spent()==14&&composter.session.isCurrent(composter.parent),"actual native-edge purchase route also preserves the original Composter root");
   H h=new H();h.toPurchase();h.deliver();h.tick();check(h.flow.state()==BazaarAcquisitionController.State.COMPLETE&&h.budget.spent()==14&&h.closed==1&&h.session.isCurrent(h.parent)&&h.session.holdsFarming()&&h.farm,"full custom amount navigation -> real terminal -> dual receipts -> owned close; same parent remains");
   h=new H();h.toPurchase();h.show("Confirm Purchase",6,Map.of(13,item("","minecraft:gold_nugget","Confirm",1,List.of("Wheat","Amount: 7x","Price: 14 coins"))));h.tick();check(h.bought==2&&h.budget.available()==986&&h.session.isCurrent(h.parent),"session binding preserves exact optional confirmation under original parent, no second reservation");h.deliver();h.tick();check(h.flow.state()==BazaarAcquisitionController.State.COMPLETE&&h.closed==1&&h.budget.spent()==14,"complete navigation+confirmation+dual receipt+frozen final-menu close");
   h=new H();h.toPurchase();h.replaceBeforeClose=true;h.deliver();h.tick();check(h.closed==0&&h.flow.state()==BazaarAcquisitionController.State.UNCERTAIN,"completion may close only originally frozen native menu, never a replacement during final reads");

@@ -23,9 +23,9 @@ public class CompletionBoundaryTest {
   Port port=new Port();void end(State terminal){throw new AssertionError();}
  }
  CLASSES
- static List<String> expected(Fixture f,String... steps){var values=new ArrayList<String>();if(f instanceof Visitor)values.add("acquisition");values.addAll(List.of(steps));return values;}
+ static List<String> expected(Fixture f,String... steps){var values=new ArrayList<String>();if(f instanceof Visitor||f instanceof Composter)values.add("acquisition");values.addAll(List.of(steps));return values;}
  public static void main(String[]args){
-  var childFailure=new Visitor();childFailure.failAcquisition=true;childFailure.end(State.COMPLETE);check(childFailure.state==State.FAILED&&childFailure.stops==1&&childFailure.order.equals(expected(childFailure,"release","dispose","stop","physical")),"child cancellation failure must still release physical input and dispose before original Farm stop");
+  for(var childFailure:List.of(new Visitor(),new Composter())){childFailure.failAcquisition=true;childFailure.end(State.COMPLETE);check(childFailure.state==State.FAILED&&childFailure.stops==1&&childFailure.order.equals(expected(childFailure,"release","dispose","stop","physical")),"child cancellation failure must still release physical input and dispose before original Farm stop");}
 
   for(var factory:List.<java.util.function.Supplier<Fixture>>of(Pest::new,Greenhouse::new,Composter::new,Visitor::new)){
    var success=factory.get();success.end(State.COMPLETE);check(success.state==State.COMPLETE&&success.stops==0&&!success.session.active()&&success.order.equals(expected(success,"release","dispose")),"success disposes before finishing and has no late failure work: "+success.getClass());

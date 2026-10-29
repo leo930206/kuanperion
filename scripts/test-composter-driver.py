@@ -54,6 +54,6 @@ for name in ['onManualInventoryInput','onOutgoingCommand','worldChanged','invali
  while depth:
   depth+=(s[end]=='{')-(s[end]=='}');end+=1
  assert 'composter.cancel(' in s[start:end] and 'AutomationStops.run(' in s[start:end],name
-print('ComposterDriverWiringTest: PASS (exact configured native machine/marker, fixed lease/menu/movement, whole-stack protected source, triple applied receipts, no prices/sacks/blind slots/cursor repair)')
+print('ComposterDriverWiringTest: PASS (exact configured native machine/marker, fixed lease/menu/movement, whole-stack protected source, triple applied receipts, explicit native/coin-capped child acquisition; no Sacks/blind slots/cursor repair)')
 
 service=(m/"automation/composter/ComposterService.java").read_text();assert "AutomationFeature.GREENHOUSE" not in service and service.count("AutomationFeature.COMPOSTER")==3,"Composter settings must never mutate Greenhouse feature bits"

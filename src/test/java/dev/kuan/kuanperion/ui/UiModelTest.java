@@ -13,6 +13,9 @@ public final class UiModelTest {
         require(VisitorModuleSettings.parseBuying("WHEAT=minecraft:wheat,64,1000").get("WHEAT").maximumCoins()==1000,"explicit native commodity purchase bounds");
         require(VisitorModuleSettings.parseBuying(" ").isEmpty(),"blank purchase consent never buys");
         for(String bad:List.of("WHEAT=minecraft:wheat,65,1","WHEAT=minecraft:air,64,1","WHEAT=minecraft:wheat,64,0","WHEAT=minecraft:wheat,64,1.5","WHEAT=minecraft:wheat,64,1;WHEAT=minecraft:wheat,64,2","WHEAT=minecraft:wheat,64,1;","WHEAT=/barn,64,1"))try{VisitorModuleSettings.parseBuying(bad);throw new AssertionError("invalid buying consent accepted: "+bad);}catch(IllegalArgumentException expected){}
+        require(ComposterModuleSettings.parseBuying("BOX_OF_SEEDS=minecraft:paper,64,2,1000",1000).stock().get("BOX_OF_SEEDS").targetCount()==2,"explicit Composter native stock target/cap");
+        require(ComposterModuleSettings.parseBuying(" ",0).stock().isEmpty(),"blank Composter purchasing remains off");
+        for(String bad:List.of("BOX_OF_SEEDS=minecraft:paper,64,0,1000","BOX_OF_SEEDS=minecraft:air,64,2,1000","BOX_OF_SEEDS=minecraft:paper,64,2,1.5","BOX_OF_SEEDS=minecraft:paper,64,2,1000;","BOX_OF_SEEDS=minecraft:paper,64,2,1000;BOX_OF_SEEDS=minecraft:paper,64,3,1000"))try{ComposterModuleSettings.parseBuying(bad,1000);throw new AssertionError("invalid Composter buying consent: "+bad);}catch(IllegalArgumentException expected){}
         testPestPendingUi();
         testMaintenancePendingUi();
         var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");

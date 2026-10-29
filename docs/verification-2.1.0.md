@@ -418,3 +418,12 @@ Remaining: optional additional confirmation, all other purchasing parents, scope
 ### Same-day guarded pending-confirmation extension
 
 Additional RED -> GREEN: real terminal initially refuses a new pending confirmation; declared attempt/view APIs initially absent; bare source product labels initially refused. Added same-transaction continuation (no second reservation), then tested exact-budget limits, already-seen GAME acknowledgement, upward cost, third-confirmation refusal, new canonical/active native receipts and actual navigation/session binding through the new container. Final close replacement regression remains tested. Unknown warnings and ambiguous spending retain the original hold/no retry. Full current-server and actual GUI/Mixin validation are still not asserted.
+
+
+## 2026-10-29 — Composter configured-stock acquisition
+
+Composter now uses the same original-parent Bazaar buyer for an explicitly configured crop/fuel stock target, native item identity and per-item/whole-run budget. Existing inventory is consumed first. One acquisition per configured resource kind, no repeated buying after an uncertain result; successful acquisition must close its own menu, reopen the same machine and pass the original deposit resource/source/cursor proofs. Sacks remains unimplemented at this checkpoint. Official catalog/price clients are demand-created inside the original guarded parent and closed with parent disposal; no upstream service is used.
+
+RED -> GREEN covers policy/persistence/UI consent, actual task acquisition/reopen/deposit, shared-budget retention, cancellation/uncertainty/no-loop and a complete controlled native Bazaar flow under the COMPOSTER root. The extracted actual-disposal test exposed a genuine sequence-owner leak when disposal only closed clients; cancellation and both data-client closes now run even when physical disposal fails. An intermediate accidental Greenhouse writer replacement was detected at compilation and restored exactly before the final test run; no Greenhouse behavior change is intended.
+
+Final frozen stage passed complete test.sh, pinned native build and source/archive audits, native-observation/controller fixtures, UI/Chat/launcher harness models and byte-preserving legacy migration. No graphical client or live server operation was performed; this does not assert current-server compatibility, whole-upgrade completion, release or installation. All older verification history is retained.

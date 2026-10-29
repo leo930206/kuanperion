@@ -42,7 +42,7 @@ public final class AutomationClientBridge {
   pest=new PestService(settings,session,flight,positions,()->screenReady(AutomationFeature.PEST),feedback);
   greenhouseFlight=new GreenhouseFlightController(coordinator,session,this::observe,this::sendGreenhouseTravel);
   greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->screenReady(AutomationFeature.GREENHOUSE),feedback);
-  composterFlight=new ComposterFlightController(coordinator,session,this::observe,this::sendComposterTravel);
+  composterFlight=new ComposterFlightController(coordinator,session,this::observe,this::sendComposterTravel,receipts,cursors,this::sendBazaarAcquisition,()->BazaarPurse.read(sidebar.apply(Minecraft.getInstance())).orElse(-1));
   composter=new ComposterService(settings,session,positions,receipts,cursors,composterFlight,()->screenReady(AutomationFeature.COMPOSTER),()->ComposterGameView.capture(Minecraft.getInstance(),observe()),feedback);
   visitorFlight=new VisitorFlightController(coordinator,session,this::observe,this::sendVisitorTravel,receipts,cursors,this::sendBazaarAcquisition,()->BazaarPurse.read(sidebar.apply(Minecraft.getInstance())).orElse(-1));
   visitor=new VisitorService(settings,session,positions,receipts,cursors,visitorFlight,()->screenReady(AutomationFeature.VISITOR),feedback);
@@ -172,7 +172,7 @@ public final class AutomationClientBridge {
  public void invalidateFarmSession(){
   long now=System.nanoTime();AutomationStops.run(()->session.invalidate(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
  }
- public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);visitor.onSystemMessage(currentWorldId(),text);}
+ public void onServerGameMessage(String text){long now=System.nanoTime();stash.onSystemMessage(text,now);autoSell.onSystemMessage(text,now);visitor.onSystemMessage(currentWorldId(),text);composter.onSystemMessage(currentWorldId(),text);}
  /** Unlike lifecycle cancellation, Jerry also suspends configured but idle automatic jobs. */
  public void suspendForJerry(){long now=System.nanoTime();AutomationStops.run(()->pest.suspend(now),()->greenhouse.suspend(now),()->composter.suspend(now),()->visitor.suspend(now),()->supercraft.suspend(now),()->book.suspend(now),()->autoSell.suspend(now),()->junk.suspend(now),()->stash.suspend("Jerry 停止動作"));}
  public void onOutgoingCommand(){if(ownGameplayCommand){observedGameplayCommand=true;return;}

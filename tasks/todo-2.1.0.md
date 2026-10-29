@@ -129,3 +129,5 @@
 - [x] Opt-in smoke-only navigation call-site trace, disabled by default and isolated mixin namespace; actual configuration regression and instrumented39-state/39-image/native-shutdown run pass.73 fixture clicks/no other native clicks in that run. Earlier phase33/gear intermittent causes remain unchecked; no production navigation fix is claimed.
 
 - [x] Read-only Bazaar whole-commodity sale plan: explicitly pinned native exemplar/raw ID and positive unit-net floor, protected full43 baseline, whole-product/count/stack limits, fresh gross depth estimate separate from actual-net bounds, immutable no-runtime/no-tax/no-backend scope. Actual sale adapter/receipts/service/UI/live scope remains unfinished.
+
+- [x] Composter explicitly configured crop/fuel stock acquisition and machine reopen under the original parent/budget, default-off persisted policy/UI, once-per-kind guard, real native-edge Composter buyer and demand/disposal failure tests. Not a live claim and not Sacks implementation.

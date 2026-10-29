@@ -7,6 +7,12 @@ public final class ComposterTaskTest {
  static ItemSnapshot role(String name,long current,long capacity){return new ItemSnapshot("","minecraft:paper","",name,name+current,1,List.of(current+"/"+capacity),true);}
  static final class Fake implements ComposterTask.Port {
   AutomationContext ctx=new AutomationContext(1,true,true,Set.of());FlightAnchor pose=new FlightAnchor(new PestTargets.Point(.5,70,.5),10,20,0,TOOL,false);boolean mayFly=true,manual,cursorEmpty=true,accept=true,blocked;MenuSnapshot menu;int prepares,opens,deposits,restores,releases,disposes,closes,stops,pauses;boolean consumed;List<PestPlot> commands=new ArrayList<>();
+  boolean acquireAllowed;int acquisitions,cancelAcquisitions,messages;SpendingBudget budget;ComposterTask.Acquisition acquisition=ComposterTask.Acquisition.RUNNING;
+  public boolean beginAcquisition(AutomationSession.Handle h,ComposterPolicy p,Set<ComposterObservation.Kind> kinds,SpendingBudget budget,long now){acquisitions++;this.budget=budget;return acquireAllowed;}
+  public ComposterTask.Acquisition pollAcquisition(AutomationSession.Handle h,long now){return acquisition;}
+  public boolean ownsAcquisitionScreen(){return acquireAllowed;}
+  public void acquisitionMessage(long world,String text){messages++;}
+  public void cancelAcquisition(){cancelAcquisitions++;}
   public AutomationContext context(){return ctx;}public PestTargets.Point position(){return pose.position();}
   public ComposterTask.Frame frame(long now){return new ComposterTask.Frame(ctx.worldId(),now,pose,new PestTargets.Point(pose.position().x(),pose.position().y()+1.62,pose.position().z()),mayFly,manual,cursorEmpty,true);}
   public List<ComposterPlan.Stack> inventory(){return consumed?List.of():List.of(new ComposterPlan.Stack(9,MATERIAL));}

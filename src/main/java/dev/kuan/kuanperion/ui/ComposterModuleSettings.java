@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion.ui;
-import dev.kuan.kuanperion.automation.composter.*;import dev.kuan.kuanperion.ui.settings.*;import dev.kuan.kuanperion.notification.NotificationManager;import java.io.IOException;import java.util.*;import java.util.function.UnaryOperator;
+import dev.kuan.kuanperion.automation.composter.*;import dev.kuan.kuanperion.automation.BazaarAcquisitionPlan;import dev.kuan.kuanperion.ui.settings.*;import dev.kuan.kuanperion.notification.NotificationManager;import java.io.IOException;import java.util.*;import java.util.function.UnaryOperator;
 /** Inventory-source slice only. No hidden sack clicks, purchases, or invented material conversion values. */
 public final class ComposterModuleSettings {
  private ComposterModuleSettings(){}
@@ -12,14 +12,26 @@ public final class ComposterModuleSettings {
   if(result.size()>32)throw new IllegalArgumentException("最多設定 32 種材料");return Map.copyOf(result);
  }
  private static String materials(ComposterService s,ComposterObservation.Kind kind){return s.policy().materials().entrySet().stream().filter(e->e.getValue().kind()==kind).sorted(Map.Entry.comparingByKey()).map(e->e.getKey()+"="+e.getValue().units()).collect(java.util.stream.Collectors.joining(", "));}
+ private static long coins(String input){if(input==null||!input.matches("[0-9]{1,13}"))throw new IllegalArgumentException("請輸入 0～1000000000000 Coins");long value=Long.parseLong(input);if(value>1000000000000L)throw new IllegalArgumentException("預算過大");return value;}
+ public static ComposterBuying parseBuying(String input,long budget){
+  if(input==null||input.length()>4096)throw new IllegalArgumentException("購料清單過長");var stock=new TreeMap<String,ComposterBuying.Stock>();
+  if(!input.isBlank())for(String raw:input.split(";",-1)){
+   var pair=raw.strip().split("=",-1);if(pair.length!=2||!pair[0].matches("[A-Z0-9_]{1,64}"))throw new IllegalArgumentException("格式：ITEM_ID=minecraft:id,堆疊上限,庫存數量,單項預算；多項用分號分隔");
+   var fields=pair[1].split(",",-1);if(fields.length!=4||!fields[1].matches("[1-9][0-9]?")||!fields[2].matches("[1-9][0-9]{0,3}")||!fields[3].matches("[1-9][0-9]{0,12}"))throw new IllegalArgumentException("請填寫原生 ID、堆疊上限、庫存目標及 Coins 上限");
+   var material=new BazaarAcquisitionPlan.Material(fields[0],Integer.parseInt(fields[1]),coins(fields[3]));if(stock.putIfAbsent(pair[0],new ComposterBuying.Stock(Integer.parseInt(fields[2]),material))!=null)throw new IllegalArgumentException("材料不可重複");
+  }return new ComposterBuying(stock,budget);
+ }
+ private static String buying(ComposterPolicy p){var out=new ArrayList<String>();new TreeMap<>(p.buying().stock()).forEach((id,s)->out.add(id+"="+s.material().minecraftId()+","+s.material().stackLimit()+","+s.targetCount()+","+s.material().maximumCoins()));return String.join("; ",out);}
  public static ModulesTab.SubTab tab(ComposterService service){
-  var group=SettingGroup.alwaysOn("Composter","使用背包內明確指定的材料補充；目前不自動購買或取用 Sacks。需設定 Barn 機器與每件材料的資源量，返回原位才續耕。")
+  var group=SettingGroup.alwaysOn("Composter","使用背包內明確指定的材料補充；缺料時可另外授權有預算的購料，Sacks 尚未接線。需設定 Barn 機器與材料資源量，返回原位才續耕。")
    .add(new ToggleSetting("自動補充 Composter",service::autoEnabled,v->enabled(service,v)))
    .add(new ToggleSetting("只在 Farming 執行中自動補充",()->service.policy().onlyWhileFarming(),v->policy(service,p->p.withOnlyFarming(v))))
    .add(new ActionSetting("記錄準星指向的 Composter 方塊",()->{try{if(!service.captureAnchor())NotificationManager.error("Composter 位置未記錄","請在 Garden 的 Barn，將準星對準 Composter 機器方塊；需可辨識附近唯一的 Composter 標記。");}catch(IOException invalid){NotificationManager.error("Composter 設定未套用",invalid.getMessage());}}))
    .add(new InfoSetting("機器位置",()->service.policy().anchor()==null?"尚未記錄":service.policy().anchor().x()+", "+service.policy().anchor().y()+", "+service.policy().anchor().z()))
    .add(new TextSetting("Organic Matter 材料與單位值","ITEM_ID=每件資源量",()->materials(service,ComposterObservation.Kind.ORGANIC),v->policy(service,p->p.withMaterials(parseMaterials(v,ComposterObservation.Kind.ORGANIC,p.materials())))).withFieldWidth(390))
    .add(new TextSetting("Fuel 材料與單位值","ITEM_ID=每件資源量",()->materials(service,ComposterObservation.Kind.FUEL),v->policy(service,p->p.withMaterials(parseMaterials(v,ComposterObservation.Kind.FUEL,p.materials())))).withFieldWidth(390))
+   .add(new TextSetting("整次購料預算（Coins，0 關閉）","0",()->Long.toString(service.policy().buying().maximumCoins()),v->policy(service,p->p.withBuying(new ComposterBuying(p.buying().stock(),coins(v))))).withFieldWidth(180))
+   .add(new TextSetting("購料原生 ID、堆疊、庫存目標與單項預算","ITEM_ID=minecraft:id,64,2,1000",()->buying(service.policy()),v->policy(service,p->p.withBuying(parseBuying(v,p.buying().maximumCoins())))).withFieldWidth(480))
    .add(new SliderSetting("補充目標容量",1,100,()->(float)service.policy().targetPercent(),v->policy(service,p->p.withTargetPercent(Math.round(v)))).withDecimals(0).withSuffix("%"))
    .add(new SliderSetting("單次材料堆疊上限",1,27,()->(float)service.policy().maxStacks(),v->policy(service,p->p.withMaxStacks(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("單次材料數量上限",1,1728,()->(float)service.policy().maxItems(),v->policy(service,p->p.withMaxItems(Math.round(v)))).withDecimals(0))

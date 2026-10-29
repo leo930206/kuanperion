@@ -3,7 +3,8 @@ package dev.kuan.kuanperion.automation.composter;
 import dev.kuan.kuanperion.automation.*;import dev.kuan.kuanperion.automation.flight.*;import dev.kuan.kuanperion.automation.pest.*;import java.util.*;
 /** Inventory-only refill: a material stack is not considered consumed without source, resource and cursor receipts. */
 public final class ComposterTask {
- public enum State{IDLE,PREPARING,TRAVEL_OUT,APPROACHING,OPENING,WAIT_MENU,FILLING,WAIT_DEPOSIT,TRAVEL_BACK,RETURNING,RESTORING,COMPLETE,PARTIAL,CANCELLED,TIMED_OUT,FAILED}
+ public enum State{IDLE,PREPARING,TRAVEL_OUT,APPROACHING,OPENING,WAIT_MENU,FILLING,ACQUIRING,WAIT_DEPOSIT,TRAVEL_BACK,RETURNING,RESTORING,COMPLETE,PARTIAL,CANCELLED,TIMED_OUT,FAILED}
+ public enum Acquisition{RUNNING,COMPLETE,FAILED,UNCERTAIN}
  public enum Open{AIMING,SENT,REJECTED}
  public record Frame(long world,long observedAt,FlightAnchor pose,PestTargets.Point eye,boolean mayFly,boolean manualInput,boolean cursorEmpty,boolean complete){public Frame{Objects.requireNonNull(pose);Objects.requireNonNull(eye);}boolean fresh(long world,long now){return complete&&this.world==world&&world>0&&now-observedAt>=0&&now-observedAt<=1_000_000_000L;}}
  public interface Port extends PestPlotTravel.Port {
@@ -12,6 +13,11 @@ public final class ComposterTask {
   FlightMotion move(AutomationSession.Handle handle,PestTargets.Point goal,double tolerance,long now);
   Open open(AutomationSession.Handle handle,ComposterPolicy.Anchor machine,long now);
   boolean deposit(AutomationSession.Handle handle,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection protection,long now);
+  default boolean beginAcquisition(AutomationSession.Handle h,ComposterPolicy policy,Set<ComposterObservation.Kind> kinds,SpendingBudget budget,long now){return false;}
+  default Acquisition pollAcquisition(AutomationSession.Handle h,long now){return Acquisition.FAILED;}
+  default boolean ownsAcquisitionScreen(){return false;}
+  default void acquisitionMessage(long world,String text){}
+  default void cancelAcquisition(){}
   void closeOwnedMenu(int id);FlightMotion restore(AutomationSession.Handle handle,FlightAnchor original,long now);
   default void dispose(AutomationSession.Handle handle){release(handle);}
   /** Failure-only physical input reconciliation; never sends gameplay or re-arms Farming. */
@@ -19,29 +25,34 @@ public final class ComposterTask {
  }
  private static final long SECOND=1_000_000_000L;private static final MenuContract MENU=new MenuContract(Set.of("Composter"),Set.of(45,54));
  private final AutomationSession session;private final InventoryReceipts inventory;private final CursorReceipts cursor;private final Port port;private final PestPlotTravel travel;
- private State state=State.IDLE;private AutomationSession.Handle handle;private ComposterPolicy policy;private FlightAnchor original,region;private PestPlot home;private long world,started,phaseStart,lastAction;private int container=-1,stacks,inserted,returnLegs,sourceSlot;private boolean partial,inputPending,expectedMenu;private ComposterPlan.Deposit pending;private ComposterObservation.Snapshot before;private InventoryReceipts.Stamp inventoryStamp;private CursorReceipts.Stamp cursorStamp;private PestTargets.Point returnGoal;
+ private State state=State.IDLE;private AutomationSession.Handle handle;private ComposterPolicy policy;private FlightAnchor original,region;private PestPlot home;private long world,started,phaseStart,lastAction;private int container=-1,stacks,inserted,returnLegs,sourceSlot;private boolean partial,inputPending,expectedMenu;private ComposterPlan.Deposit pending;private ComposterObservation.Snapshot before;private InventoryReceipts.Stamp inventoryStamp;private CursorReceipts.Stamp cursorStamp;private PestTargets.Point returnGoal;private SpendingBudget buyingBudget;private final Set<ComposterObservation.Kind> acquired=EnumSet.noneOf(ComposterObservation.Kind.class);
  public ComposterTask(AutomationSession session,PlayerPositionReceipts positions,InventoryReceipts inventory,CursorReceipts cursor,Port port){this.session=session;this.inventory=inventory;this.cursor=cursor;this.port=port;travel=new PestPlotTravel(session,positions,port,AutomationFeature.COMPOSTER);}
- public State state(){return state;}public int inserted(){return inserted;}public boolean active(){return switch(state){case PREPARING,TRAVEL_OUT,APPROACHING,OPENING,WAIT_MENU,FILLING,WAIT_DEPOSIT,TRAVEL_BACK,RETURNING,RESTORING->true;default->false;};}
- public boolean ownsMenu(){return active()&&session.isCurrent(handle)&&expectedMenu&&owned(port.menu());}
+ public State state(){return state;}public int inserted(){return inserted;}public boolean active(){return switch(state){case PREPARING,TRAVEL_OUT,APPROACHING,OPENING,WAIT_MENU,FILLING,ACQUIRING,WAIT_DEPOSIT,TRAVEL_BACK,RETURNING,RESTORING->true;default->false;};}
+ public boolean ownsMenu(){return active()&&session.isCurrent(handle)&&(state==State.ACQUIRING?port.ownsAcquisitionScreen():expectedMenu&&owned(port.menu()));}
  public boolean request(ComposterPolicy policy,boolean manual,long now){
   if(active()||policy==null||!policy.configured())return false;
   try{var context=port.context();var f=port.frame(now);var home=PestPlot.at(f.pose().position().x(),f.pose().position().z());
    if(!context.canIssueCommand()||!context.garden()||!f.fresh(context.worldId(),now)||!f.mayFly()||f.manualInput()||!f.cursorEmpty()||home.isEmpty()||!manual&&policy.onlyWhileFarming()&&!context.farmingActive())return false;
    var next=session.begin(AutomationFeature.COMPOSTER,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
-   handle=next;this.policy=policy;original=region=f.pose();this.home=home.get();world=context.worldId();started=phaseStart=lastAction=now;container=-1;stacks=inserted=returnLegs=0;partial=inputPending=expectedMenu=false;pending=null;before=null;returnGoal=null;travel.reset();state=State.PREPARING;return true;
+   handle=next;this.policy=policy;buyingBudget=new SpendingBudget(policy.buying().maximumCoins());acquired.clear();original=region=f.pose();this.home=home.get();world=context.worldId();started=phaseStart=lastAction=now;container=-1;stacks=inserted=returnLegs=0;partial=inputPending=expectedMenu=false;pending=null;before=null;returnGoal=null;travel.reset();state=State.PREPARING;return true;
   }catch(RuntimeException invalid){if(handle!=null)finish(State.FAILED,now);return false;}
  }
  public void tick(long now){if(active())try{run(now);}catch(RuntimeException invalid){finish(State.FAILED,now);}}
  private boolean owned(MenuSnapshot menu){return MENU.matches(menu)&&menu.worldId()==world&&(container<0||container==menu.containerId());}
  private AutomationContext currentContext(){
   var context=port.context();if(!context.blockers().contains(AutomationContext.Blocker.MENU))return context;
-  if(!expectedMenu||!owned(port.menu()))return context;var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);blockers.addAll(context.blockers());blockers.remove(AutomationContext.Blocker.MENU);return new AutomationContext(context.worldId(),context.farmingActive(),context.garden(),blockers);
+  if(!ownsMenu())return context;var blockers=EnumSet.noneOf(AutomationContext.Blocker.class);blockers.addAll(context.blockers());blockers.remove(AutomationContext.Blocker.MENU);return new AutomationContext(context.worldId(),context.farmingActive(),context.garden(),blockers);
  }
  private void run(long now){
   var context=currentContext();var f=port.frame(now);
   if(!session.isCurrent(handle)||!context.canIssueCommand()||!context.garden()||context.worldId()!=world||handle.hold()!=null&&!context.farmingActive()||!f.fresh(world,now)||!f.mayFly()||f.manualInput()||f.pose().slot()!=original.slot()||!PestIdentity.sameTool(original.item(),f.pose().item())){finish(State.CANCELLED,now);return;}
   if(now-started<0||now-started>=policy.timeoutSeconds()*SECOND){finish(State.TIMED_OUT,now);return;}
   if(state!=State.WAIT_DEPOSIT&&!f.cursorEmpty()){finish(State.CANCELLED,now);return;}
+  if(state==State.ACQUIRING){
+   port.release(handle);var result=port.pollAcquisition(handle,now);if(result==Acquisition.RUNNING)return;
+   if(result!=Acquisition.COMPLETE||port.menu()!=null||!f.cursorEmpty()){finish(State.FAILED,now);return;}
+   state=State.OPENING;phaseStart=now;return;
+  }
   if(state==State.PREPARING){if(!port.prepare(handle,original,region,now)){finish(State.FAILED,now);return;}if(!travel.begin(handle,PestPlot.of(0),now)){finish(State.FAILED,now);return;}state=State.TRAVEL_OUT;phaseStart=now;return;}
   if(state==State.TRAVEL_OUT||state==State.TRAVEL_BACK){
    travel.tick(now);if(travel.arrival(handle,now).isPresent()){
@@ -84,23 +95,36 @@ public final class ComposterTask {
    if(!needsOrganic&&!needsFuel){beginReturn(now);return;}if(stacks>=policy.maxStacks()||inserted>=policy.maxItems()){partial=true;beginReturn(now);return;}
    if(now-lastAction<policy.delayMillis()*1_000_000L)return;
    var items=port.inventory();var selected=needsOrganic?ComposterPlan.select(policy,ComposterObservation.Kind.ORGANIC,observed.organic(),items,policy.maxItems()-inserted):Optional.<ComposterPlan.Deposit>empty();if(selected.isEmpty()&&needsFuel)selected=ComposterPlan.select(policy,ComposterObservation.Kind.FUEL,observed.fuel(),items,policy.maxItems()-inserted);
-   if(selected.isEmpty()){partial=true;beginReturn(now);return;}pending=selected.get();sourceSlot=menu.containerSlots()+pending.inventorySlot()-9;var slot=menu.slot(sourceSlot);
+   if(selected.isEmpty()){
+    var kinds=EnumSet.noneOf(ComposterObservation.Kind.class);
+    for(var id:policy.buying().stock().keySet()){var kind=policy.materials().get(id).kind();if(!acquired.contains(kind)&&(kind==ComposterObservation.Kind.ORGANIC?needsOrganic:needsFuel))kinds.add(kind);}
+    if(!kinds.isEmpty()&&buyingBudget.available()>0){
+     acquired.addAll(kinds);if(!closeMenu(now))return;state=State.ACQUIRING;phaseStart=now;
+     if(!port.beginAcquisition(handle,policy,Set.copyOf(kinds),buyingBudget,now))finish(State.FAILED,now);return;
+    }
+    partial=true;beginReturn(now);return;
+   }pending=selected.get();sourceSlot=menu.containerSlots()+pending.inventorySlot()-9;var slot=menu.slot(sourceSlot);
    if(slot==null||!slot.playerInventory()||!slot.item().equals(pending.item())){finish(State.FAILED,now);return;}
    var ticket=MENU.plan(menu,sourceSlot,MenuContract.Click.PICKUP);if(ticket==null){finish(State.FAILED,now);return;}
    before=observed;inventoryStamp=inventory.stamp(world);cursorStamp=cursor.stamp(world,container,now);inputPending=true;
    if(!port.deposit(handle,MENU,ticket,new InventoryProtection(policy.materials().keySet(),policy.protectedUuids()),now)){finish(State.FAILED,now);return;}lastAction=now;state=State.WAIT_DEPOSIT;
   }
  }
- private void beginReturn(long now){
-  port.release(handle);if(inputPending){finish(State.FAILED,now);return;}
-  if(container>=0){if(!owned(port.menu())||!port.frame(now).cursorEmpty()){finish(State.FAILED,now);return;}port.closeOwnedMenu(container);if(port.menu()!=null){finish(State.FAILED,now);return;}container=-1;}
+ private boolean closeMenu(long now){
+  port.release(handle);if(inputPending){finish(State.FAILED,now);return false;}
+  if(container>=0){if(!owned(port.menu())||!port.frame(now).cursorEmpty()){finish(State.FAILED,now);return false;}port.closeOwnedMenu(container);if(port.menu()!=null){finish(State.FAILED,now);return false;}container=-1;}
   if(expectedMenu){session.clearExpectedMenu(handle);expectedMenu=false;}
+  return true;
+ }
+ private void beginReturn(long now){
+  if(!closeMenu(now))return;
   travel.reset();if(!travel.begin(handle,home,now)){finish(State.FAILED,now);return;}state=State.TRAVEL_BACK;phaseStart=now;returnGoal=null;
  }
+ public void onSystemMessage(long world,String text){if(state==State.ACQUIRING)port.acquisitionMessage(world,text);}
  public void cancel(long now){if(active())finish(State.CANCELLED,now);}
  private void finish(State terminal,long now){
   var done=handle;handle=null;state=terminal;travel.reset();
-  var result=AutomationCompletion.finish(session,done,(terminal==State.COMPLETE||terminal==State.PARTIAL),now,()->{port.release(done);},()->port.dispose(done),()->port.afterStop(done));
+  var result=AutomationCompletion.finish(session,done,(terminal==State.COMPLETE||terminal==State.PARTIAL),now,()->AutomationStops.run(port::cancelAcquisition,()->port.release(done)),()->port.dispose(done),()->port.afterStop(done));
   if(result.failed())state=State.FAILED;
  }
 }
