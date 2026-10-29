@@ -19,7 +19,7 @@ public final class BazaarPurchaseControllerTest {
   BazaarPurchaseController make(SpendingBudget used){return new BazaarPurchaseController(coordinator,session,this::context,items,cursors,new BazaarPurchaseController.Purchase(h,plan,plan.requests().getFirst(),used,1000,opening,cursorOpening),g,()->now);}
   void applyMenu(){for(var slot:g.menu.slots())if(!slot.playerInventory())items.observe(1,2,slot.index(),slot.item());}
   void deliver(boolean bothAliases,boolean cursor){
-   now=2;var wheat=new ItemSnapshot("WHEAT","minecraft:wheat","","Wheat","wheat",64,List.of(),false);g.inventory.put(9,wheat);var slots=new ArrayList<>(g.menu.slots());slots.set(27,new MenuSnapshot.Slot(27,wheat,true));g.menu=new MenuSnapshot(1,2,5,"Wheat",27,slots);items.observe(1,0,9,wheat);if(bothAliases)items.observe(1,2,27,wheat);if(cursor)cursors.observe(1,2,g.inventory.get(0),now);
+   now++;var wheat=new ItemSnapshot("WHEAT","minecraft:wheat","","Wheat","wheat",64,List.of(),false);g.inventory.put(9,wheat);var slots=new ArrayList<>(g.menu.slots());slots.set(27,new MenuSnapshot.Slot(27,wheat,true));g.menu=new MenuSnapshot(1,g.menu.containerId(),5,g.menu.title(),27,slots);items.observe(1,0,9,wheat);if(bothAliases)items.observe(1,g.menu.containerId(),27,wheat);if(cursor)cursors.observe(1,g.menu.containerId(),g.inventory.get(0),now);
   }
  }
  public static void runNativeFixtures(){
@@ -31,7 +31,16 @@ public final class BazaarPurchaseControllerTest {
   slots.set(12,new MenuSnapshot.Slot(12,AutomationGameView.item(stack,false)));check(BazaarPurchaseView.inspect(new MenuSnapshot(1,2,5,base.title(),27,slots),BazaarPurchaseViewTest.plan(new SpendingBudget(1000),64).requests().getFirst()).isEmpty(),"native projected wrong quantity refuses");
   System.out.println("BazaarPurchaseViewNativeTest: PASS actual26.2 component fixtures; no client/server purchase");
  }
+ static void confirmation(H h,int id,String price){
+  var m=BazaarPurchaseViewTest.menu("Confirm Purchase",13,"Confirm",List.of("Wheat","Amount: 64x","Price: "+price+" coins"));h.g.menu=new MenuSnapshot(1,id,7,m.title(),27,m.slots());h.g.container=new Object();
+  for(var slot:h.g.menu.slots())if(!slot.playerInventory())h.items.observe(1,id,slot.index(),slot.item());h.cursors.observe(1,id,h.g.inventory.get(0),++h.now);
+ }
  public static void main(String[]args){
+  var pending=new H(AutomationFeature.VISITOR,128);pending.controller.buy(pending.now);confirmation(pending,3,"128");pending.controller.poll(pending.now);check(pending.g.sends==2&&pending.controller.state()==BazaarPurchaseController.State.AWAITING&&pending.budget.available()==0,"one explicit pending-confirmation transition, same reservation even at exact budget");pending.deliver(true,true);pending.controller.onSystemMessage(1,"[Bazaar] Bought 64x Wheat for 128 coins!");pending.controller.poll(pending.now);check(pending.controller.state()==BazaarPurchaseController.State.CONFIRMED&&pending.budget.spent()==128,"confirmation requires new native aliases/cursor and final GAME receipt");
+  pending=new H(AutomationFeature.VISITOR);pending.controller.buy(pending.now);pending.controller.onSystemMessage(1,"[Bazaar] Bought 64x Wheat for 128 coins!");confirmation(pending,3,"128");pending.controller.poll(pending.now);check(pending.g.sends==1&&pending.controller.state()==BazaarPurchaseController.State.UNCERTAIN,"receipt already seen forbids a second click even if delivery is late");
+  pending=new H(AutomationFeature.VISITOR);pending.controller.buy(pending.now);confirmation(pending,3,"129");pending.controller.poll(pending.now);check(pending.g.sends==1&&pending.budget.available()==872,"changed upward cost cannot expand original reservation");
+  pending=new H(AutomationFeature.VISITOR);pending.controller.buy(pending.now);confirmation(pending,3,"128");pending.controller.poll(pending.now);confirmation(pending,4,"128");pending.controller.poll(pending.now);check(pending.g.sends==2&&pending.controller.state()==BazaarPurchaseController.State.UNCERTAIN,"third confirmation never retries the buy");
+
   for(var f:List.of(AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT)){
    var x=new H(f);check(x.controller.buy(1)==GuardedMenuAction.Result.SENT&&x.g.sends==1&&x.budget.available()==872,"one native guarded purchase reserves original budget: "+f);check(x.controller.buy(1)==GuardedMenuAction.Result.REJECTED&&x.g.sends==1,"never resend");x.deliver(true,true);x.controller.onSystemMessage(1,"[Bazaar] Bought 64x Wheat for 128 coins!");x.controller.poll(2);check(x.controller.state()==BazaarPurchaseController.State.CONFIRMED&&x.budget.spent()==128&&x.session.isCurrent(x.h)&&x.session.holdsFarming()&&x.farming,"exact dual receipt/cursor/GAME cost, parent and Farm stay held: "+f);
   }

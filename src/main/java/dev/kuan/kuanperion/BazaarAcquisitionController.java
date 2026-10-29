@@ -41,7 +41,7 @@ public final class BazaarAcquisitionController {
   if(state==State.PURCHASING){
    terminal.poll(now);if(state!=State.PURCHASING)return;
    switch(terminal.state()){
-    case CONFIRMED->{if(!ownsScreen()||!game.close(originIdentity,origin.containerId())||!root(now)||game.screenIdentity()!=null){state=State.UNCERTAIN;return;}session.clearExpectedMenu(parent);state=State.COMPLETE;}
+    case CONFIRMED->{var completed=terminal.confirmedMenu();if(completed==null||!ownsScreen()||!game.close(completed.identity(),completed.container())||!root(now)||game.screenIdentity()!=null){state=State.UNCERTAIN;return;}session.clearExpectedMenu(parent);state=State.COMPLETE;}
     case REJECTED->state=State.FAILED;case UNCERTAIN->state=State.UNCERTAIN;default->{}
    }return;
   }
@@ -88,7 +88,7 @@ public final class BazaarAcquisitionController {
    if(screen==null)return state==State.OPENING||state==State.WAIT_FINAL;
    if(game.sign())return state==State.WAIT_SIGN||state==State.WAIT_FINAL&&screen==signIdentity;
    if(m==null)return false;
-   if(state==State.PURCHASING)return game.menuIdentity()==originIdentity&&m.containerId()==origin.containerId()&&m.title().equals(origin.title());
+   if(state==State.PURCHASING)return terminal!=null&&terminal.ownsScreen();
    if(origin!=null&&game.menuIdentity()==originIdentity&&origin.equals(m))return true;
    return switch(state){
     case OPENING->BazaarNavigationView.search(m,request).isPresent()||BazaarNavigationView.instant(m,request).isPresent();

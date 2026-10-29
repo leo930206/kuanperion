@@ -32,7 +32,7 @@
 | Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回及原通知 | 補餌原生角色／容量／導航／採購接線、兌換／噴灑、完整活動／作物策略 |
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | Sacks／採購、當前選單與連服驗收 |
-| Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；額外成交確認、當前連服格式／結果仍待完成 |
+| Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；單次額外確認已接線；當前連服格式／結果仍待驗收 |
 | Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢與原root單次成交證明元件（無原生caller） | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
@@ -48,7 +48,7 @@ Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放
 - `automation/AutomationSettingsStore.java`：`config/kuanperion/automation.json`。舊 properties／theme／Minecraft `options.txt` 不改位置；損壞／未來格式不可覆寫。
 - `mixin/AutomationReceiptMixin.java`：在真正 native inventory write **之後**記錄，而非整個 handler TAIL；被忽略的封包不能成為證據。
 - `automation/{pest,greenhouse,composter,visitor,supercraft,pets}/`：各自的純邏輯；根 package 的 `*GameView`／flight controller 為 Minecraft 邊界。
-- Bazaar：`automation/BazaarPurchaseView` → `BazaarPurchaseController` → 既有 `BazaarPurchaseAttempt`／ledger，為 provisional 終端購買 adapter；BazaarAcquisitionController 的 Custom Amount 導航／sign／sidebar 餘額已由 VisitorFlightController 接到原 VisitorTask，其他 parent 與額外成交確認尚缺。
+- Bazaar：`automation/BazaarPurchaseView` → `BazaarPurchaseController` → 既有 `BazaarPurchaseAttempt`／ledger，為 provisional 終端購買 adapter；BazaarAcquisitionController 的 Custom Amount 導航／sign／sidebar 餘額已由 VisitorFlightController 接到原 VisitorTask，其他 parent 尚缺；單次額外確認已接線，未知警告仍拒絕。
 - Book：`BookGameView` → `automation/BookInventorySnapshot`／`BookCombinePlanner` → `BookCombineTask` → `BookMenuController`；服務為 `BookService`、設定介面為 `ui/BookModuleSettings`；指定格取回由 `BookReturnTransfer` 逐步驗證，原生 carried deposit 僅允許自己的完整一本書放到明確空主背包格。
 
 ## 5. 怎麼驗證、證明到哪一層

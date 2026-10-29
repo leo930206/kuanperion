@@ -8,7 +8,13 @@ public final class BazaarPurchaseView {
  // Additional explicit provisional adapter assumption: Price is the total, not Per unit or public/API estimate.
  private static final Pattern PRICE=Pattern.compile("price: ("+NUMBER+"(?:\\.[0-9]{1,2})?) coins",Pattern.CASE_INSENSITIVE),EXTRA=Pattern.compile("(?i)\\b(?:costs?|fees?|tax(?:es)?|bits|gems|motes|essence)\\b");
  public record Quote(MenuContract contract,MenuContract.Ticket ticket,BigDecimal total){}
- public static Optional<Quote> inspect(MenuSnapshot menu,BazaarAcquisitionPlan.Request request){
+ public static Optional<Quote> inspect(MenuSnapshot menu,BazaarAcquisitionPlan.Request request){return inspect(menu,request,null);}
+ /** Same already-reserved transaction only, not a new purchase authorization. Caller must prove pending/no delivery. */
+ public static Optional<Quote> confirmation(MenuSnapshot menu,BazaarAcquisitionPlan.Request request,Quote original){
+  if(original==null||menu==null||!Set.of("confirm purchase","confirm instant buy").contains(normal(menu.title()))||menu.containerSlots()<=13||!Set.of("confirm","proceed").contains(normal(menu.item(13).name())))return Optional.empty();
+  return inspect(menu,request,original.total()).filter(q->q.ticket().slot()==13);
+ }
+ private static Optional<Quote> inspect(MenuSnapshot menu,BazaarAcquisitionPlan.Request request,BigDecimal reservedCeiling){
   if(request==null||!complete(menu))return Optional.empty();String title=normal(menu.title());
   // Never inherit upstream's permissive buy-anyway override or timer-only warning clearance.
   if(title.contains("warning")||title.contains("alert"))return Optional.empty();
@@ -18,8 +24,9 @@ public final class BazaarPurchaseView {
   Quote result=null;
   for(int i=0;i<menu.containerSlots();i++){
    var item=menu.item(i);if(item.count()==0||item.minecraftId().equals("minecraft:barrier"))continue;String name=normal(item.name());
+   boolean productName=name.equals(normal(request.displayName()))||name.equals("buy "+normal(request.displayName()));
    boolean fullName=matchesBuy(name,request),custom=name.equals("custom amount"),generic=Set.of("confirm","buy","buy instantly","proceed").contains(name)||name.startsWith("confirm ");
-   boolean position=dialog&&(i==13&&(fullName||custom)||generic)||!dialog&&quantity&&i==(request.quantity()==1?10:request.quantity()==64?12:-1)&&fullName||!dialog&&!quantity&&i==13&&custom;
+   boolean position=dialog&&(i==13&&(fullName||custom||productName)||generic)||!dialog&&quantity&&i==(request.quantity()==1?10:request.quantity()==64?12:-1)&&fullName||!dialog&&!quantity&&i==13&&(custom||productName);
    if(!position)continue;
    if(!item.uuid().isBlank()||item.protectedItem()||!item.skyblockId().isEmpty()&&!item.skyblockId().equals(request.productId()))return Optional.empty();
    int named=0,amount=0,activation=0;BigDecimal total=null;
@@ -31,7 +38,7 @@ public final class BazaarPurchaseView {
     var p=PRICE.matcher(line);if(p.matches()){if(total!=null)return Optional.empty();total=new BigDecimal(p.group(1).replace(",",""));}
     else if(line.startsWith("price:")||EXTRA.matcher(line).find()&&!line.equals(normal(request.displayName())))return Optional.empty();
    }
-   if(named>1||amount>1||activation>1||custom&&(named!=1||amount!=1||activation!=1)||generic&&!fullName&&(named!=1||amount!=1)||total==null||!request.authorizes(request.productId(),request.quantity(),total))return Optional.empty();
+   if(named>1||amount>1||activation>1||custom&&(named!=1||amount!=1||activation!=1)||generic&&!fullName&&(named!=1||amount!=1)||productName&&(amount!=1||activation!=1)||total==null||!(reservedCeiling==null?request.authorizes(request.productId(),request.quantity(),total):total.signum()>0&&total.compareTo(reservedCeiling)<=0&&total.compareTo(BigDecimal.valueOf(request.material().maximumCoins()))<=0))return Optional.empty();
    var contract=new MenuContract(Set.of(menu.title()),menu.containerSlots());var quote=new Quote(contract,contract.plan(menu,i,MenuContract.Click.PICKUP),total);
    if(result!=null)return Optional.empty();result=quote;
   }

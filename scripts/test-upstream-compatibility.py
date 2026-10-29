@@ -7,6 +7,9 @@ for forbidden in ['sendCommand(', 'handleContainerInput(', 'closeContainer(', 'n
  assert forbidden not in c+v,forbidden
 for required in ['AutomationMenuActions.purchaseClick(', 'p.request().usesBudget(p.budget())', 'p.plan().stillMatches(', 'coordinator.holdsIdentity(', 'items.after(', 'cursors.emptyAfterOpening(', 'game.menuIdentity()!=menuIdentity', 'game.level()!=level', 'attempt.send(', 'attempt.poll(']:assert required in c,required
 assert 'sendNative(' not in c and 'System::nanoTime' in c
+for required in ['attempt.confirm(', 'attempt.canConfirm()', 'items.after(afterFirstSend,', 'BazaarPurchaseView.confirmation(', 'confirmedMenu()']:assert required in c,required
+assert 'budget.reserve(' not in c and 'new BazaarPurchaseLedger(' not in c
+
 assert [p.name for p in m.rglob('*.java') if p.name!='BazaarPurchaseController.java' and 'new BazaarPurchaseController(' in p.read_text()]==['BazaarAcquisitionController.java'], 'Only the guarded original-parent navigation workflow may invoke terminal purchases'
 f=(m/'BazaarAcquisitionController.java').read_text();visitor=(m/'VisitorFlightController.java').read_text();bridge=(m/'AutomationClientBridge.java').read_text()
 for required in ['plan.stillMatches(', 'request.usesBudget(', 'applied(menu,now)', 'session.expectScreenSequence(', 'terminal.onSystemMessage(', 'terminal.poll(', 'game.purse()', 'game.amount(signIdentity,request.quantity())', 'game.menuIdentity()==originIdentity']:

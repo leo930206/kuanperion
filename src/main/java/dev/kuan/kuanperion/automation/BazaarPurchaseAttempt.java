@@ -12,7 +12,7 @@ public final class BazaarPurchaseAttempt {
  private static final long SECOND=1_000_000_000L,DEADLINE=15*SECOND;
  private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT);
  private final AutomationSession session;private final InventoryReceipts items;private final CursorReceipts cursors;private final SpendingBudget budget;private final Supplier<AutomationContext> observe;
- private State state=State.IDLE;private AutomationSession.Handle parent;private Offer offer;private MenuContract contract;private MenuContract.Ticket ticket;private Frame before;private long armedAt,sentAt;private InventoryReceipts.Stamp itemStamp;private CursorReceipts.Stamp cursorStamp;private CursorReceipts.OpeningStamp opening;private BazaarPurchaseLedger ledger;
+ private State state=State.IDLE;private AutomationSession.Handle parent;private Offer offer;private MenuContract contract;private MenuContract.Ticket ticket;private Frame before;private long armedAt,sentAt;private InventoryReceipts.Stamp itemStamp;private CursorReceipts.Stamp cursorStamp;private CursorReceipts.OpeningStamp opening;private BazaarPurchaseLedger ledger;private boolean confirmationSent;private CursorReceipts.OpeningStamp afterSend;
  public BazaarPurchaseAttempt(AutomationSession session,InventoryReceipts items,CursorReceipts cursors,SpendingBudget budget,Supplier<AutomationContext> observe){this.session=Objects.requireNonNull(session);this.items=Objects.requireNonNull(items);this.cursors=Objects.requireNonNull(cursors);this.budget=Objects.requireNonNull(budget);this.observe=Objects.requireNonNull(observe);}
  public State state(){return state;}
  /** No lease acquisition, menu claim, command, money hold or inventory effect. */
@@ -33,7 +33,18 @@ public final class BazaarPurchaseAttempt {
   if(state!=State.AWAITING){ledger.cancel();return false;}
   if(!sent){state=ledger.state()==BazaarPurchaseLedger.State.UNCERTAIN?State.UNCERTAIN:State.REJECTED;return false;}
   // Client-thread boundary: no predicted or reentrant pre-send receipt can prove delivery.
-  itemStamp=items.stamp(before.world());cursorStamp=cursors.stamp(before.world(),before.menu().containerId(),now);return true;
+  itemStamp=items.stamp(before.world());afterSend=cursors.openingStamp(before.world(),now);cursorStamp=cursors.stamp(before.world(),before.menu().containerId(),now);return true;
+ }
+ /** One optional native confirmation of the same reserved transaction. Not a second order or refund. */
+ public boolean canConfirm(){return state==State.AWAITING&&!confirmationSent&&ledger!=null&&ledger.awaitingWithoutReceipt();}
+ public boolean confirm(Frame current,MenuContract next,MenuContract.Ticket button,java.math.BigDecimal total,long now,Supplier<GuardedMenuAction.Result> guarded){
+  if(!canConfirm())return false;
+  if(guarded==null||next==null||button==null||total==null||total.signum()<=0||total.compareTo(offer.order().maximumCost())>0||now-sentAt<0||now-sentAt>=DEADLINE||!root(parent,now,false)||!fresh(current,now)||!current.cursorEmpty()||current.world()!=before.world()||!before.inventory().equals(current.inventory())||current.menu().containerId()==before.menu().containerId()||!aliases(current)||button.click()!=MenuContract.Click.PICKUP||button.slot()>=current.menu().containerSlots()||!next.revalidate(button,current.menu())||!cursors.emptyAfterOpening(afterSend,current.menu().containerId(),now,DEADLINE)){cancel();return false;}
+  confirmationSent=true;GuardedMenuAction.Result result;
+  try{result=guarded.get();}catch(RuntimeException uncertain){result=GuardedMenuAction.Result.UNCERTAIN;}
+  if(state!=State.AWAITING)return false;
+  if(result!=GuardedMenuAction.Result.SENT||!root(parent,now,false)){cancel();return false;}
+  before=current;contract=next;ticket=button;itemStamp=items.stamp(current.world());cursorStamp=cursors.stamp(current.world(),current.menu().containerId(),now);return true;
  }
  /** Only native server GAME messages, never local/player chat. Native routing remains the caller's responsibility. */
  public void onSystemMessage(long world,String text){if(state==State.AWAITING)ledger.onSystemMessage(world,text);}

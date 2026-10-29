@@ -24,6 +24,8 @@ public final class BazaarPurchaseLedger {
  private Map<Integer,ItemSnapshot> baseline;private BigDecimal paid;private long world,started;
  public BazaarPurchaseLedger(SpendingBudget budget,InventoryReceipts receipts,BooleanSupplier owns){this.budget=budget;this.receipts=receipts;this.owns=owns;}
  public State state(){return state;}
+ /** Passive pending status only; never a permission to click or refund. */
+ public boolean awaitingWithoutReceipt(){return state==State.AWAITING&&paid==null;}
  /** Supply only a GUI-validated exact product/amount/cost and a guarded native click, never an API quote. */
  public boolean begin(Order proof,long world,long purse,Map<Integer,ItemSnapshot> baseline,long now,Supplier<GuardedMenuAction.Result> guardedClick){
   if(state!=State.IDLE||world<=0||!owns.getAsBoolean()||!complete(baseline))return false;
