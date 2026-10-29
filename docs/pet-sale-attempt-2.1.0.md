@@ -22,3 +22,8 @@ Tests execute the actual proof, preflight, session/coordinator and receipt ledge
 Current GUI semantics, transfer/cursor custody, server payout format/source, actual sale/return receipts, service/settings/Trade UI, lifecycle matrix integration and live acceptance remain substantive unfinished work. A synthetic declared notice cannot be promoted into a current native parser or a successful-sale claim.
 
 A further adversarial review exposed three behavioral REDs when the coordinator lease was cleared/replaced while the shared session handle had not yet been polled: stale preflight send, replacement during a read and stale completion. Exact passive identity checks before/after observations and after send now deny all three without invalidating a foreign new-world Stash lease. This is why merely checking session.isCurrent was insufficient for this new component.
+
+
+## 後續原生接線 — 2026-10-29
+
+以上保留原元件檢查點語意。後續已加入 PetSaleCustody 私有入庫 token、PetGeorgeTask／PetGeorgeController、設定／service／Trade UI、同報價一次確認與真正伺服器 Close HEAD/TAIL 路徑；見 george-sale-2.1.0.md。當前完整回歸仍進行中；原 typed notice 並沒有因此變成已證明的現行伺服器格式。

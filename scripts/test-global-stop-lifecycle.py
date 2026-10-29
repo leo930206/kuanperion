@@ -15,8 +15,8 @@ def extract(name):
 java=r'''package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class GlobalStopLifecycleTest {
- static final List<String> JOBS=List.of("pest","greenhouse","composter","visitor","supercraft","book","autoSell","junk");
- static final List<AutomationFeature> FEATURES=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK);
+ static final List<String> JOBS=List.of("pest","greenhouse","composter","visitor","supercraft","book","pets","autoSell","junk");
+ static final List<AutomationFeature> FEATURES=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE,AutomationFeature.PET_SELL,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK);
  final List<String> calls=new ArrayList<>();final List<RuntimeException> errors=new ArrayList<>();final Set<String> faults=new HashSet<>();final Map<String,RuntimeException> failures=new HashMap<>();
  final RuntimeException stopFailure=new IllegalStateException("native original-Farm stop failed");int pauses,stops,menuCloses;boolean stopThrows,ownGameplayCommand,observedGameplayCommand;String running="";
  AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationSession.Handle handle;
@@ -34,23 +34,23 @@ public final class GlobalStopLifecycleTest {
   void cancel(String reason){step("stash",()->pending=false);}
   void onOutgoingCommand(){step("stash.outgoing",()->pending=false);}
  }
- final Service pest=new Service("pest"),greenhouse=new Service("greenhouse"),composter=new Service("composter"),visitor=new Service("visitor"),supercraft=new Service("supercraft"),book=new Service("book"),autoSell=new Service("autoSell"),junk=new Service("junk"),stash=new Service("stash");
- List<Service> services(){return List.of(pest,greenhouse,composter,visitor,supercraft,book,autoSell,junk);}
+ final Service pest=new Service("pest"),greenhouse=new Service("greenhouse"),composter=new Service("composter"),visitor=new Service("visitor"),supercraft=new Service("supercraft"),book=new Service("book"),pets=new Service("pets"),autoSell=new Service("autoSell"),junk=new Service("junk"),stash=new Service("stash");
+ List<Service> services(){return List.of(pest,greenhouse,composter,visitor,supercraft,book,pets,autoSell,junk);}
  final class Data {final String name;boolean cleared;Data(String name){this.name=name;}void clear(){step(name,()->cleared=true);}void shutdownData(){clear();}}
  final Data visitorFlight=new Data("visitorData"),supercraftMenu=new Data("supercraftData"),receipts=new Data("items"),positions=new Data("positions"),cursors=new Data("cursor"),harvests=new Data("harvests");
- Object visitorClose=new Object(),trapClose=new Object();
+ Object petClose,visitorClose=new Object(),trapClose=new Object();
  static final class Minecraft {static final Minecraft INSTANCE=new Minecraft();final Gui gui=new Gui();static Minecraft getInstance(){return INSTANCE;}}
  static final class Gui {Object screen;Object screen(){return screen;}}
  METHODS
  static void check(boolean b,String why){if(!b)throw new AssertionError(why);}
  static List<String> expected(String hook){
-  var normal=new ArrayList<>(List.of("pest","greenhouse","composter","visitor","supercraft","book","session.cancel","autoSell","junk"));
+  var normal=new ArrayList<>(List.of("pest","greenhouse","composter","visitor","supercraft","book","pets","session.cancel","autoSell","junk"));
   return switch(hook){
    case "onManualLook","onManualInventoryInput","onManualWorldInput"->normal;
    case "onOutgoingCommand"->{normal.add(0,"stash.outgoing");yield normal;}
    case "invalidateFarmSession"->{var out=new ArrayList<String>();out.add("session.invalidate");out.addAll(JOBS);yield out;}
    case "worldChanged"->{var out=new ArrayList<String>(List.of("stash","session.invalidate"));out.addAll(JOBS);out.addAll(List.of("visitorData","supercraftData","items","positions","cursor","harvests"));yield out;}
-   case "shutdown"->List.of("book","supercraft","pest","greenhouse","composter","visitor","session.cancel","autoSell","junk","stash","session.invalidate","visitorData","supercraftData","items","positions","cursor","harvests");
+   case "shutdown"->List.of("book","pets","supercraft","pest","greenhouse","composter","visitor","session.cancel","autoSell","junk","stash","session.invalidate","visitorData","supercraftData","items","positions","cursor","harvests");
    default->throw new AssertionError(hook);
   };
  }

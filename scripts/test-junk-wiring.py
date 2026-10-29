@@ -9,7 +9,7 @@ assert 'new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player
 assert 'AutomationGameView.junkMenu' in b and 'ContainerInput' not in b
 assert 'public static MenuSnapshot junkMenu' in g and 'instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen' in g
 assert 'mc.player.containerMenu!=mc.player.inventoryMenu' in g and 'menu.containerId()==0' in g and 'menu.slots().size()==46' in g
-assert 'AutomationModuleSettings.trade(automation.stash(),automation.autoSell(),automation.junk(),automation.book())' in c
+assert 'AutomationModuleSettings.trade(automation.stash(),automation.autoSell(),automation.junk(),automation.book(),automation.pets())' in c
 assert '記錄目前丟棄位置' in u and '關閉選單後丟棄授權物品' in u and 'new ModulesTab.SubTab("Junk"' in u
 assert '.visibleWhen(()->junk.active()||junk.pending())' in u
 print('JunkWiringTest: PASS (native InventoryScreen/window0 only, typed protected THROW, world/manual cancellation, real Trade UI/anchor)')

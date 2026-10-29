@@ -133,3 +133,5 @@
 - [x] Composter explicitly configured crop/fuel stock acquisition and machine reopen under the original parent/budget, default-off persisted policy/UI, once-per-kind guard, real native-edge Composter buyer and demand/disposal failure tests. Not a live claim and not Sacks implementation.
 
 - [x] Composter Sacks source candidate39/41→11, explicit default-zero capacity ceiling/100% target, same-root task/native adapter, fresh resource/cursor/unchanged43 proof and no-repeat. Current-server labels/receipt behavior remain batch acceptance, not confirmed.
+
+- [x] George 原生接線離線回歸：私有入庫 custody／最低價／同價確認／取回／applied server close、外部設定、Trade UI 與九-owner／十-service 停止矩陣通過；當前伺服器語法及實際成交／取回仍為批次連服驗收。

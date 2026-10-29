@@ -23,6 +23,14 @@ public final class CursorReceipts {
  public boolean emptyAfter(Stamp stamp,long now,long maxAge){return after(stamp,now,maxAge).filter(r->r.item().count()==0&&r.item().minecraftId().equals("minecraft:air")).isPresent();}
  /** Before opening only: container ID is server assigned. Menu changes may follow, explicit clears/world changes may not. */
  public OpeningStamp openingStamp(long world,long now){if(world<=0)throw new IllegalArgumentException("Invalid cursor world");scope(world,0);return new OpeningStamp(world,openingGeneration,revision,now);}
+ /** Passive checkpoint: unlike openingStamp, this does not reset a currently owned cursor scope. */
+ public OpeningStamp observationStamp(long world,long now){if(world<=0)throw new IllegalArgumentException("Invalid cursor world");return this.world==world?new OpeningStamp(world,openingGeneration,revision,now):null;}
+ /** Explicit applied-server-close caller only; ordinary container-opening proofs still reject window0. */
+ public boolean emptyAfterWindowZero(OpeningStamp stamp,long now,long maxAge){
+  if(maxAge<=0||maxAge>30_000_000_000L)throw new IllegalArgumentException("Invalid cursor receipt age");
+  if(stamp==null||stamp.generation()!=openingGeneration||stamp.revision()>=observedRevision||latest==null||world!=stamp.world()||container!=0)return false;
+  long age=now-latest.observedAt();return now-stamp.requestedAt()>=0&&latest.observedAt()-stamp.requestedAt()>=0&&age>=0&&age<=maxAge&&latest.item().count()==0&&latest.item().minecraftId().equals("minecraft:air");
+ }
  public boolean emptyAfterOpening(OpeningStamp stamp,int container,long now,long maxAge){
   if(maxAge<=0||maxAge>30_000_000_000L)throw new IllegalArgumentException("Invalid cursor receipt age");
   if(stamp==null||stamp.generation()!=openingGeneration||stamp.revision()>=observedRevision||container<=0||container>255||latest==null||this.world!=stamp.world()||this.container!=container)return false;

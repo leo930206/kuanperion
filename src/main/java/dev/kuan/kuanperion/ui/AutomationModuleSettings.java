@@ -24,6 +24,9 @@ public final class AutomationModuleSettings {
    .add(new InfoSetting("執行狀態",stash::status));
   return List.of(autoSell(sell),BookModuleSettings.tab(book),junk(junk),new ModulesTab.SubTab("Stash","自動或手動領取待領物品",stash::autoEnabled,value->change(()->stash.setEnabled(value)),List.of(group)));
  }
+ public static List<ModulesTab.SubTab> trade(StashService stash,AutoSellService sell,JunkService junk,BookService book,dev.kuan.kuanperion.automation.pets.PetSaleService pets){
+  var tabs=new java.util.ArrayList<>(trade(stash,sell,junk,book));tabs.add(2,PetSaleModuleSettings.tab(pets));return List.copyOf(tabs);
+ }
  private static ModulesTab.SubTab autoSell(AutoSellService sell){
   var group=SettingGroup.alwaysOn("Auto Sell","僅 NPC 出售；空白名單不執行，保護物品優先排除。")
    .add(new ToggleSetting("自動 NPC 出售",sell::autoEnabled,value->change(()->sell.setEnabled(value))))

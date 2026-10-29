@@ -17,9 +17,12 @@ for visibility in ('public ','protected '):
  except AssertionError:pass
 assert 'handleContainerInput(' in native and 'finally{ownedInput=false;}' in native
 assert 'getCarried().isEmpty()' in native
-# The only package-level direct sender caller is the fixed-owner Book gate; it is not a new public raw-click API.
-callers={p.name for p in r.rglob('*.java') if 'AutomationMenuActions.sendNative(' in p.read_text()}
-assert callers=={'BookMenuController.java'},callers
+# Package-level sender references are confined to independently guarded Book, Pet and Sacks native gates; never public raw input.
+callers={p.name for p in r.rglob('*.java') if p.name!='AutomationMenuActions.java' and ('AutomationMenuActions.sendNative(' in p.read_text() or 'AutomationMenuActions::sendNative' in p.read_text())}
+assert callers=={'BookMenuController.java','PetGeorgeController.java','ComposterFlightController.java'},callers
+pet=(r/'PetGeorgeController.java').read_text();composter=(r/'ComposterFlightController.java').read_text()
+for requirement in ['GuardedMenuAction.perform(', 'exactPet(pet,', 'mc().player.containerMenu==nativeMenu', 'pet.slot()>=36', 'owns(h)']:assert requirement in pet,requirement
+assert 'new ComposterSacksFlow(' in composter and 'GuardedMenuAction.perform(' in composter
 book=(r/'BookMenuController.java').read_text()
 assert 'GuardedMenuAction.perform(' in book and 'session.isCurrent(h)' in book and 'lastInventory.equals(game.inventory())' in book
 client=(r/'automation/HypixelMarketClient.java').read_text()

@@ -15,7 +15,7 @@ public final class SupercraftServiceWiringTest {
  boolean ownGameplayCommand,observedGameplayCommand;AutomationContext ctx=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return ctx;}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::observe,()->{},()->{});List<StashService.Notice> notices=new ArrayList<>();java.util.function.Consumer<StashService.Notice> feedback=notices::add;
  static class Service{int cancellations;void cancel(long n){cancellations++;}void onOutgoingCommand(){}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),autoSell=new Service(),junk=new Service();
+ Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
  static class Minecraft{static Minecraft instance=new Minecraft();static Minecraft getInstance(){return instance;}Object level=new Object();Player player=new Player();Gui gui=new Gui();boolean same=true;boolean isSameThread(){return same;}}
  static class Gui{Object screen;Object screen(){return screen;}}static class Player{Connection connection=new Connection();}
  static SupercraftServiceWiringTest active;static class Connection{List<String> commands=new ArrayList<>();boolean observe=true,fail;void sendCommand(String value){commands.add(value);if(fail)throw new IllegalStateException("native send uncertain");if(observe)active.onOutgoingCommand();}}

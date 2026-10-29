@@ -13,8 +13,8 @@ method=bridge[match.start():end]
 java=r'''package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class JerryStopFaultsTest {
- static final List<String> NAMES=List.of("pest","greenhouse","composter","visitor","supercraft","book","autoSell","junk","stash");
- static final List<AutomationFeature> FEATURES=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK);
+ static final List<String> NAMES=List.of("pest","greenhouse","composter","visitor","supercraft","book","pets","autoSell","junk","stash");
+ static final List<AutomationFeature> FEATURES=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE,AutomationFeature.PET_SELL,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK);
  final List<String> calls=new ArrayList<>();final List<RuntimeException> errors=new ArrayList<>();final Set<String> faults=new HashSet<>();int pauses,stops;
  AutomationContext context=new AutomationContext(1,true,true,Set.of());
  final RuntimeException stopError=new IllegalStateException("native stop failed");
@@ -31,8 +31,8 @@ public final class JerryStopFaultsTest {
    if(faults.contains(name)){errors.add(failure);throw failure;}
   }
  }
- final Service pest=new Service("pest"),greenhouse=new Service("greenhouse"),composter=new Service("composter"),visitor=new Service("visitor"),supercraft=new Service("supercraft"),book=new Service("book"),autoSell=new Service("autoSell"),junk=new Service("junk"),stash=new Service("stash");
- List<Service> services(){return List.of(pest,greenhouse,composter,visitor,supercraft,book,autoSell,junk,stash);}
+ final Service pest=new Service("pest"),greenhouse=new Service("greenhouse"),composter=new Service("composter"),visitor=new Service("visitor"),supercraft=new Service("supercraft"),book=new Service("book"),pets=new Service("pets"),autoSell=new Service("autoSell"),junk=new Service("junk"),stash=new Service("stash");
+ List<Service> services(){return List.of(pest,greenhouse,composter,visitor,supercraft,book,pets,autoSell,junk,stash);}
  METHOD
  static void check(boolean b,String why){if(!b)throw new AssertionError(why);}
  void stop(){
@@ -58,9 +58,9 @@ with tempfile.TemporaryDirectory(prefix='kuanperion-jerry-stop-faults-') as tmp:
     p=Path(tmp);(p/'JerryStopFaultsTest.java').write_text(java)
     subprocess.run([str(jdk/'javac'),'--release','21','-encoding','UTF-8','-cp',str(gson),'-d',tmp,*map(str,(main/'automation').rglob('*.java')),str(p/'JerryStopFaultsTest.java')],check=True)
     failures=[]
-    scenarios=['healthy',*['pest','greenhouse','composter','visitor','supercraft','book','autoSell','junk','stash'],'all',*[f'root:{name}' for name in ['pest','greenhouse','composter','visitor','supercraft','book','autoSell','junk']]]
+    scenarios=['healthy',*['pest','greenhouse','composter','visitor','supercraft','book','pets','autoSell','junk','stash'],'all',*[f'root:{name}' for name in ['pest','greenhouse','composter','visitor','supercraft','book','pets','autoSell','junk']]]
     for scenario in scenarios:
         result=subprocess.run([str(jdk/'java'),'-cp',tmp+':'+str(gson),'dev.kuan.kuanperion.JerryStopFaultsTest',scenario])
         if result.returncode:failures.append(scenario)
     if failures:raise AssertionError('Jerry stop fault matrix failed: '+', '.join(failures))
-print('JerryStopFaultsMatrix: PASS (actual Bridge body, all nine implemented service actors, real original-session stop faults, continued suspension and preserved errors; no native/live proof)')
+print('JerryStopFaultsMatrix: PASS (actual Bridge body, all ten implemented service actors, real original-session stop faults, continued suspension and preserved errors; no native/live proof)')

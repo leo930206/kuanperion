@@ -33,3 +33,14 @@ for cls in ['net.minecraft.client.gui.screens.Screen','net.minecraft.client.gui.
  key=code[code.index('public boolean keyPressed(net.minecraft.client.input.KeyEvent);'):]
  assert 'onClose:()V' in key.split('\n  public ',1)[0],cls
 print('ContainerCloseNativeTarget: PASS pinned26.2 Escape/inventory native close path; full GUI application remains separate')
+
+def native_method(cls,signature):
+ code=subprocess.check_output([str(jdk/'javap'),'-c','-p','-classpath',cp,cls],text=True)
+ a=code.index(signature);rest=code[a+len(signature):];end=re.search(r'(?m)^  (?:public|private|protected) ',rest)
+ return rest[:end.start()] if end else rest
+server=native_method('net.minecraft.client.multiplayer.ClientPacketListener','  public void handleContainerClose(net.minecraft.network.protocol.game.ClientboundContainerClosePacket);')
+player=native_method('net.minecraft.client.player.LocalPlayer','  public void clientSideCloseContainer();')
+gui=native_method('net.minecraft.client.gui.Gui','  public void setScreen(net.minecraft.client.gui.screens.Screen);')
+assert 'clientSideCloseContainer:()V' in server and 'Gui.setScreen:' in player
+assert 'Screen.removed:()V' in gui and 'onClose:()V' not in gui
+print('ContainerCloseServerSeparation: PASS pinned server->player->Gui path removes screen without invoking manual onClose; no applied-Mixin claim')

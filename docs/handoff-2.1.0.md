@@ -33,10 +33,10 @@
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | 已新增指定庫存採購／重新開啟機器與獨立上限 Sacks；當前選單、Sacks 格式與連服驗收尚缺 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；單次額外確認已接線；當前連服格式／結果仍待驗收 |
-| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢與原root單次成交證明元件（無原生caller） | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
+| Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 已接 George 原生流程／私有 custody、額外確認、取回、設定／service／Trade UI（完整離線回歸通過，未連服） | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 當前語法／成交／取回的批次連服驗收與跨模組連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
 
-進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。目前對使用者保守提供約 65% 的整體交付粗估，不可用測試數或打勾比例冒充驗收率；採購、Pet Sell、Pest 後續及連服驗證仍是實質缺項，不是只剩測試。
+進度勾選代表該檢查點完成，不代表整列已在 Hypixel 成功運行。先前對使用者提供約 65% 的整體交付粗估（為較早檢查點，不是最新驗收率），不可用測試數或打勾比例冒充驗收率；採購、Pet Sell、Pest 後續及連服驗證仍是實質缺項，不是只剩測試。
 
 Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放後重新守門派送」，見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)。Bridge 另有單次 UI 意圖優先、Stash 隔離及 Supercraft 在 Visitor 前的 due 順序；不代表整條原生 Pest 後續任務鏈已驗收。
 
@@ -106,3 +106,5 @@ Bazaar 的[整批商品出售規劃](bazaar-sale-plan-2.1.0.md)區分 API gross 
 Bridge 目前先 tick 原 active 工作、再派送其他 due 工作，每個 service 同次只 tick 一次，消除「後序工作完成卻要跨下一個 legacy tick 才能接到前序 due 工作」的派送排序空檔。詳見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)；不能把這項離線 dispatcher 修正說成全部 Pest 後續任務已完成。
 
 2026-10-29 Visitor 採購已接上原 task／共享預算／外部設定／UI，見 Bazaar 文件最新段落。仍不是全模組完成；下一步補額外確認與其他 parent、Pet/Pest 等實質缺項，不能再將「沒有 caller」的舊段落當作最新狀態。
+
+George 目前接線見 [Pet Sell 流程](george-sale-2.1.0.md)。舊的單次成交元件「沒有 native caller」為歷史狀態；完整回歸已通過；當前語法與批次連服驗收仍必須分開，不因 implemented bit 或單一測試通過宣稱整體100%。

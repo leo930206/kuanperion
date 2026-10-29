@@ -225,6 +225,7 @@ public final class UiModelTest {
             store.setAutoSellPolicy(new AutoSellPolicy(Set.of("WHEAT"),Set.of(),2,128,1000,60,60,85,true));
             store.setJunkPolicy(new JunkPolicy(Set.of("SEEDS"),Set.of(),3,192,1000,60,60,85,true,new JunkPolicy.Location("overworld",10,70,10),1.5));
             store.setBookPolicy(new BookCombineTask.Policy(Map.of("harvesting",5),Set.of(),1000,60,true));
+            store.setPetPolicy(dev.kuan.kuanperion.automation.pets.PetSalePolicy.defaults().withAllowed(Set.of(new dev.kuan.kuanperion.automation.pets.PetSalePreflight.Kind("SLUG","EPIC"))));
             byte[] original=java.nio.file.Files.readAllBytes(path);java.util.function.Consumer<StashService.Notice> notice=n->{throw new AssertionError("queue/cancel is not gameplay completion");};
             var greenhouse=new GreenhouseService(store,session,new PlayerPositionReceipts(),new HarvestReceipts(),contextOnlyPort(GreenhouseTask.Port.class,context),()->false,notice);
             assertPendingUi(GreenhouseModuleSettings.tab(greenhouse),greenhouse::pending,greenhouse::active,greenhouse::status);
@@ -237,11 +238,13 @@ public final class UiModelTest {
             var junk=new JunkService(store,session,new InventoryReceipts(),contextOnlyPort(JunkTask.Port.class,context),()->false,notice);
             var stash=new StashService(store,new AutomationCoordinator(),()->context,command->{throw new AssertionError("Trade settings sent Stash command");},notice);
             var book=new BookService(store,session,new InventoryReceipts(),new CursorReceipts(),()->context,p->{throw new AssertionError("settings created native Book port");},BookAnvilView.confirmedLayout(),()->false,notice);
-            var trade=AutomationModuleSettings.trade(stash,sell,junk,book);
+            var pets=new dev.kuan.kuanperion.automation.pets.PetSaleService(store,new AutomationCoordinator(),session,new InventoryReceipts(),new CursorReceipts(),()->context,()->{throw new AssertionError("settings created George port");},()->false,notice);
+            var trade=AutomationModuleSettings.trade(stash,sell,junk,book,pets);
+            assertPendingUi(trade.stream().filter(t->t.name().equals("Pet Sell")).findFirst().orElseThrow(),pets::pending,pets::active,pets::status);
             assertPendingUi(trade.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow(),book::pending,book::active,book::status);
             assertPendingUi(trade.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow(),sell::pending,sell::active,sell::status);
             assertPendingUi(trade.stream().filter(t->t.name().equals("Junk")).findFirst().orElseThrow(),junk::pending,junk::active,junk::status);
-            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&!sell.autoEnabled()&&!junk.autoEnabled()&&!book.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
+            require(!session.active()&&!session.holdsFarming()&&!greenhouse.autoEnabled()&&!composter.autoEnabled()&&!visitor.autoEnabled()&&!sell.autoEnabled()&&!junk.autoEnabled()&&!book.autoEnabled()&&!pets.autoEnabled()&&java.util.Arrays.equals(original,java.nio.file.Files.readAllBytes(path)),"queue/cancel neither acquires ownership nor enables/persists runtime intent");
         } finally {try(var paths=java.nio.file.Files.walk(dir)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())java.nio.file.Files.deleteIfExists(p);}}
     }
     private static void require(boolean value,String message){if(!value)throw new AssertionError(message);}

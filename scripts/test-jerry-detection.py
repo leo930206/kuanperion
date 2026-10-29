@@ -45,7 +45,7 @@ public class JerryDetectionIntegrationTest {
   AutomationCoordinator coordinator=new AutomationCoordinator();
   AutomationSession session=new AutomationSession(coordinator,()->new AutomationContext(1,farmingEnabled,true,Set.of()),()->{},()->{farmingEnabled=false;});
   class Service {boolean suspended,active;void cancel(long n){}void onOutgoingCommand(){}void suspend(long n){suspended=true;if(active){active=false;session.cancel(n);}}void suspend(String reason){suspend(System.nanoTime());}}
-  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service();
+  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();
   List<Service> services(){return List.of(pest,greenhouse,composter,autoSell,junk,stash,visitor,supercraft,book);}
   // BRIDGE_METHODS
  }
