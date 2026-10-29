@@ -14,9 +14,12 @@ import net.minecraft.world.phys.*;
 public final class PestFlightController implements PestTask.Port {
  public interface Travel {boolean send(AutomationSession.Handle handle,PestPlot plot,long now);}
  private final Travel travel;private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final GardenFlightCore flight;
+ private final InventoryReceipts baitItems;private final CursorReceipts baitCursors;private final BazaarAcquisitionController.Opener baitOpener;private final java.util.function.LongSupplier baitPurse;
+ private HypixelItemCatalogClient baitCatalog;private HypixelMarketClient baitPrices;private AutomationSession.Handle baitDataOwner,baitBuyingOwner;private Object baitDataLevel;private long baitDataRequestedAt;private PestBaitPolicy baitBuyingPolicy;private SpendingBudget baitBuyingBudget;private int baitBuyingRemaining;private BazaarAcquisitionController baitAcquisition;
  private PestGameView.Snapshot latestFacts;private PestIdentity.Vacuum preparedTool;private long lastUse;private boolean used;
  public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this(coordinator,session,observe,(h,p,n)->false);}
- public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.PEST);}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this(coordinator,session,observe,travel,null,null,null,null);}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;this.baitItems=items;this.baitCursors=cursors;this.baitOpener=opener;this.baitPurse=purse;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.PEST);}
  private boolean allowed(AutomationSession.Handle h,long now,AutomationCoordinator.Resource... resources){return flight.allowed(h,now,resources);}
  public boolean manualInput(){return flight.manualInput();}
  static FlightAnchor flightAnchor(PestTask.Anchor anchor){return new FlightAnchor(anchor.position(),anchor.yaw(),anchor.pitch(),anchor.slot(),anchor.item(),anchor.flying());}
@@ -26,7 +29,11 @@ public final class PestFlightController implements PestTask.Port {
   if(!flight.prepare(h,tool.slot(),tool.item(),flightAnchor(anchor),radius,now))return false;preparedTool=tool;used=false;return true;
  }
  public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
- public void dispose(AutomationSession.Handle h){if(h==null||flight.owner()==null||!flight.owner().equals(h))return;flight.dispose(h);latestFacts=null;preparedTool=null;}
+ public void dispose(AutomationSession.Handle h){
+  if(h==null)return;
+  try{if(flight.owner()!=null&&flight.owner().equals(h)){flight.dispose(h);latestFacts=null;preparedTool=null;}}
+  finally{if(h.equals(baitDataOwner))AutomationStops.run(this::cancelBaitAcquisition,this::shutdownBaitData);}
+ }
  public void release(AutomationSession.Handle h){flight.release(h);}
  public PestTask.Motion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return pestMotion(flight.move(h,goal,tolerance,now));}
  public PestTask.Motion restore(AutomationSession.Handle h,PestTask.Anchor anchor,long now){return pestMotion(flight.restore(h,flightAnchor(anchor),now));}
@@ -46,6 +53,56 @@ public PestTargets.Point position(){return mc().player==null?null:point(mc().pla
   var context=context();var facts=latestFacts;
   if(facts==null||facts.world()!=context.worldId()||facts.observedAt()!=now)facts=PestGameView.read(mc(),context,now);
   return new PestTrapRelease.Facts(facts.world(),facts.observedAt(),facts.tab().alive(),facts.traps(),facts.trapTargets(),facts.targets().stream().map(PestTargets.Target::uuid).collect(java.util.stream.Collectors.toUnmodifiableSet()));
+ }
+ /** Fresh read-only full frame; the private transfer proof and narrow native sender independently guard every effect. */
+ public PestBaitButtonTransfer.Frame baitFrame(long now){
+  var mc=mc();var c=context();var facts=PestGameView.read(mc,c,now);
+  var cursor=mc.player==null?new ItemSnapshot("","minecraft:air","","","",0,List.of(),true):AutomationGameView.item(mc.player.containerMenu.getCarried(),false);
+  return new PestBaitButtonTransfer.Frame(c.worldId(),now,mc.level,mc.player==null?null:mc.player.containerMenu,AutomationGameView.menu(mc,c.worldId()),VisitorGameView.inventory(mc),cursor,facts.traps(),facts.trapTargets());
+ }
+ public GuardedMenuAction.Result baitClick(AutomationSession.Handle h,PestBaitButtonTransfer.Action action,long now){
+  var mc=mc();
+  if(h==null||h.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(h)||flight.owner()==null||!flight.owner().equals(h)||flight.levelIdentity()!=mc.level||!mc.isSameThread()||mc.player==null||mc.gameMode==null||mc.gui.overlay()!=null||manualInput()||!mc.player.isAlive()||mc.player.isSpectator()||mc.player.isPassenger()||mc.player.isSleeping()||mc.player.isUsingItem()||!mc.player.getAbilities().mayfly||preparedTool==null||mc.player.getInventory().getSelectedSlot()!=preparedTool.slot()||!PestIdentity.sameVacuum(preparedTool,AutomationGameView.item(mc.player.getMainHandItem(),true)))return GuardedMenuAction.Result.REJECTED;
+  return AutomationMenuActions.sendPestBaitNative(h,action,baitFrame(now),now)?GuardedMenuAction.Result.SENT:GuardedMenuAction.Result.REJECTED;
+ }
+ /** Demand-only official data; a pre-existing root and explicit native product/count/whole-run budget are mandatory. */
+ public boolean beginBaitAcquisition(AutomationSession.Handle h,PestBaitPolicy policy,SpendingBudget budget,int remaining,long now){
+  if(!mc().isSameThread()||baitBuyingOwner!=null||baitItems==null||baitCursors==null||baitOpener==null||baitPurse==null||h==null||h.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(h)||!h.equals(flight.owner())||flight.levelIdentity()!=mc().level||!flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)||policy==null||!policy.canBuy()||budget==null||budget.limit()!=policy.buying().maximumCoins()||budget.available()<=0||remaining<policy.buying().targetCount()||remaining>policy.rules().maximumRunItems()||baitDataOwner!=null&&!baitDataOwner.equals(h))return false;
+  var frame=baitFrame(now);if(frame.menu()!=null||frame.cursor().count()!=0||frame.inventory().size()!=43||PestBaitButtonPlan.select(policy.rules(),frame.inventory(),remaining).isPresent()||!session.isCurrent(h)||!h.equals(flight.owner())||flight.levelIdentity()!=mc().level)return false;
+  baitDataOwner=h;baitBuyingOwner=h;baitDataLevel=mc().level;baitDataRequestedAt=now;baitBuyingPolicy=policy;baitBuyingBudget=budget;baitBuyingRemaining=remaining;baitAcquisition=null;
+  if(baitCatalog==null)baitCatalog=new HypixelItemCatalogClient();if(baitPrices==null)baitPrices=new HypixelMarketClient();baitCatalog.refresh();baitPrices.refresh();return true;
+ }
+ private boolean baitAcquisitionCurrent(AutomationSession.Handle h){
+  if(!mc().isSameThread()||h==null||!h.equals(baitBuyingOwner)||!h.equals(baitDataOwner)||!session.isCurrent(h)||!coordinator.holdsIdentity(h.lease())||mc().level!=baitDataLevel||flight.levelIdentity()!=baitDataLevel||!h.equals(flight.owner()))return false;
+  var c=context();return h.equals(baitBuyingOwner)&&session.isCurrent(h)&&mc().level==baitDataLevel&&c.worldId()==h.lease().worldId()&&c.garden()&&(h.hold()==null||c.farmingActive())&&c.blockers().stream().allMatch(b->b==AutomationContext.Blocker.MENU);
+ }
+ public PestTask.Acquisition pollBaitAcquisition(AutomationSession.Handle h,long now){
+  if(!baitAcquisitionCurrent(h))return PestTask.Acquisition.FAILED;
+  if(baitAcquisition==null){
+   var inventory=VisitorGameView.inventory(mc());
+   if(PestBaitButtonPlan.select(baitBuyingPolicy.rules(),inventory,baitBuyingRemaining).isPresent()){cancelBaitAcquisition();return PestTask.Acquisition.COMPLETE;}
+   var catalog=baitCatalog.latest();var prices=baitPrices.latest();
+   if(catalog.isEmpty()||prices.isEmpty())return now-baitDataRequestedAt>=0&&now-baitDataRequestedAt<12_000_000_000L?PestTask.Acquisition.RUNNING:PestTask.Acquisition.FAILED;
+   var need=new BazaarAcquisitionPlan.Need(baitBuyingPolicy.rules().baitId(),baitBuyingPolicy.buying().targetCount());
+   var plan=BazaarAcquisitionPlan.plan(List.of(need),inventory,baitBuyingPolicy.buying().rules(need.productId()),prices.get(),catalog.get(),baitBuyingBudget,System.currentTimeMillis()).orElse(null);
+   if(plan==null||plan.requests().size()!=1||!baitAcquisitionCurrent(h))return PestTask.Acquisition.FAILED;
+   baitAcquisition=new BazaarAcquisitionController(coordinator,session,observe,baitItems,baitCursors,h,plan,baitBuyingBudget,baitOpener,baitPurse);
+   if(!baitAcquisition.begin(now))return PestTask.Acquisition.FAILED;
+  }
+  baitAcquisition.tick(now);
+  return switch(baitAcquisition.state()){
+   case COMPLETE->{var current=baitFrame(now);boolean ready=baitAcquisitionCurrent(h)&&current.menu()==null&&current.cursor().count()==0&&PestBaitButtonPlan.select(baitBuyingPolicy.rules(),current.inventory(),baitBuyingRemaining).isPresent();cancelBaitAcquisition();yield ready?PestTask.Acquisition.COMPLETE:PestTask.Acquisition.FAILED;}
+   case FAILED->PestTask.Acquisition.FAILED;case UNCERTAIN->PestTask.Acquisition.UNCERTAIN;default->PestTask.Acquisition.RUNNING;
+  };
+ }
+ public boolean ownsBaitAcquisitionScreen(){return baitAcquisition!=null&&baitAcquisition.ownsScreen();}
+ public void baitAcquisitionMessage(long world,String text){if(baitAcquisition!=null)baitAcquisition.onSystemMessage(world,text);}
+ public void cancelBaitAcquisition(){var previous=baitAcquisition;baitAcquisition=null;baitBuyingOwner=null;baitBuyingPolicy=null;baitBuyingBudget=null;baitBuyingRemaining=0;if(previous!=null)previous.cancel();}
+ private void shutdownBaitData(){var catalog=baitCatalog;var prices=baitPrices;baitCatalog=null;baitPrices=null;baitDataOwner=null;baitDataLevel=null;AutomationStops.run(()->{if(catalog!=null)catalog.close();},()->{if(prices!=null)prices.close();});}
+ public boolean closeBaitMenu(Object identity,int id){
+  var mc=mc();var h=flight.owner();var c=context();
+  if(h==null||!session.isCurrent(h)||h.lease().owner()!=AutomationFeature.PEST||identity==null||!mc.isSameThread()||mc.player==null||mc.level!=flight.levelIdentity()||c.worldId()!=h.lease().worldId()||!c.garden()||c.blockers().stream().anyMatch(b->b!=AutomationContext.Blocker.MENU)||manualInput()||mc.player.containerMenu!=identity||mc.player.containerMenu.containerId!=id||!mc.player.containerMenu.getCarried().isEmpty())return false;
+  mc.player.closeContainer();return mc.player.containerMenu==mc.player.inventoryMenu&&mc.gui.screen()==null&&mc.player.containerMenu.getCarried().isEmpty();
  }
  public boolean cursorEmpty(){return mc().player!=null&&mc().player.containerMenu.getCarried().isEmpty();}
  public MenuSnapshot menu(){return AutomationGameView.menu(mc(),context().worldId());}

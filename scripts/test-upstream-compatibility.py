@@ -20,7 +20,12 @@ assert 'this::sendBazaarAcquisition' in bridge and 'BazaarPurse.read(sidebar.app
 composter=(m/'ComposterFlightController.java').read_text()
 assert 'new BazaarAcquisitionController(' in composter and 'acquisitionPolicy.buying().rules(' in composter
 assert 'composter.onSystemMessage(currentWorldId(),text)' in bridge
-assert [p.name for p in m.rglob('*.java') if p.name!='BazaarAcquisitionController.java' and 'new BazaarAcquisitionController(' in p.read_text()] == ['VisitorFlightController.java','ComposterFlightController.java'] or set(p.name for p in m.rglob('*.java') if p.name!='BazaarAcquisitionController.java' and 'new BazaarAcquisitionController(' in p.read_text()) == {'VisitorFlightController.java','ComposterFlightController.java'}
+callers={p.name for p in m.rglob('*.java') if p.name!='BazaarAcquisitionController.java' and 'new BazaarAcquisitionController(' in p.read_text()}
+assert callers=={'VisitorFlightController.java','ComposterFlightController.java','PestFlightController.java'},'Only implemented guarded original-parent workflows may navigate purchases'
+pest=(m/'PestFlightController.java').read_text()
+for required in ['baitAcquisitionCurrent(h)','budget.limit()!=policy.buying().maximumCoins()','baitBuyingPolicy.buying().rules(','baitBuyingBudget','baitAcquisition.onSystemMessage(world,text)']:assert required in pest,required
+assert 'pest.onSystemMessage(currentWorldId(),text)' in bridge
+
 
 assert 'InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER' in (m/'AutomationMenuActions.java').read_text()
 assert 'AutomationSignInputMixin' in (r/'src/main/resources/kuanperion.mixins.json').read_text()

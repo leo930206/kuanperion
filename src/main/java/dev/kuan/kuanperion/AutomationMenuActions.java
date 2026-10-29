@@ -39,6 +39,27 @@ public final class AutomationMenuActions {
    if(slot.index!=request.slot()||slot.container!=mc.player.getInventory()||slot.getContainerSlot()!=request.slot()-54+9||!slot.getItem().isEmpty()||!slot.isActive()||slot.isFake()||!slot.mayPlace(menu.getCarried())||slot.getMaxStackSize(menu.getCarried())<1)return false;
    ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,request.slot(),0,ContainerInput.PICKUP,mc.player);return true;}finally{ownedInput=false;}
  }
+ /** Pest-only private action, not a general carried-item sender. Full frame is independently sampled by the flight port. */
+ static boolean sendPestBaitNative(AutomationSession.Handle owner,dev.kuan.kuanperion.automation.pest.PestBaitButtonTransfer.Action action,dev.kuan.kuanperion.automation.pest.PestBaitButtonTransfer.Frame frame,long now){
+  var mc=Minecraft.getInstance();
+  if(ownedInput||mc==null||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gameMode==null||owner==null||owner.lease().owner()!=AutomationFeature.PEST||action==null||frame==null||frame.menu()==null||frame.world()!=owner.lease().worldId()||mc.level!=frame.level())return false;
+  var request=action.ticket();var menu=mc.player.containerMenu;
+  if(menu!=frame.menuIdentity()||menu.containerId!=frame.menu().containerId()||request.click()!=MenuContract.Click.PICKUP||!frame.menu().equals(request.observed())||!frame.menu().equals(AutomationGameView.menu(mc,frame.world()))||menu.slots.size()!=frame.menu().slots().size()||request.slot()<0||request.slot()>=menu.slots.size()||mc.player.getInventory().getContainerSize()!=43)return false;
+  // Claim may read fallible/reentrant context; physical slot rules must be sampled AFTER it.
+  if(!action.claim(owner,frame,now)||ownedInput||mc.level!=frame.level()||mc.player.containerMenu!=menu||!frame.menu().equals(AutomationGameView.menu(mc,frame.world()))||!frame.cursor().equals(AutomationGameView.item(menu.getCarried(),false)))return false;
+  var slot=menu.slots.get(request.slot());boolean player=frame.menu().slot(request.slot()).playerInventory();
+  if(slot.index!=request.slot()||slot.isFake()||!slot.isActive())return false;
+  if(action.step()==dev.kuan.kuanperion.automation.pest.PestBaitButtonTransfer.Step.DEPOSIT){
+   if(player||slot.container==mc.player.getInventory()||menu.getCarried().isEmpty()||!slot.mayPlace(menu.getCarried())||slot.getMaxStackSize(menu.getCarried())<menu.getCarried().getCount())return false;
+  }else{
+   int raw=request.slot()-frame.menu().containerSlots()+9;
+   if(!player||raw<9||raw>=36||slot.container!=mc.player.getInventory()||slot.getContainerSlot()!=raw)return false;
+   if(action.step()==dev.kuan.kuanperion.automation.pest.PestBaitButtonTransfer.Step.PICKUP){if(!menu.getCarried().isEmpty()||!slot.mayPickup(mc.player))return false;}
+   else if(menu.getCarried().isEmpty()||!slot.getItem().isEmpty()||!slot.mayPlace(menu.getCarried())||slot.getMaxStackSize(menu.getCarried())<menu.getCarried().getCount())return false;
+  }
+  for(int i=0;i<43;i++)if(!frame.inventory().get(i).equals(AutomationGameView.item(mc.player.getInventory().getItem(i),i<9||i>=36)))return false;
+  ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,request.slot(),0,ContainerInput.PICKUP,mc.player);return true;}finally{ownedInput=false;}
+ }
  /** Exact native sign identity after owned Custom Amount; only decimal quantities, no clipboard/raw commands. */
  static net.minecraft.client.input.KeyEvent bazaarSelectAllKey(){return new net.minecraft.client.input.KeyEvent(65,0,net.minecraft.client.input.InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER);}
  static boolean enterBazaarAmountNative(Object expected,int quantity){

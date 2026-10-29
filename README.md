@@ -189,3 +189,6 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 ### 開發建置稽核
 
 `./scripts/build.sh` 會在建立開發 JAR 後執行來源與成品靜態稽核，不通過就回傳失敗；不會安裝。稽核邊界與限制見 [release privacy boundaries](docs/release-privacy-boundaries.md)。
+
+
+2.1.0 開發補充：Pest 的非空 Trap Bait 按鈕已新增背包來源接線，需獨立啟用、精確餌料 ID 與非零整疊提取上限；缺料採購需另設原生 ID、庫存與整次預算，零預算不購買。詳見 [補餌邊界](docs/pest-bait-button-2.1.0.md)，此為未發佈／未連服驗收功能，正式 2.0.17 不受影響。

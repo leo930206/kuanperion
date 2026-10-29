@@ -114,6 +114,8 @@ public final class UiModelTest {
                 require(ColorPresetRow.visibleCount(preset,rowWidth-24)==Math.min(preset.previewColors().size(),ColorPresetRow.columns(rowWidth-24)),"only fitting colors are previewed");
             }
             require(ColorPresetRow.visibleCount(preset,300)<preset.previewColors().size(),"overflow swatches are hidden, never wrapped");
+            require(ColorPresetRow.visibleCount(preset,300)==6,"300-wide preview fits exactly six swatches with reserved controls");
+            require(ColorPresetRow.visibleCount(preset,1000)==preset.previewColors().size(),"wide preview may fit all colors without mandatory truncation");
             require(ColorPresetRow.columns(100)==0,"no forced swatch can overlap narrow control area");
             require(preset.load()&&applied[0]==1,"one-click load");
             require(preset.save(2000)==ColorPresetSetting.SaveResult.CONFIRM,"overwrite confirmation");

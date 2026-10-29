@@ -10,7 +10,9 @@ public final class PestService {
  private boolean pending,pendingFarming;private long pendingAt,pendingWorld;
  private long lastAttempt,lastPoll;private boolean attempted,polled,suspended;private PestTask.State reported=PestTask.State.IDLE;
  public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this(settings,session,port,new PlayerPositionReceipts(),automaticAllowed,feedback);}
- public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,PlayerPositionReceipts receipts,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;this.session=session;this.port=port;task=new PestTask(session,port,receipts);this.automaticAllowed=automaticAllowed;this.feedback=feedback;}
+ public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,PlayerPositionReceipts receipts,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this(settings,session,port,receipts,null,new InventoryReceipts(),new CursorReceipts(),automaticAllowed,feedback);}
+ public PestService(AutomationSettingsStore settings,AutomationSession session,PestTask.Port port,PlayerPositionReceipts positions,AutomationCoordinator coordinator,InventoryReceipts items,CursorReceipts cursors,BooleanSupplier automaticAllowed,Consumer<StashService.Notice> feedback){this.settings=settings;this.session=session;this.port=port;task=new PestTask(session,port,positions,coordinator,items,cursors);this.automaticAllowed=automaticAllowed;this.feedback=feedback;}
+ public void onSystemMessage(long world,String text){port.baitAcquisitionMessage(world,text);}
  public PestTrapRelease.CloseTicket beforeServerClose(int id,long now){return task.beforeServerClose(id,now);}
  public boolean afterServerClose(PestTrapRelease.CloseTicket ticket,long now){return task.afterServerClose(ticket,now);}
  public boolean ownsMenu(){return task.ownsMenu();}
@@ -47,8 +49,8 @@ public final class PestService {
   var state=task.state();if(state==reported||task.active()||state==PestTask.State.IDLE)return;reported=state;
   boolean success=state==PestTask.State.COMPLETE;
   if(!success){suspended=true;try{settings.setEnabled(AutomationFeature.PEST,false);}catch(IOException ignored){}}
-  String text=success?"已確認 Pest 數量減少 "+task.confirmedDecreases()+" 次，已返回原位。":switch(state){
-   case INCOMPLETE->"已返回原位，但範圍內未找到剩餘 Pest，已停用自動除蟲，等待操作。";
+  String text=success?"已確認 Pest 數量減少 "+task.confirmedDecreases()+" 次"+(task.confirmedBaits()>0?"，已完成補餌 "+task.confirmedBaits()+" 個陷阱":"")+"，已返回原位。":switch(state){
+   case INCOMPLETE->"已返回原位，但仍有未完成的 Pest／陷阱工作或補餌條件不符，已停用自動除蟲，等待操作。";
    case CANCELLED->"Pest 已停止，等待操作。";
    case TIMED_OUT->"Pest 逾時，已停止並停用自動除蟲，等待操作。";
    default->"Pest 未完成：目標、路徑、飛行權限或返回驗證失敗，已停止並停用自動除蟲。";

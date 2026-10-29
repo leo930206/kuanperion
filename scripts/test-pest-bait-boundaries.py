@@ -19,5 +19,11 @@ for file in main.rglob('*.java'):
  if file.name not in {'PestBaitTask.java','PestBaitTransfer.java'}:
   source=file.read_text();assert 'new PestBaitTask(' not in source and 'PestBaitTransfer.' not in source,file
 native=(main/'AutomationMenuActions.java').read_text();assert '!mc.player.containerMenu.getCarried().isEmpty()' in native
-assert 'PestBait' not in native,'Do not widen generic native actions with an unproven carried-item/material/capacity path'
-print('PestBaitBoundariesTest: PASS (declared direct-item/capacity data only, explicit protected43/server receipt protocol and original-root subtask; no native action/cursor bypass/live layout or unfinished toggle)')
+assert 'PestBaitTransfer.' not in native and 'PestBaitTask.' not in native,'The unsupported direct-item/capacity model must remain unexecutable'
+start=native.index(' static boolean sendNative(');generic=native[start:]
+assert '!mc.player.containerMenu.getCarried().isEmpty()' in generic and 'PestBait' not in generic,'Generic native sender must still reject every carried item'
+assert ' static boolean sendPestBaitNative(' in native and 'action.claim(owner,frame,now)' in native,'Only the private one-use original-root button proof may authorize carried bait'
+assert 'slot.getContainerSlot()!=raw' in native and 'slot.getMaxStackSize(menu.getCarried())' in native
+assert 'new PestBaitButtonTask(' in (package/'PestTask.java').read_text()
+
+print('PestBaitBoundariesTest: PASS (declared direct-item/capacity data only, explicit protected43/server receipt protocol and original-root subtask; original direct-item protocol unexposed; separate private button-native gate, no generic cursor bypass/live claim)')

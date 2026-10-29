@@ -138,3 +138,7 @@ python3 "$ROOT/scripts/test-pest-strategy-boundaries.py"
 python3 "$ROOT/scripts/test-bazaar-sale-boundaries.py"
 
 python3 "$ROOT/scripts/test-upstream-compatibility.py"
+
+python3 "$ROOT/scripts/test-pest-bait-native.py" "$JAVA_HOME"
+
+python3 "$ROOT/scripts/test-pest-bait-buying-data.py"

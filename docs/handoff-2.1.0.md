@@ -29,7 +29,7 @@
 | 區塊 | 目前開發線 | 尚未完成／驗收 |
 | --- | --- | --- |
 | 共用底層 | 單一可撤銷 root、原 Farming hold、世界／選單／物品／游標回條、外部設定及停用保護 | 後續新模組全生命週期與跨任務接續矩陣、連服驗收 |
-| Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回及原通知 | 補餌原生角色／容量／導航／採購接線、兌換／噴灑、完整活動／作物策略 |
+| Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回及原通知 | 新增非空 Trap Bait 補餌／原 root 限額採購接線；當前角色／語法／回條及連服驗收、兌換／噴灑、完整活動／作物策略 |
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | 已新增指定庫存採購／重新開啟機器與獨立上限 Sacks；當前選單、Sacks 格式與連服驗收尚缺 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；單次額外確認已接線；當前連服格式／結果仍待驗收 |
@@ -108,3 +108,11 @@ Bridge 目前先 tick 原 active 工作、再派送其他 due 工作，每個 se
 2026-10-29 Visitor 採購已接上原 task／共享預算／外部設定／UI，見 Bazaar 文件最新段落。仍不是全模組完成；下一步補額外確認與其他 parent、Pet/Pest 等實質缺項，不能再將「沒有 caller」的舊段落當作最新狀態。
 
 George 目前接線見 [Pet Sell 流程](george-sale-2.1.0.md)。舊的單次成交元件「沒有 native caller」為歷史狀態；完整回歸已通過；當前語法與批次連服驗收仍必須分開，不因 implemented bit 或單一測試通過宣稱整體100%。
+
+
+2026-10-29 recovery continuation: source-style nonempty Trap Bait inventory-source path is now wired under the original Pest root, with distinct processed-bait IDs, whole-stack withdrawal ceilings, private one-use native carried-item gate, atomic default-off settings/Pest UI and exact-menu closing. See [button route](pest-bait-button-2.1.0.md). The old direct-item/capacity model remains unexecutable. This is not full bait purchasing or current-server acceptance; the earlier broad bait row is not checked off by this narrower vertical slice. Recovered four REDs were reproduced and fixed; final gate outcomes are recorded in verification, not inferred from old GREEN logs.
+
+
+2026-10-29 resumed bait acquisition: the inventory-source button route now also supports independently configured exact native bait stock purchases under the SAME original Pest root and SpendingBudget. Zero budget never purchases; each trap can request acquisition once, with current eligible delivered stock rechecked before any pickup. Native demand-only transport disposal, GAME-result routing, UI consent persistence and parent buy/refill/return/cancel are covered by focused regressions. Current server assumptions still require the final batch acceptance; do not interpret this as completion of exchange/spray/strategy, Bazaar Sell, Supercraft expansion or the whole2.1.0.
+
+Final resumed bait checkpoint: full regression/build/native/UI-model/migration gates pass; an isolated offline40-state/40-image GUI run and native shutdown also pass. Responsive palette/Book smoke assumptions were corrected without changing production palette/header code. Old gear/phase33 causes remain unresolved. See the latest verification section; this is not a2.1.0 release or live transaction pass.

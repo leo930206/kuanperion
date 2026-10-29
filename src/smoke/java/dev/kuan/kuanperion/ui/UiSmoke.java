@@ -8,6 +8,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 public final class UiSmoke implements ClientModInitializer {
     private java.lang.reflect.Method mouseMove;
+    private float bookHeaderTextScale;
     private int ticks,phase=-1;private MainGUI ui;private boolean waiting,phaseValidated,completed,sawRenderer;
     public void onInitializeClient(){ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
     private void registerStopObserver(){
@@ -17,7 +18,7 @@ public final class UiSmoke implements ClientModInitializer {
             try{
                 if(!sawRenderer||dev.kuan.kuanperion.renderer.NanoVGManager.isInitialized()||dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer()!=null||dev.kuan.kuanperion.renderer.NanoVGManager.getVg()!=-1||dev.kuan.kuanperion.renderer.NanoVGManager.isDrawing())throw new AssertionError("native renderer not destroyed before dependent stop listener");
                 var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);
-                if(bridge.session().active()||bridge.holdsFarming()||bridge.stash().active()||bridge.pest().active()||bridge.pest().pending()||bridge.greenhouse().active()||bridge.greenhouse().pending()||bridge.composter().active()||bridge.composter().pending()||bridge.visitor().active()||bridge.visitor().pending()||bridge.supercraft().active()||bridge.supercraft().pending()||bridge.book().active()||bridge.book().pending()||bridge.autoSell().active()||bridge.autoSell().pending()||bridge.junk().active()||bridge.junk().pending())throw new AssertionError("service/root survived native client stop");
+                if(bridge.session().active()||bridge.holdsFarming()||bridge.stash().active()||bridge.pest().active()||bridge.pest().pending()||bridge.greenhouse().active()||bridge.greenhouse().pending()||bridge.composter().active()||bridge.composter().pending()||bridge.visitor().active()||bridge.visitor().pending()||bridge.supercraft().active()||bridge.supercraft().pending()||bridge.book().active()||bridge.book().pending()||bridge.pets().active()||bridge.pets().pending()||bridge.autoSell().active()||bridge.autoSell().pending()||bridge.junk().active()||bridge.junk().pending())throw new AssertionError("service/root survived native client stop");
                 System.out.println("UI_SMOKE_SHUTDOWN_PASS");
             }catch(Throwable failure){System.out.println("UI_SMOKE_FAIL");failure.printStackTrace();throw new IllegalStateException("native shutdown smoke failed",failure);}
         });
@@ -47,12 +48,13 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine","40-pest-bait"};
             if(phase>=names.length){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" filter="+ui.context().navigation.activeFilter+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
-            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
+            if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testPetUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
+            if(phase==39){if(!ui.getActiveModuleSubTab().name().equals("Pest"))throw new AssertionError("bait detail route");var note=(dev.kuan.kuanperion.ui.settings.InfoSetting)ui.getActiveModuleSubTab().groups().getFirst().getSettings().stream().filter(v->v.getName().equals("補餌限制")).findFirst().orElseThrow();if(!note.isMultiline())throw new AssertionError("long bait explanation must wrap, not overflow");}
             if(phase==38){if(!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");testBookHeaderLayout();}
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
             if(phase==1) testToggleClick();
@@ -155,7 +157,13 @@ public final class UiSmoke implements ClientModInitializer {
                 case 32 -> {setCapacityFixture(true);}
                 case 33 -> {setCapacityFixture(false);}
                 case 34 -> clickSidebar(2);
-                case 38 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow());
+                case 39 -> {dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE=bookHeaderTextScale;var tab=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow();var group=tab.groups().getFirst();var setting=group.getSettings().stream().filter(v->v.getName().equals("餌料物品 ID")).findFirst().orElseThrow();ui.openSearchResult(0,tab,group,setting);}
+                case 38 -> {
+                    // Exercise the wrapped real header at a supported text size, not an assumed HiDPI viewport.
+                    bookHeaderTextScale=dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE;
+                    dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE=dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE_MAX;
+                    ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Book Combine")).findFirst().orElseThrow());
+                }
                 case 37 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Junk")).findFirst().orElseThrow());
                 case 36 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Auto Sell")).findFirst().orElseThrow());
                 case 35 -> ui.openModuleDetailFromCard(MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Stash")).findFirst().orElseThrow());
@@ -187,7 +195,7 @@ public final class UiSmoke implements ClientModInitializer {
         if(index==MainGUISidebar.settingsIndex()&&(ui.getActiveMainTab()<1||ui.getActiveMainTab()>4))throw new AssertionError("gear click did not select Setting immediately");
     }
     private void assertGroup(int index) {
-        String[][] expected={{"Farming","Pest","Greenhouse","Visitor","Composter"},{"Mining"},{"Auto Sell","Book Combine","Junk","Stash"},{"Jerry 偵測","Discord Webhook","Supercraft"}};
+        String[][] expected={{"Farming","Pest","Greenhouse","Visitor","Composter"},{"Mining"},{"Auto Sell","Book Combine","Pet Sell","Junk","Stash"},{"Jerry 偵測","Discord Webhook","Supercraft"}};
         var sections=ui.moduleSectionsForFilter();
         if(ui.getActiveMainTab()!=0 || ui.getActiveModuleSubTab()!=null || sections.size()!=1 || !sections.get(0).subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList().equals(java.util.List.of(expected[index]))) throw new AssertionError("wrong feature group: "+index+" actual="+sections.stream().map(s->s.subtabs().stream().map(dev.kuan.kuanperion.ui.settings.ModulesTab.SubTab::name).toList()).toList());
     }
@@ -267,7 +275,7 @@ public final class UiSmoke implements ClientModInitializer {
         var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var pest=bridge.pest();
         if(pest.autoEnabled()||pest.active())throw new AssertionError("Pest automation must default off independently of notifications");
         var sub=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow();ui.openModuleDetailFromCard(sub);
-        var rows=sub.groups().get(0).getSettings();var notify=(dev.kuan.kuanperion.ui.settings.ToggleSetting)sub.groups().get(1).getSettings().get(0);boolean old=notify.getValue();
+        var rows=sub.groups().get(0).getSettings();java.util.function.Function<String,dev.kuan.kuanperion.ui.settings.Setting> named=name->rows.stream().filter(v->v.getName().equals(name)).findFirst().orElseThrow();var notify=(dev.kuan.kuanperion.ui.settings.ToggleSetting)sub.groups().get(1).getSettings().get(0);boolean old=notify.getValue();
         notify.setValue(true);if(pest.autoEnabled())throw new AssertionError("notification flag enabled automation");
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);notify.setValue(false);
         if(!pest.autoEnabled())throw new AssertionError("notification-off disabled independent automation");
@@ -277,10 +285,21 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(10)).setValue(true);
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(11)).setValue(0);
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(2)).setValue(3);
-        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(12)).execute();
-        if(pest.active()||rows.get(13).isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
+        if(pest.policy().bait().enabled()||pest.policy().bait().canBuy())throw new AssertionError("old flags grant no bait or purchase consent");
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)named.apply("處理缺餌陷阱（獨立授權）")).setValue(true);
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("餌料物品 ID")).setValue("TASTY_CHEESE");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)named.apply("每個陷阱最多提取餌料（0 停用）")).setValue(16);
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)named.apply("整次最多提取餌料（0 停用）")).setValue(64);
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("購料原生物品 ID")).setValue("minecraft:paper");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)named.apply("缺料時補到此庫存（0 不購料）")).setValue(16);
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("整次補餌購料預算（Coins，0 關閉）")).setValue("1000");
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)named.apply("關閉選單後清理 Pest")).execute();
+        if(pest.active()||named.apply("停止本次除蟲").isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.PEST)||saved.pestPolicy().threshold()!=3||!saved.pestPolicy().sweep()||saved.pestPolicy().travelPlots()!=2||!saved.pestPolicy().clearTraps()||saved.pestPolicy().trapPlot()!=0||bridge.autoSell().autoEnabled()||bridge.junk().autoEnabled())throw new AssertionError("Pest settings not independent/external/persistent");
+        if(!saved.pestPolicy().equals(pest.policy())||!saved.pestPolicy().bait().canBuy()||saved.pestPolicy().bait().rules().maximumPerTrap()!=16||saved.pestPolicy().bait().buying().maximumCoins()!=1000)throw new AssertionError("bait native ID/whole-run caps must persist independently");
+        var flightField=bridge.getClass().getDeclaredField("flight");flightField.setAccessible(true);var flight=flightField.get(bridge);var catalogField=flight.getClass().getDeclaredField("baitCatalog");catalogField.setAccessible(true);if(catalogField.get(flight)!=null)throw new AssertionError("settings/offline request cannot create buyer transport");
+        System.out.println("UI_SMOKE_PEST_BAIT_PASS real named setting callbacks, independent default-off bait/buy consent, exact ID/withdrawal/coin caps/external persistence; no offline HTTP/gameplay");
         pest.setEnabled(false);pest.setPolicy(dev.kuan.kuanperion.automation.pest.PestPolicy.defaults());notify.setValue(old);clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_PEST_PASS real page/callbacks, independent notification and automation flags, external policy, no offline flight/use, safe default restoration");
     }
@@ -313,9 +332,9 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(5)).setValue("VOLTA=2000");
         service.setPolicy(service.policy().withAnchor(new dev.kuan.kuanperion.automation.composter.ComposterPolicy.Anchor(-11,72,-27,"minecraft:player_head")));
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);
-        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(7)).setValue(2);
-        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(12)).execute();
-        if(service.active()||rows.get(13).isVisible())throw new AssertionError("offline Composter cannot fly/open/consume");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.stream().filter(v->v.getName().equals("單次材料堆疊上限")).findFirst().orElseThrow()).setValue(2);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.stream().filter(v->v.getName().equals("關閉選單後補充 Composter")).findFirst().orElseThrow()).execute();
+        if(service.active()||rows.stream().filter(v->v.getName().equals("停止本次補充")).findFirst().orElseThrow().isVisible())throw new AssertionError("offline Composter cannot fly/open/consume");
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.COMPOSTER)||saved.composterPolicy().materials().size()!=2||saved.composterPolicy().maxStacks()!=2||bridge.greenhouse().autoEnabled()||bridge.pest().autoEnabled())throw new AssertionError("Composter settings not independent/external");
         service.setEnabled(false);service.setPolicy(dev.kuan.kuanperion.automation.composter.ComposterPolicy.defaults());clickSidebar(0);assertGroup(0);
@@ -329,9 +348,9 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(2)).setValue("Librarian; Farmer");
         ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(3)).setValue("ENCHANTED_WHEAT");
         ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.get(4)).setValue("2000");
-        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(6)).setValue(2);
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.stream().filter(v->v.getName().equals("自動接單人數門檻")).findFirst().orElseThrow()).setValue(2);
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(0)).setValue(true);
-        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.get(10)).execute();if(service.active()||rows.get(11).isVisible())throw new AssertionError("offline Visitor must not lookup/travel/interact/consume");
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.stream().filter(v->v.getName().equals("關閉選單後接單 Visitor")).findFirst().orElseThrow()).execute();if(service.active()||rows.stream().filter(v->v.getName().equals("停止本次接單")).findFirst().orElseThrow().isVisible())throw new AssertionError("offline Visitor must not lookup/travel/interact/consume");
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.VISITOR)||!saved.visitorPolicy().rules().visitors().equals(java.util.Set.of("Librarian","Farmer"))||!saved.visitorPolicy().rules().materialIds().equals(java.util.Set.of("ENCHANTED_WHEAT"))||saved.visitorPolicy().rules().maximumOfferCoins()!=2000||saved.visitorPolicy().threshold()!=2||bridge.greenhouse().autoEnabled()||bridge.composter().autoEnabled())throw new AssertionError("Visitor UI settings not independent/external");
         var controllerField=bridge.getClass().getDeclaredField("visitorFlight");controllerField.setAccessible(true);var controller=controllerField.get(bridge);for(String name:java.util.List.of("catalog","prices")){var f=controller.getClass().getDeclaredField(name);f.setAccessible(true);if(f.get(controller)!=null)throw new AssertionError("offline UI must not initialize public network client");}
@@ -357,7 +376,8 @@ public final class UiSmoke implements ClientModInitializer {
     private void testBookHeaderLayout() throws Exception {
         var tab=ui.getActiveModuleSubTab();var group=tab.groups().getFirst();float width=ui.moduleSettingsWidth();var layout=new MainGUITextLayout();var nvg=dev.kuan.kuanperion.renderer.NanoVGManager.getRenderer();
         var lines=layout.wrapTextToWidth(nvg,group.getDescription(),"Inter-Regular",UiLayoutMetrics.DESCRIPTION_FONT,layout.groupHeaderDescriptionWidth(group,width));
-        if(lines.size()<2)throw new AssertionError("Book long-help fixture must exercise wrapping");
+        if(lines.size()<2)throw new AssertionError("Book large-text fixture must exercise wrapping: width="+width+" scale="+MainGUI.uiTextScale+" lines="+lines.size());
+        System.out.println("UI_SMOKE_GROUP_GEOMETRY width="+width+" scale="+MainGUI.uiTextScale+" lines="+lines.size()+" height="+ui.groupHeaderHeight(group,width));
         for(var line:lines)if(nvg.textWidth("Inter-Regular",line,UiLayoutMetrics.DESCRIPTION_FONT)>layout.groupHeaderDescriptionWidth(group,width)+.5f)throw new AssertionError("group help exceeds measured width");
         float bottom=layout.groupHeaderDescriptionTop()+(lines.size()-1)*UiLayoutMetrics.DESCRIPTION_LINE*MainGUI.uiTextScale+UiLayoutMetrics.DESCRIPTION_FONT*MainGUI.uiTextScale+7;
         if(ui.groupHeaderHeight(group,width)+.01f<bottom)throw new AssertionError("wrapped header clips its last line");
@@ -384,6 +404,22 @@ public final class UiSmoke implements ClientModInitializer {
         toggle.setValue(false);service.setPolicy(dev.kuan.kuanperion.automation.BookCombineTask.Policy.defaults());clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_BOOK_PASS real Trade route/callbacks, explicit ceilings/protected IDs/external persistence, offline refusal/lazy native task, Jerry runtime suspension; no live Anvil claim");
     }
+    private void testPetUi() throws Exception {
+        var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);var service=bridge.pets();
+        if(service.autoEnabled()||service.active()||service.pending()||!service.policy().allowed().isEmpty())throw new AssertionError("Pet Sell defaults grant no disposal authority");
+        clickSidebar(2);assertGroup(2);var tab=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pet Sell")).findFirst().orElseThrow();ui.openModuleDetailFromCard(tab);var rows=tab.groups().getFirst().getSettings();
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.stream().filter(v->v.getName().equals("授權寵物種類與稀有度")).findFirst().orElseThrow()).setValue("RAT:COMMON");
+        ((dev.kuan.kuanperion.ui.settings.TextSetting)rows.stream().filter(v->v.getName().equals("最低實收 Coins")).findFirst().orElseThrow()).setValue("123");
+        var toggle=(dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.getFirst();toggle.setValue(true);
+        var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
+        if(!service.autoEnabled()||!saved.petPolicy().equals(service.policy())||saved.petPolicy().minimumPayout()!=123)throw new AssertionError("Pet Sell real UI policy persists outside JAR");
+        var task=service.getClass().getDeclaredField("task");task.setAccessible(true);
+        ((dev.kuan.kuanperion.ui.settings.ActionSetting)rows.stream().filter(v->v.getName().equals("關閉選單後賣一隻寵物")).findFirst().orElseThrow()).execute();
+        if(service.active()||service.pending()||bridge.session().active()||task.get(service)!=null)throw new AssertionError("offline Pet intent cannot construct native task or send command");
+        byte[] bytes=java.nio.file.Files.readAllBytes(path);service.suspend(System.nanoTime());if(service.autoEnabled()||!java.util.Arrays.equals(bytes,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("Pet idle Jerry suspension retains saved consent");
+        toggle.setValue(false);service.setPolicy(dev.kuan.kuanperion.automation.pets.PetSalePolicy.defaults());clickSidebar(0);assertGroup(0);
+        System.out.println("UI_SMOKE_PET_PASS real Trade page/callbacks/exact kind/minimum payout/external persistence/offline rejection/Jerry suspension; no George live sale claim");
+    }
     private void testJerryHomeGuard(Minecraft mc) throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);var bridge=(dev.kuan.kuanperion.AutomationClientBridge)field.get(null);
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");byte[] before=java.nio.file.Files.readAllBytes(path);
@@ -392,7 +428,7 @@ public final class UiSmoke implements ClientModInitializer {
         var closed=new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(7);if(closed.getContainerId()!=7)throw new AssertionError("pinned26.2 close packet identity");bridge.beforeServerClose(closed);bridge.afterServerClose(closed);
         bridge.suspendForJerry();
         if(bridge.session().active()||!java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path)))throw new AssertionError("idle Jerry global stop must not acquire a lease or rewrite latest settings");
-        System.out.println("UI_SMOKE_JERRY_GLOBAL_STOP_PASS native offline bridge suspends all eight services without preference/lease side effects");
+        System.out.println("UI_SMOKE_JERRY_GLOBAL_STOP_PASS native offline bridge suspends all ten services without preference/lease side effects");
         System.out.println("UI_SMOKE_JERRY_HOME_GUARD_PASS actual native bridge refuses no-player send without lease/preference side effects");
     }
     private void testStashUi(Minecraft mc) throws Exception {
@@ -523,7 +559,11 @@ public final class UiSmoke implements ClientModInitializer {
         addPalette(add);if(!first.isVisible())throw new AssertionError("add button missed");
         if(first.previewColors().size()!=dev.kuan.kuanperion.ui.theme.Theme.ENTRIES.size() || first.previewColors().get(0)!=original || first.previewColors().get(1)!=dev.kuan.kuanperion.ui.theme.Theme.ACCENT_SECONDARY)throw new AssertionError("saved swatch order not menu order");
         float[] row=paletteRow(first);
-        if(row[3]!=50 || ColorPresetRow.visibleCount(first,row[2]-24)>=first.previewColors().size())throw new AssertionError("palette preview must be a single truncated row at this window width");
+        int shown=ColorPresetRow.visibleCount(first,row[2]-24),total=first.previewColors().size();
+        if(row[3]!=50 || shown!=Math.min(total,ColorPresetRow.columns(row[2]-24)))throw new AssertionError("palette preview must use one fitting row: width="+row[2]+" height="+row[3]+" shown="+shown+" total="+total);
+        // A wide real viewport may fit every swatch. Prove truncation at a fixed narrow width instead.
+        if(ColorPresetRow.height(first,324)!=50 || ColorPresetRow.visibleCount(first,300)>=total || ColorPresetRow.visibleCount(first,300)!=6)throw new AssertionError("narrow palette must truncate to six swatches, never wrap");
+        System.out.println("UI_SMOKE_PALETTE_GEOMETRY width="+row[2]+" height="+row[3]+" shown="+shown+" total="+total+" narrowShown="+ColorPresetRow.visibleCount(first,300));
         float x=row[0]+12,w=row[2]-24,cy=UiLayoutMetrics.controlTop(row[1],row[3],28)+14;
         float saveX=ColorPresetRow.saveX(x,w)+32,deleteX=ColorPresetRow.deleteX(x,w)+32;
         dev.kuan.kuanperion.ui.theme.Theme.ACCENT_PRIMARY=0xFF66C3EF;

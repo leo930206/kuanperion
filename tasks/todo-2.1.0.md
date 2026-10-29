@@ -55,7 +55,7 @@
 - [x] Explicit independently configured trap plot, bounded shared travel budget/server arrival/loading observation, no trap-ID/plot-ID inference, release/capture/original return.
 - [x] Delayed applied server trap-close observation retains the original hold; local/manual/ignored/stale close remains cancellation.
 - [x] Bait declared direct-item transfer protocol/subtask: explicit protected43 material/count/capacity preflight, fresh pickup/deposit/owned remainder-return/cursor/NoBait receipts, same original Pest/Farm root and exact owned close; no native caller or live layout claim.
-- [ ] Bait actual current native role/capacity/transfer gate, Pest parent navigation/dispatch, settings/UI/acquisition and live trap formats.
+- [ ] Bait current-server role/Tab/cursor/delivery format and complete live trap acceptance. Source-style button native/parent/navigation/settings/UI and optional original-root acquisition are wired in the latest checkpoints; the old direct-item/capacity model remains unsupported.
 - [ ] Exchange/spray.
 - [x] Read-only explicit Feast/Jacob/Jacob-then-Feast target selection: independent exact priorities/profiles, fresh world-bound known facts, inactive-only explicit fallback, no first-crop guess or copied event feed. No runtime caller/action/UI or current mapping claim.
 - [ ] Event/crop strategies and due-task scheduling.
@@ -135,3 +135,8 @@
 - [x] Composter Sacks source candidate39/41→11, explicit default-zero capacity ceiling/100% target, same-root task/native adapter, fresh resource/cursor/unchanged43 proof and no-repeat. Current-server labels/receipt behavior remain batch acceptance, not confirmed.
 
 - [x] George 原生接線離線回歸：私有入庫 custody／最低價／同價確認／取回／applied server close、外部設定、Trade UI 與九-owner／十-service 停止矩陣通過；當前伺服器語法及實際成交／取回仍為批次連服驗收。
+
+
+- [x] Recovered four Trap Bait button proof failures and added source-style inventory-only native/task/parent/settings/UI wiring: original root/Farming hold, distinct bait trap IDs, exact own remainder return, per-trap/original-run whole-withdrawal ceilings and narrow private native action. No empty-slot/capacity fabrication. Pure/composed/actual-native-body fixtures pass; material purchasing and live format acceptance remain unchecked.
+
+- [x] Trap Bait optional exact stock purchase: separate strict native-ID/count/run-budget consent, same original PEST root and budget identity, at most one acquisition request per trap, guarded delivered-stock revalidation, native GAME route, demand-only official data and all-child/physical cleanup on faults. Actual native-demand/disposal bodies and composed parent buy/refill/return/manual/uncertain cases pass offline; current server acceptance remains unchecked.
