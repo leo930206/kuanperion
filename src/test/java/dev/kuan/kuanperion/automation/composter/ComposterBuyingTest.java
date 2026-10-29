@@ -8,7 +8,7 @@ public final class ComposterBuyingTest {
   check(p.withTargetPercent(80).buying().equals(buying)&&p.withInterval(600).buying().equals(buying),"other policy edits preserve purchasing consent");
   check(ComposterPolicy.defaults().buying().maximumCoins()==0&&ComposterPolicy.defaults().buying().stock().isEmpty(),"old/new defaults have zero purchasing authority");
   try{ComposterPolicy.defaults().withBuying(buying);throw new AssertionError("buying unauthorized machine material");}catch(IllegalArgumentException expected){}
-  Path dir=Files.createTempDirectory("composter-buying-");try{var path=dir.resolve("automation.json");var store=AutomationSettingsStore.load(path);store.setComposterPolicy(p);check(AutomationSettingsStore.load(path).composterPolicy().equals(p),"purchasing choices survive JAR/config reload");}finally{try(var paths=Files.walk(dir)){for(var path:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(path);}}
+  Path dir=Files.createTempDirectory("composter-buying-");try{var path=dir.resolve("automation.json");var store=AutomationSettingsStore.load(path);p=p.withTargetPercent(100).withSacksUnits(20000);store.setComposterPolicy(p);check(AutomationSettingsStore.load(path).composterPolicy().equals(p),"purchasing choices survive JAR/config reload");}finally{try(var paths=Files.walk(dir)){for(var path:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(path);}}
   for(int bad:List.of(0,4097))try{new ComposterBuying.Stock(bad,nativeItem);throw new AssertionError("unbounded stock");}catch(IllegalArgumentException expected){}
   System.out.println("ComposterBuyingTest: PASS");
  }

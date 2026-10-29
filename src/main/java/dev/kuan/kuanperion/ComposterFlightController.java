@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;import dev.kuan.kuanperion.automation.composter.*;import dev.kuan.kuanperion.automation.flight.*;import dev.kuan.kuanperion.automation.pest.*;import java.util.*;import java.util.function.Supplier;import net.minecraft.client.Minecraft;import net.minecraft.world.InteractionHand;import net.minecraft.core.BlockPos;import net.minecraft.world.level.ClipContext;import net.minecraft.world.phys.*;
-/** Fixed COMPOSTER native boundary; no purchase, sack slot assumption or cursor repair. */
+/** Fixed COMPOSTER native boundary; source-marked guarded buying/Sacks, no cursor repair. */
 public final class ComposterFlightController implements ComposterTask.Port {
  public interface Travel{boolean send(AutomationSession.Handle handle,PestPlot plot,long now);}
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final GardenFlightCore flight;private final Travel travel;
  private final InventoryReceipts purchaseItems;private final CursorReceipts purchaseCursors;private final BazaarAcquisitionController.Opener purchaseOpener;private final java.util.function.LongSupplier purse;
+ private ComposterSacksFlow sacks;private AutomationSession.Handle sacksOwner,machineOwner;private InventoryReceipts.Stamp machineOpening;private CursorReceipts.OpeningStamp machineCursorOpening;private long sacksGain;
  private HypixelItemCatalogClient catalog;private HypixelMarketClient prices;private AutomationSession.Handle dataOwner,acquisitionOwner;private Object dataLevel;private long dataRequestedAt;private List<BazaarAcquisitionPlan.Need> acquisitionNeeds=List.of();private ComposterPolicy acquisitionPolicy;private SpendingBudget acquisitionBudget;private BazaarAcquisitionController acquisition;private boolean acquisitionComplete;
  public ComposterFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this(coordinator,session,observe,travel,null,null,null,null);}
  public ComposterFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;purchaseItems=items;purchaseCursors=cursors;purchaseOpener=opener;this.purse=purse;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.COMPOSTER);}
@@ -23,7 +24,7 @@ public final class ComposterFlightController implements ComposterTask.Port {
  public FlightMotion move(AutomationSession.Handle h,PestTargets.Point goal,double tolerance,long now){return flight.move(h,goal,tolerance,now);}
  public FlightMotion restore(AutomationSession.Handle h,FlightAnchor original,long now){return flight.restore(h,original,now);}
  public void release(AutomationSession.Handle h){flight.release(h);}public void afterStop(AutomationSession.Handle h){flight.afterStop(h);}
- public void dispose(AutomationSession.Handle h){try{flight.dispose(h);}finally{if(h!=null&&h.equals(dataOwner))AutomationStops.run(this::cancelAcquisition,this::shutdownData);}}
+ public void dispose(AutomationSession.Handle h){try{flight.dispose(h);}finally{AutomationStops.run(()->{if(h!=null&&h.equals(sacksOwner))cancelSacks();},()->{if(h!=null&&h.equals(machineOwner)){machineOwner=null;machineOpening=null;machineCursorOpening=null;}},()->{if(h!=null&&h.equals(dataOwner))AutomationStops.run(this::cancelAcquisition,this::shutdownData);});}}
  private void shutdownData(){var c=catalog;var p=prices;catalog=null;prices=null;dataOwner=null;dataLevel=null;AutomationStops.run(()->{if(c!=null)c.close();},()->{if(p!=null)p.close();});}
  public boolean travel(AutomationSession.Handle h,PestPlot plot,long now){return plot!=null&&flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&travel.send(h,plot,now);}
  public ComposterTask.Open open(AutomationSession.Handle h,ComposterPolicy.Anchor machine,long now){
@@ -33,9 +34,31 @@ public final class ComposterFlightController implements ComposterTask.Port {
   var hit=mc.level.clip(new ClipContext(eye,aim,ClipContext.Block.OUTLINE,ClipContext.Fluid.ANY,p));if(hit.getType()!=HitResult.Type.BLOCK||!hit.getBlockPos().equals(new BlockPos(machine.x(),machine.y(),machine.z())))return ComposterTask.Open.REJECTED;
   double dx=aim.x-eye.x,dy=aim.y-eye.y,dz=aim.z-eye.z;float yaw=(float)Math.toDegrees(Math.atan2(-dx,dz)),pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.hypot(dx,dz)));float nextYaw=PestSteering.rotate(p.getYRot(),yaw,12,true),nextPitch=PestSteering.rotate(p.getXRot(),pitch,12,false);p.setYRot(nextYaw);p.setXRot(nextPitch);
   if(Math.abs(PestSteering.rotate(nextYaw,yaw,30,true)-nextYaw)>3||Math.abs(nextPitch-pitch)>3)return ComposterTask.Open.AIMING;
-  if(!flight.allowed(h,now,AutomationCoordinator.Resource.ATTACK)||!mc.gameMode.startDestroyBlock(hit.getBlockPos(),hit.getDirection()))return ComposterTask.Open.REJECTED;p.swing(InteractionHand.MAIN_HAND);return ComposterTask.Open.SENT;
+  if(!flight.allowed(h,now,AutomationCoordinator.Resource.ATTACK))return ComposterTask.Open.REJECTED;
+  if(purchaseItems!=null&&purchaseCursors!=null){machineOwner=h;machineOpening=purchaseItems.stamp(h.lease().worldId());machineCursorOpening=purchaseCursors.openingStamp(h.lease().worldId(),now);}
+  if(!mc.gameMode.startDestroyBlock(hit.getBlockPos(),hit.getDirection()))return ComposterTask.Open.REJECTED;p.swing(InteractionHand.MAIN_HAND);return ComposterTask.Open.SENT;
  }
  public boolean deposit(AutomationSession.Handle h,MenuContract contract,MenuContract.Ticket ticket,InventoryProtection protection,long now){return flight.owner()!=null&&flight.owner().equals(h)&&flight.levelIdentity()==mc().level&&session.isCurrent(h)&&h.lease().owner()==AutomationFeature.COMPOSTER&&AutomationMenuActions.inventoryAction(coordinator,h.lease(),contract,ticket,protection,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,this::context,this::menu,now);}
+ public boolean beginSacks(AutomationSession.Handle h,ComposterObservation.Kind kind,long ceiling,long now){
+  if(!mc().isSameThread()||h==null||sacks!=null||!h.equals(machineOwner)||!h.equals(flight.owner())||flight.levelIdentity()!=mc().level||!session.isCurrent(h)||purchaseItems==null||purchaseCursors==null||machineOpening==null||machineCursorOpening==null)return false;
+  sacksOwner=h;sacksGain=0;
+  var port=new ComposterSacksFlow.Port(){
+   public boolean available(){var m=mc();return m.isSameThread()&&m.player!=null&&m.level!=null&&m.gameMode!=null&&m.gui.overlay()==null&&m.player.isAlive()&&!m.player.isSpectator()&&!m.player.isPassenger()&&!m.player.isSleeping()&&!m.player.isUsingItem()&&m.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen&&screen.getMenu()==m.player.containerMenu;}
+   public Object level(){return mc().level;}public Object menuIdentity(){return mc().player==null?null:mc().player.containerMenu;}public MenuSnapshot menu(){return ComposterFlightController.this.menu();}
+   public Map<Integer,ItemSnapshot> inventory(){return VisitorGameView.inventory(mc());}public boolean cursorEmpty(){return mc().player!=null&&mc().player.containerMenu.getCarried().isEmpty();}public AutomationContext context(){return ComposterFlightController.this.context();}
+   public GuardedMenuAction.Result click(MenuContract c,MenuContract.Ticket t,Supplier<MenuSnapshot> proof,long at){return GuardedMenuAction.perform(coordinator,h.lease(),c,t,GuardedMenuAction.Space.EXISTING_ITEMS_ONLY,this::context,proof,AutomationMenuActions::sendNative,at);}
+  };
+  sacks=new ComposterSacksFlow(coordinator,session,h,purchaseItems,purchaseCursors,machineOpening,machineCursorOpening,port,System::nanoTime,kind,ceiling);return sacks.begin(now);
+ }
+ public ComposterTask.Acquisition pollSacks(AutomationSession.Handle h,long now){
+  if(sacks==null||h==null||!h.equals(sacksOwner))return ComposterTask.Acquisition.FAILED;sacks.tick(now);
+  return switch(sacks.state()){
+   case COMPLETE->{sacksGain=sacks.increase();sacks=null;sacksOwner=null;yield ComposterTask.Acquisition.COMPLETE;}
+   case FAILED->ComposterTask.Acquisition.FAILED;case UNCERTAIN->ComposterTask.Acquisition.UNCERTAIN;default->ComposterTask.Acquisition.RUNNING;
+  };
+ }
+ public long sacksIncrease(){return sacksGain;}public boolean ownsSacksScreen(){return sacks!=null&&sacks.ownsScreen();}
+ public void cancelSacks(){var previous=sacks;sacks=null;sacksOwner=null;sacksGain=0;if(previous!=null)previous.cancel();}
  /** No startup clients: official anonymous data is requested only after an explicit original-parent shortage. */
  public boolean beginAcquisition(AutomationSession.Handle h,ComposterPolicy policy,Set<ComposterObservation.Kind> kinds,SpendingBudget budget,long now){
   if(acquisitionOwner!=null||purchaseItems==null||purchaseCursors==null||purchaseOpener==null||purse==null||h==null||h.lease().owner()!=AutomationFeature.COMPOSTER||!session.isCurrent(h)||!h.equals(flight.owner())||flight.levelIdentity()!=mc().level||!flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)||policy==null||kinds==null||kinds.isEmpty()||budget==null||budget.limit()!=policy.buying().maximumCoins()||budget.available()<=0||menu()!=null||!frame(now).cursorEmpty()||dataOwner!=null&&!dataOwner.equals(h))return false;

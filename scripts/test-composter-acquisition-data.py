@@ -24,6 +24,7 @@ public class ComposterAcquisitionDataTest {
  ComposterTask.Frame frame(long now){var p=new PestTargets.Point(0,72,0);var item=new ItemSnapshot("","minecraft:air","","","",0,List.of(),true);return new ComposterTask.Frame(1,now,new FlightAnchor(p,0,0,0,item,true),p,true,false,true,true);}
  static class HypixelItemCatalogClient{static int made;int refreshes;boolean closed;HypixelItemCatalogClient(){made++;}void refresh(){refreshes++;}void close(){closed=true;}}
  static class HypixelMarketClient{static int made;int refreshes;boolean closed;HypixelMarketClient(){made++;}void refresh(){refreshes++;}void close(){closed=true;}}
+ AutomationSession.Handle sacksOwner,machineOwner;InventoryReceipts.Stamp machineOpening;CursorReceipts.OpeningStamp machineCursorOpening;void cancelSacks(){sacksOwner=null;}
  HypixelItemCatalogClient catalog;HypixelMarketClient prices;AutomationSession.Handle dataOwner,acquisitionOwner;Object dataLevel;long dataRequestedAt;List<BazaarAcquisitionPlan.Need> acquisitionNeeds=List.of();ComposterPolicy acquisitionPolicy;SpendingBudget acquisitionBudget;BazaarAcquisitionController acquisition;boolean acquisitionComplete;
  METHODS
  static ComposterPolicy policy(){return ComposterPolicy.defaults().withMaterials(Map.of("BOX_OF_SEEDS",new ComposterPolicy.Material(ComposterObservation.Kind.ORGANIC,25000))).withBuying(new ComposterBuying(Map.of("BOX_OF_SEEDS",new ComposterBuying.Stock(2,new BazaarAcquisitionPlan.Material("minecraft:paper",64,1000))),1000));}

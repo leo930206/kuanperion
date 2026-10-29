@@ -7,6 +7,10 @@ public final class ComposterTaskTest {
  static ItemSnapshot role(String name,long current,long capacity){return new ItemSnapshot("","minecraft:paper","",name,name+current,1,List.of(current+"/"+capacity),true);}
  static final class Fake implements ComposterTask.Port {
   AutomationContext ctx=new AutomationContext(1,true,true,Set.of());FlightAnchor pose=new FlightAnchor(new PestTargets.Point(.5,70,.5),10,20,0,TOOL,false);boolean mayFly=true,manual,cursorEmpty=true,accept=true,blocked;MenuSnapshot menu;int prepares,opens,deposits,restores,releases,disposes,closes,stops,pauses;boolean consumed;List<PestPlot> commands=new ArrayList<>();
+  int sacksStarts,sacksCancels;boolean sacksAllowed;ComposterTask.Acquisition sacksResult=ComposterTask.Acquisition.RUNNING;long sacksCeiling;
+  public boolean beginSacks(AutomationSession.Handle h,ComposterObservation.Kind kind,long ceiling,long now){sacksStarts++;sacksCeiling=ceiling;return sacksAllowed;}
+  public ComposterTask.Acquisition pollSacks(AutomationSession.Handle h,long now){return sacksResult;}
+  public boolean ownsSacksScreen(){return sacksAllowed;}public long sacksIncrease(){return 6000;}public void cancelSacks(){sacksCancels++;}
   boolean acquireAllowed;int acquisitions,cancelAcquisitions,messages;SpendingBudget budget;ComposterTask.Acquisition acquisition=ComposterTask.Acquisition.RUNNING;
   public boolean beginAcquisition(AutomationSession.Handle h,ComposterPolicy p,Set<ComposterObservation.Kind> kinds,SpendingBudget budget,long now){acquisitions++;this.budget=budget;return acquireAllowed;}
   public ComposterTask.Acquisition pollAcquisition(AutomationSession.Handle h,long now){return acquisition;}

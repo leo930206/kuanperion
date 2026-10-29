@@ -131,3 +131,5 @@
 - [x] Read-only Bazaar whole-commodity sale plan: explicitly pinned native exemplar/raw ID and positive unit-net floor, protected full43 baseline, whole-product/count/stack limits, fresh gross depth estimate separate from actual-net bounds, immutable no-runtime/no-tax/no-backend scope. Actual sale adapter/receipts/service/UI/live scope remains unfinished.
 
 - [x] Composter explicitly configured crop/fuel stock acquisition and machine reopen under the original parent/budget, default-off persisted policy/UI, once-per-kind guard, real native-edge Composter buyer and demand/disposal failure tests. Not a live claim and not Sacks implementation.
+
+- [x] Composter Sacks source candidate39/41→11, explicit default-zero capacity ceiling/100% target, same-root task/native adapter, fresh resource/cursor/unchanged43 proof and no-repeat. Current-server labels/receipt behavior remain batch acceptance, not confirmed.

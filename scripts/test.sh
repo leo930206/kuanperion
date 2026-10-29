@@ -74,6 +74,7 @@ python3 "$ROOT/scripts/test-pest-boundaries.py"
 
 python3 "$ROOT/scripts/test-position-boundaries.py"
 python3 "$ROOT/scripts/test-pest-travel-wiring.py"
+python3 "$ROOT/scripts/test-container-close-priority.py"
 python3 "$ROOT/scripts/test-cursor-boundaries.py"
 
 python3 "$ROOT/scripts/test-greenhouse-boundaries.py"
@@ -86,6 +87,7 @@ python3 "$ROOT/scripts/test-greenhouse-driver.py"
 
 python3 "$ROOT/scripts/test-composter-driver.py"
 python3 "$ROOT/scripts/test-composter-acquisition-data.py"
+python3 "$ROOT/scripts/test-composter-sacks-native.py"
 python3 "$ROOT/scripts/test-maintenance-input-priority.py"
 
 python3 "$ROOT/scripts/test-jerry-home-handoff.py"

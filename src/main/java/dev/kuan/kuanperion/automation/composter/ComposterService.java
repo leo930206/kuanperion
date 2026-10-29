@@ -47,8 +47,8 @@ public final class ComposterService {
   boolean success=state==ComposterTask.State.COMPLETE||state==ComposterTask.State.PARTIAL;
   if(!success){suspended=true;try{settings.setEnabled(AutomationFeature.COMPOSTER,false);}catch(IOException ignored){}}
   String text=switch(state){
-   case COMPLETE->"Composter 已確認補充 "+task.inserted()+" 個材料，已返回原位。";
-   case PARTIAL->"Composter 已確認補充 "+task.inserted()+" 個材料，已返回原位；庫存不足或達本次上限，尚未補充到目標容量。";
+   case COMPLETE->"Composter 已確認補充 "+task.inserted()+" 個背包材料、"+task.sacksInserted()+" 單位 Sacks 資源，已返回原位。";
+   case PARTIAL->"Composter 已確認補充 "+task.inserted()+" 個背包材料、"+task.sacksInserted()+" 單位 Sacks 資源，已返回原位；庫存不足或達本次上限，尚未補充到目標容量。";
    case CANCELLED->"Composter 已停止，等待操作。";
    case TIMED_OUT->"Composter 逾時，已停止並停用自動補充，等待操作。";
    default->"Composter 未完成：材料、選單、路徑或伺服器回條驗證失敗，已停止並停用自動補充。";

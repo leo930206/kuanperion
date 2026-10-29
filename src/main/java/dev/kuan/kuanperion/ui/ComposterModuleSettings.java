@@ -23,7 +23,7 @@ public final class ComposterModuleSettings {
  }
  private static String buying(ComposterPolicy p){var out=new ArrayList<String>();new TreeMap<>(p.buying().stock()).forEach((id,s)->out.add(id+"="+s.material().minecraftId()+","+s.material().stackLimit()+","+s.targetCount()+","+s.material().maximumCoins()));return String.join("; ",out);}
  public static ModulesTab.SubTab tab(ComposterService service){
-  var group=SettingGroup.alwaysOn("Composter","使用背包內明確指定的材料補充；缺料時可另外授權有預算的購料，Sacks 尚未接線。需設定 Barn 機器與材料資源量，返回原位才續耕。")
+  var group=SettingGroup.alwaysOn("Composter","使用背包內明確指定的材料補充；缺料時可另外授權有預算的購料，Sacks 可另外授權補滿，採用獨立資源量上限。需設定 Barn 機器與材料資源量，返回原位才續耕。")
    .add(new ToggleSetting("自動補充 Composter",service::autoEnabled,v->enabled(service,v)))
    .add(new ToggleSetting("只在 Farming 執行中自動補充",()->service.policy().onlyWhileFarming(),v->policy(service,p->p.withOnlyFarming(v))))
    .add(new ActionSetting("記錄準星指向的 Composter 方塊",()->{try{if(!service.captureAnchor())NotificationManager.error("Composter 位置未記錄","請在 Garden 的 Barn，將準星對準 Composter 機器方塊；需可辨識附近唯一的 Composter 標記。");}catch(IOException invalid){NotificationManager.error("Composter 設定未套用",invalid.getMessage());}}))
@@ -33,6 +33,7 @@ public final class ComposterModuleSettings {
    .add(new TextSetting("整次購料預算（Coins，0 關閉）","0",()->Long.toString(service.policy().buying().maximumCoins()),v->policy(service,p->p.withBuying(new ComposterBuying(p.buying().stock(),coins(v))))).withFieldWidth(180))
    .add(new TextSetting("購料原生 ID、堆疊、庫存目標與單項預算","ITEM_ID=minecraft:id,64,2,1000",()->buying(service.policy()),v->policy(service,p->p.withBuying(parseBuying(v,p.buying().maximumCoins())))).withFieldWidth(480))
    .add(new SliderSetting("補充目標容量",1,100,()->(float)service.policy().targetPercent(),v->policy(service,p->p.withTargetPercent(Math.round(v)))).withDecimals(0).withSuffix("%"))
+   .add(new TextSetting("Sacks 資源量上限（0 關閉，需 100% 目標）","0",()->Long.toString(service.policy().maximumSacksUnits()),v->policy(service,p->p.withSacksUnits(coins(v)))).withFieldWidth(180))
    .add(new SliderSetting("單次材料堆疊上限",1,27,()->(float)service.policy().maxStacks(),v->policy(service,p->p.withMaxStacks(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("單次材料數量上限",1,1728,()->(float)service.policy().maxItems(),v->policy(service,p->p.withMaxItems(Math.round(v)))).withDecimals(0))
    .add(new SliderSetting("補充間隔（毫秒）",500,5000,()->(float)service.policy().delayMillis(),v->policy(service,p->p.withDelay(Math.round(v)))).withDecimals(0))

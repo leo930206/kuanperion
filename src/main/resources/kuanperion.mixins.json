@@ -11,7 +11,8 @@
     "AutomationReceiptMixin",
     "AutomationInventoryInputMixin",
     "AutomationWorldInputMixin",
-    "AutomationSignInputMixin"
+    "AutomationSignInputMixin",
+    "AutomationContainerCloseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

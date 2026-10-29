@@ -31,7 +31,7 @@
 | 共用底層 | 單一可撤銷 root、原 Farming hold、世界／選單／物品／游標回條、外部設定及停用保護 | 後續新模組全生命週期與跨任務接續矩陣、連服驗收 |
 | Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回及原通知 | 補餌原生角色／容量／導航／採購接線、兌換／噴灑、完整活動／作物策略 |
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
-| Composter | 背包既有材料補充、回條、返回、service／UI | 已新增有預算的指定庫存採購／重新開啟機器；Sacks、當前選單與連服驗收尚缺 |
+| Composter | 背包既有材料補充、回條、返回、service／UI | 已新增指定庫存採購／重新開啟機器與獨立上限 Sacks；當前選單、Sacks 格式與連服驗收尚缺 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；單次額外確認已接線；當前連服格式／結果仍待驗收 |
 | Trade | NPC Auto Sell／Junk／Stash 已接線；Book 已接預設關閉的設定／service／Trade UI、固定 `/anvil` 與原生操作／指定格取回；Pet 有唯讀資格預檢與原root單次成交證明元件（無原生caller） | Bazaar 實際採購／出售、Book 實際連服的開啟權限／費用與結果回條驗收、George 估價／交易／取回接線、各項連服驗收 |
 | Supercraft | 明確選定且符合當前預覽批量的 inventory-only 任務、原生 adapter／service／Other UI | 當前來源／費用格式、必要時實際選量、較廣配方與連服驗收 |
