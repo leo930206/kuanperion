@@ -75,7 +75,8 @@
 - [x] Visitor inventory-only submission protocol: explicit rules, protected same-ID veto, one guarded attempt, exact GAME accepted line + fresh applied removals + empty cursor; runtime inventory-backed caller wired.
 - [x] Visitor bounded complete Tab queue and unique hologram/nearby non-listed-character identity snapshots; unknown/duplicate/missing/ambiguous facts cannot pick a target.
 - [x] Visitor inventory-only executable navigation/menu service/UI: typed server-confirmed Barn travel, dual identity, explicit rules, demand-only official data, one guarded submission, scoped applied-close and fresh cursor proofs, exact original return.
-- [ ] Visitor budgeted acquisition and current live offer/accepted-line/inventory/cursor/return validation.
+- [x] Visitor explicit per-run budget/material-native allowlist acquisition: source-marked custom-amount navigation, exact sidebar balance, original-root child, offer reopen/revalidation and protected normal submission. Controlled native-edge/task/settings tests, not a live claim.
+- [ ] Visitor extra final purchase confirmations and current live offer/accepted-line/inventory/cursor/return validation.
 - [x] Visitor UI rename/merge, independent off-by-default automation and retained original notifications.
 - [x] Supercraft read-only exact-batch preflight: explicit output/ingredient/consumption/craft caps, complete protected43-slot inventory and capacity, immutable baseline; recipe data does not authorize a GUI action.
 - [x] Supercraft single-attempt receipt contract: current complete baseline, guarded-result window, exact requested input/output deltas backed by every affected server slot and empty cursor, no replay/prediction/manual/world/clock/timeout success. No native caller or placeholder toggle.

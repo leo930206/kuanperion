@@ -29,4 +29,4 @@ assert 'visitorFlight.shutdownData()' in bridge.split('public void shutdown()',1
 assert 'automation.shutdown()' in client and 'VisitorModuleSettings.tab(automation.visitor(),visitorNotifications)' in client
 assert 'new ToggleSetting("啟用 Visitor 通知"' in client
 assert 'AutomationVisitorViewTest.java' in (root/'scripts/test-native-observations.py').read_text()
-print('VisitorBoundariesTest: PASS (bounded43-slot/dual identity, fixed inventory-only task/native/UI, independent notification/stop/lifecycle/scoped-close guards; no buy/guess/retry/telemetry)')
+print('VisitorBoundariesTest: PASS (bounded43-slot/dual identity, fixed task/native/UI with explicitly budgeted child acquisition, independent notification/stop/lifecycle/scoped-close guards; no blind spending/guess/retry/telemetry)')

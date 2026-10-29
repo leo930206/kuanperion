@@ -7,6 +7,12 @@ public final class VisitorTaskTest {
  static final VisitorTargets.Target NPC=new VisitorTargets.Target("Librarian",11,new UUID(1,11),new PestTargets.Point(0,72,0),12,new UUID(1,12),new PestTargets.Point(0,73,0));
  static final class Fake implements VisitorTask.Port {
   AutomationContext ctx=new AutomationContext(1,true,true,Set.of());FlightAnchor pose=new FlightAnchor(new PestTargets.Point(100,70,0),10,20,0,TOOL,false);boolean mayFly=true,manual,cursorEmpty=true,accept=true,dataReady=true,blocked,failDispose;MenuSnapshot menu;Map<Integer,ItemSnapshot> inventory=VisitorSubmissionTest.before();List<VisitorTargets.Target> targets=List.of(NPC);VisitorQueue queue=VisitorQueue.parse(List.of("Visitors: (1)","Librarian"));
+  boolean acquireAllowed;int acquisitions,acquisitionCancels,acquisitionMessages;SpendingBudget acquiredBudget;VisitorTask.Acquisition acquisition=VisitorTask.Acquisition.RUNNING;
+  public boolean beginAcquisition(AutomationSession.Handle h,VisitorOffer offer,VisitorPolicy policy,SpendingBudget budget,long now){acquisitions++;acquiredBudget=budget;return acquireAllowed;}
+  public VisitorTask.Acquisition pollAcquisition(AutomationSession.Handle h,long now){return acquisition;}
+  public boolean ownsAcquisitionScreen(){return acquireAllowed;}
+  public void acquisitionMessage(long world,String text){acquisitionMessages++;}
+  public void cancelAcquisition(){acquisitionCancels++;}
   int prepares,opens,clicks,restores,releases,disposes,closes,stops,pauses,dataRequests;List<PestPlot> commands=new ArrayList<>();
   public AutomationContext context(){return ctx;}public PestTargets.Point position(){return pose.position();}
   public VisitorTask.Frame frame(long now){return new VisitorTask.Frame(ctx.worldId(),now,pose,new PestTargets.Point(pose.position().x(),pose.position().y()+1.62,pose.position().z()),mayFly,manual,cursorEmpty,true);}

@@ -10,6 +10,9 @@ public final class UiModelTest {
         require(BookModuleSettings.parseCeilings("harvesting=5, efficiency=10").equals(Map.of("harvesting",5,"efficiency",10)),"exact explicit book ceiling parser");
         require(BookModuleSettings.parseCeilings(" ").isEmpty(),"blank authorization never means all enchants");
         for(String bad:List.of("harvesting=0","harvesting=11","harvesting=1.5","harvesting=5,harvesting=6","harvesting=5,","HARVESTING=5","harvesting=05","harvesting; barn=5"))try{BookModuleSettings.parseCeilings(bad);throw new AssertionError("invalid book consent accepted: "+bad);}catch(IllegalArgumentException expected){}
+        require(VisitorModuleSettings.parseBuying("WHEAT=minecraft:wheat,64,1000").get("WHEAT").maximumCoins()==1000,"explicit native commodity purchase bounds");
+        require(VisitorModuleSettings.parseBuying(" ").isEmpty(),"blank purchase consent never buys");
+        for(String bad:List.of("WHEAT=minecraft:wheat,65,1","WHEAT=minecraft:air,64,1","WHEAT=minecraft:wheat,64,0","WHEAT=minecraft:wheat,64,1.5","WHEAT=minecraft:wheat,64,1;WHEAT=minecraft:wheat,64,2","WHEAT=minecraft:wheat,64,1;","WHEAT=/barn,64,1"))try{VisitorModuleSettings.parseBuying(bad);throw new AssertionError("invalid buying consent accepted: "+bad);}catch(IllegalArgumentException expected){}
         testPestPendingUi();
         testMaintenancePendingUi();
         var recipe=SupercraftModuleSettings.parseRecipe("ENCHANTED_WHEAT;1;64;WHEAT=160");

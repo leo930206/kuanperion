@@ -6,7 +6,10 @@ public final class VisitorFlightController implements VisitorTask.Port {
  public interface Travel{boolean send(AutomationSession.Handle handle,PestPlot plot,long now);}
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final GardenFlightCore flight;private final Travel travel;
  private HypixelMarketClient prices;private HypixelItemCatalogClient catalog;private CompletableFuture<?> priceRequest,catalogRequest;private AutomationSession.Handle dataOwner;private Object dataLevel;private long requestedAt;private boolean requested;
- public VisitorFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.VISITOR);}
+ private final InventoryReceipts purchaseItems;private final CursorReceipts purchaseCursors;private final BazaarAcquisitionController.Opener purchaseOpener;private final java.util.function.LongSupplier purse;
+ private BazaarAcquisitionController acquisition;private List<BazaarAcquisitionPlan.Need> acquisitionNeeds=List.of();private VisitorPolicy acquisitionPolicy;private SpendingBudget acquisitionBudget;private AutomationSession.Handle acquisitionOwner;private boolean acquisitionComplete;
+ public VisitorFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this(coordinator,session,observe,travel,null,null,null,null);}
+ public VisitorFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;purchaseItems=items;purchaseCursors=cursors;purchaseOpener=opener;this.purse=purse;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.VISITOR);}
  private Minecraft mc(){return Minecraft.getInstance();}private static PestTargets.Point point(Vec3 p){return new PestTargets.Point(p.x,p.y,p.z);}
  public AutomationContext context(){return observe.get();}public boolean manualInput(){return flight.manualInput();}public PestTargets.Point position(){return mc().player==null?null:point(mc().player.position());}
  public VisitorTask.Frame frame(long now){
@@ -58,5 +61,36 @@ public final class VisitorFlightController implements VisitorTask.Port {
   var offer=VisitorOffer.inspect(menu(),ticket.observed().title(),data().get().materialIds());if(offer.isEmpty()||offer.get().acceptSlot()!=ticket.slot()||!offer.get().menu().equals(ticket.observed()))return GuardedMenuAction.Result.REJECTED;
   return AutomationMenuActions.purchaseClick(coordinator,h.lease(),contract,ticket,this::context,this::menu,now);
  }
+ public boolean beginAcquisition(AutomationSession.Handle h,VisitorOffer offer,VisitorPolicy policy,SpendingBudget budget,long now){
+  if(acquisitionOwner!=null||purchaseItems==null||purchaseCursors==null||purchaseOpener==null||purse==null||h==null||h.lease().owner()!=AutomationFeature.VISITOR||!session.isCurrent(h)||!h.equals(dataOwner)||dataLevel!=mc().level||data().isEmpty()||offer==null||policy==null||budget==null||budget.limit()!=policy.rules().maximumBuyCoins()||menu()!=null||!frame(now).cursorEmpty())return false;
+  var needs=new ArrayList<BazaarAcquisitionPlan.Need>();for(var required:offer.requirements()){if(required.quantity()>4096)return false;needs.add(new BazaarAcquisitionPlan.Need(required.itemId(),required.quantity()));}
+  acquisitionOwner=h;acquisitionNeeds=List.copyOf(needs);acquisitionPolicy=policy;acquisitionBudget=budget;acquisitionComplete=false;
+  if(!nextAcquisition(now)){cancelAcquisition();return false;}return true;
+ }
+ private boolean nextAcquisition(long now){
+  if(!session.isCurrent(acquisitionOwner)||dataLevel!=mc().level||catalog==null||prices==null||catalog.latest().isEmpty()||prices.latest().isEmpty())return false;
+  var inventory=inventory();if(inventory.size()!=43)return false;
+  for(var need:acquisitionNeeds){
+   int owned=0;for(int i=9;i<36;i++){var item=inventory.get(i);if(item==null)return false;if(item.identified()&&!item.protectedItem()&&item.uuid().isEmpty()&&item.skyblockId().equals(need.productId()))owned+=item.count();}
+   if(owned>=need.targetCount())continue;
+   var plan=BazaarAcquisitionPlan.plan(List.of(need),inventory,acquisitionPolicy.buyingRules(),prices.latest().get(),catalog.latest().get(),acquisitionBudget,wallMillis()).orElse(null);
+   if(plan==null||plan.requests().size()!=1)return false;
+   acquisition=new BazaarAcquisitionController(coordinator,session,observe,purchaseItems,purchaseCursors,acquisitionOwner,plan,acquisitionBudget,purchaseOpener,purse);return acquisition.begin(now);
+  }
+  acquisition=null;acquisitionComplete=true;return true;
+ }
+ public VisitorTask.Acquisition pollAcquisition(AutomationSession.Handle h,long now){
+  if(h==null||!h.equals(acquisitionOwner)||!session.isCurrent(h)||dataLevel!=mc().level)return VisitorTask.Acquisition.FAILED;
+  if(acquisitionComplete){cancelAcquisition();return VisitorTask.Acquisition.COMPLETE;}if(acquisition==null)return VisitorTask.Acquisition.FAILED;
+  acquisition.tick(now);
+  var result=switch(acquisition.state()){
+   case COMPLETE->{if(!nextAcquisition(now))yield VisitorTask.Acquisition.FAILED;yield acquisitionComplete?VisitorTask.Acquisition.COMPLETE:VisitorTask.Acquisition.RUNNING;}
+   case FAILED->VisitorTask.Acquisition.FAILED;case UNCERTAIN->VisitorTask.Acquisition.UNCERTAIN;default->VisitorTask.Acquisition.RUNNING;
+  };
+  if(result==VisitorTask.Acquisition.COMPLETE)cancelAcquisition();return result;
+ }
+ public boolean ownsAcquisitionScreen(){return acquisition!=null&&acquisition.ownsScreen();}
+ public void acquisitionMessage(long world,String text){if(acquisition!=null)acquisition.onSystemMessage(world,text);}
+ public void cancelAcquisition(){if(acquisition!=null)acquisition.cancel();acquisition=null;acquisitionOwner=null;acquisitionPolicy=null;acquisitionBudget=null;acquisitionNeeds=List.of();acquisitionComplete=false;}
  public void closeOwnedMenu(int id){var mc=mc();var menu=menu();if(mc.isSameThread()&&flight.owner()!=null&&session.isCurrent(flight.owner())&&flight.levelIdentity()==mc.level&&menu!=null&&menu.worldId()==flight.owner().lease().worldId()&&menu.containerId()==id&&data().flatMap(d->VisitorOffer.inspect(menu,menu.title(),d.materialIds())).isPresent()&&mc.player!=null&&mc.player.containerMenu.getCarried().isEmpty())mc.player.closeContainer();}
 }

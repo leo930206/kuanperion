@@ -44,7 +44,7 @@ public final class AutomationClientBridge {
   greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->screenReady(AutomationFeature.GREENHOUSE),feedback);
   composterFlight=new ComposterFlightController(coordinator,session,this::observe,this::sendComposterTravel);
   composter=new ComposterService(settings,session,positions,receipts,cursors,composterFlight,()->screenReady(AutomationFeature.COMPOSTER),()->ComposterGameView.capture(Minecraft.getInstance(),observe()),feedback);
-  visitorFlight=new VisitorFlightController(coordinator,session,this::observe,this::sendVisitorTravel);
+  visitorFlight=new VisitorFlightController(coordinator,session,this::observe,this::sendVisitorTravel,receipts,cursors,this::sendBazaarAcquisition,()->BazaarPurse.read(sidebar.apply(Minecraft.getInstance())).orElse(-1));
   visitor=new VisitorService(settings,session,positions,receipts,cursors,visitorFlight,()->screenReady(AutomationFeature.VISITOR),feedback);
   supercraftMenu=new SupercraftMenuController(coordinator,session,this::observe,receipts,this::sendSupercraftRecipe);
   supercraft=new SupercraftService(settings,session,receipts,cursors,supercraftMenu,()->screenReady(AutomationFeature.SUPERCRAFT),feedback);
@@ -246,6 +246,14 @@ public final class AutomationClientBridge {
   if(!mc.isSameThread()||mc.player==null||mc.level==null||!context.garden()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
   ownGameplayCommand=true;observedGameplayCommand=false;
   try{mc.player.connection.sendCommand(plot.command());if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /"+plot.command(),false,"Visitor"));return true;}finally{ownGameplayCommand=false;}
+ }
+ /** Typed private-plan request only; never a user-entered arbitrary command or author service. */
+ private boolean sendBazaarAcquisition(AutomationSession.Handle handle,BazaarAcquisitionPlan.Request request,long now){
+  if(request==null||handle==null||!session.isCurrent(handle)||!Set.of(AutomationFeature.VISITOR,AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.SUPERCRAFT).contains(handle.lease().owner())||!request.displayName().matches("[A-Za-z0-9][A-Za-z0-9 '\\-:()+]{0,95}"))return false;
+  var context=observe();var mc=Minecraft.getInstance();
+  if(!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.screen()!=null||mc.player.containerMenu!=mc.player.inventoryMenu||!mc.player.containerMenu.getCarried().isEmpty()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
+  boolean previousOwn=ownGameplayCommand,previousObserved=observedGameplayCommand;ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand("bz "+request.displayName());return observedGameplayCommand;}finally{ownGameplayCommand=previousOwn;observedGameplayCommand=previousObserved;}
  }
  private boolean sendSupercraftRecipe(AutomationSession.Handle handle,SupercraftPlan.Recipe recipe,long now){
   if(recipe==null||!recipe.outputId().matches("[A-Z0-9_:-]{1,100}")||!session.isCurrent(handle)||handle.lease().owner()!=AutomationFeature.SUPERCRAFT)return false;

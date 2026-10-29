@@ -10,7 +10,8 @@
     "AutomationSoundMixin",
     "AutomationReceiptMixin",
     "AutomationInventoryInputMixin",
-    "AutomationWorldInputMixin"
+    "AutomationWorldInputMixin",
+    "AutomationSignInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

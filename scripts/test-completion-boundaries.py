@@ -17,18 +17,21 @@ public class CompletionBoundaryTest {
  enum State{COMPLETE,PARTIAL,CANCELLED,FAILED}static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  static class Clear {void clear(){}void reset(){}void cancel(){}}
  static class Fixture {
-  State state;Clear travel=new Clear(),trap=new Clear(),harvests=new Clear(),submission=new Clear();Object closeTicket,target;int stops;boolean failRelease,failDispose;List<String> order=new ArrayList<>();
+  State state;Clear travel=new Clear(),trap=new Clear(),harvests=new Clear(),submission=new Clear();Object closeTicket,target;int stops;boolean failRelease,failDispose,failAcquisition;List<String> order=new ArrayList<>();
   AutomationContext ctx=new AutomationContext(1,true,true,Set.of());AutomationSession session=new AutomationSession(new AutomationCoordinator(),()->ctx,()->{},()->{stops++;order.add("stop");});AutomationSession.Handle handle=session.begin(AutomationFeature.PEST,1,1_000_000_000L);
-  class Port {void release(AutomationSession.Handle h){order.add("release");if(failRelease)throw new IllegalStateException("release failed");}void dispose(AutomationSession.Handle h){order.add("dispose");if(failDispose)throw new IllegalStateException("dispose failed");}void afterStop(AutomationSession.Handle h){order.add("physical");check(!session.active(),"post-stop physical boundary");}}
+  class Port {void cancelAcquisition(){order.add("acquisition");if(failAcquisition)throw new IllegalStateException("acquisition cleanup failed");}void release(AutomationSession.Handle h){order.add("release");if(failRelease)throw new IllegalStateException("release failed");}void dispose(AutomationSession.Handle h){order.add("dispose");if(failDispose)throw new IllegalStateException("dispose failed");}void afterStop(AutomationSession.Handle h){order.add("physical");check(!session.active(),"post-stop physical boundary");}}
   Port port=new Port();void end(State terminal){throw new AssertionError();}
  }
  CLASSES
+ static List<String> expected(Fixture f,String... steps){var values=new ArrayList<String>();if(f instanceof Visitor)values.add("acquisition");values.addAll(List.of(steps));return values;}
  public static void main(String[]args){
+  var childFailure=new Visitor();childFailure.failAcquisition=true;childFailure.end(State.COMPLETE);check(childFailure.state==State.FAILED&&childFailure.stops==1&&childFailure.order.equals(expected(childFailure,"release","dispose","stop","physical")),"child cancellation failure must still release physical input and dispose before original Farm stop");
+
   for(var factory:List.<java.util.function.Supplier<Fixture>>of(Pest::new,Greenhouse::new,Composter::new,Visitor::new)){
-   var success=factory.get();success.end(State.COMPLETE);check(success.state==State.COMPLETE&&success.stops==0&&!success.session.active()&&success.order.equals(List.of("release","dispose")),"success disposes before finishing and has no late failure work: "+success.getClass());
-   var failure=factory.get();failure.failDispose=true;failure.end(State.COMPLETE);check(failure.state==State.FAILED&&failure.stops==1&&!failure.session.active()&&failure.order.equals(List.of("release","dispose","stop","physical")),"disposal failure must stop original Farming, not release then merely relabel FAILED: "+failure.getClass());
-   var release=factory.get();release.failRelease=true;release.end(State.COMPLETE);check(release.state==State.FAILED&&release.stops==1&&release.order.equals(List.of("release","dispose","stop","physical")),"release exception still disposes and preserves post-stop physical input: "+release.getClass());
-   var cancel=factory.get();cancel.end(State.CANCELLED);check(cancel.state==State.CANCELLED&&cancel.stops==1&&cancel.order.equals(List.of("release","dispose","stop","physical")),"cancel preserves terminal reason and physical input after legacy stop: "+cancel.getClass());
+   var success=factory.get();success.end(State.COMPLETE);check(success.state==State.COMPLETE&&success.stops==0&&!success.session.active()&&success.order.equals(expected(success,"release","dispose")),"success disposes before finishing and has no late failure work: "+success.getClass());
+   var failure=factory.get();failure.failDispose=true;failure.end(State.COMPLETE);check(failure.state==State.FAILED&&failure.stops==1&&!failure.session.active()&&failure.order.equals(expected(failure,"release","dispose","stop","physical")),"disposal failure must stop original Farming, not release then merely relabel FAILED: "+failure.getClass());
+   var release=factory.get();release.failRelease=true;release.end(State.COMPLETE);check(release.state==State.FAILED&&release.stops==1&&release.order.equals(expected(release,"release","dispose","stop","physical")),"release exception still disposes and preserves post-stop physical input: "+release.getClass());
+   var cancel=factory.get();cancel.end(State.CANCELLED);check(cancel.state==State.CANCELLED&&cancel.stops==1&&cancel.order.equals(expected(cancel,"release","dispose","stop","physical")),"cancel preserves terminal reason and physical input after legacy stop: "+cancel.getClass());
   }
   System.out.println("CompletionBoundaryTest: PASS (all four actual task finish bodies, real original Farm holds, pre-release disposal and failure-only post-stop physical-input order)");
  }

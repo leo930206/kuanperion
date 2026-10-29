@@ -39,6 +39,19 @@ public final class AutomationMenuActions {
    if(slot.index!=request.slot()||slot.container!=mc.player.getInventory()||slot.getContainerSlot()!=request.slot()-54+9||!slot.getItem().isEmpty()||!slot.isActive()||slot.isFake()||!slot.mayPlace(menu.getCarried())||slot.getMaxStackSize(menu.getCarried())<1)return false;
    ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,request.slot(),0,ContainerInput.PICKUP,mc.player);return true;}finally{ownedInput=false;}
  }
+ /** Exact native sign identity after owned Custom Amount; only decimal quantities, no clipboard/raw commands. */
+ static net.minecraft.client.input.KeyEvent bazaarSelectAllKey(){return new net.minecraft.client.input.KeyEvent(65,0,net.minecraft.client.input.InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER);}
+ static boolean enterBazaarAmountNative(Object expected,int quantity){
+  var mc=Minecraft.getInstance();
+  if(ownedInput||quantity<1||quantity>4096||mc==null||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.screen()!=expected||!(expected instanceof net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen sign)||!mc.player.containerMenu.getCarried().isEmpty())return false;
+  ownedInput=true;
+  try{
+   sign.keyPressed(bazaarSelectAllKey());
+   sign.keyPressed(new net.minecraft.client.input.KeyEvent(261,0,0));
+   for(char digit:Integer.toString(quantity).toCharArray())sign.charTyped(new net.minecraft.client.input.CharacterEvent(digit));
+   if(mc.gui.screen()!=expected)return false;sign.onClose();return mc.gui.screen()!=expected;
+  }finally{ownedInput=false;}
+ }
  static boolean sendNative(MenuContract.Ticket request){
    var mc=Minecraft.getInstance();if(mc.player==null||mc.gameMode==null||!mc.player.containerMenu.getCarried().isEmpty())return false;
    var input=switch(request.click()){case PICKUP->ContainerInput.PICKUP;case QUICK_MOVE->ContainerInput.QUICK_MOVE;case THROW->ContainerInput.THROW;};
