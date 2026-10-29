@@ -39,3 +39,13 @@ Stash 不新增 gameplay root 或排程 UI；當有單次 gameplay 意圖等待�
 `test-dispatch-priority.py` 執行真正 Bridge tick/readiness bodies 配真實 AutomationSession 與可控工作 actors。原749c90d tick／對應舊 screen gate 可重現「自動 Pest 先開始，手動 Trade 消失」；新實作驗證手動優先、Stash 隔離、due 順序、已有 root 不被替換、失效 Farming 不續跑。Actor 測試不是完整原生多任務或 Hypixel 連服證明；既有各 task 的伺服器／回程／停止守門仍是必要條件，完整 live handoff gate 保持未勾選。
 
 Visitor／Supercraft 亦在其他 root 忙碌時先讓路並重置 runtime poll 標記，不做 native preflight／資料要求，也不吃掉到期工作的1秒輪詢窗口。`DispatchBusyRootTest` 使用真正兩個 service／task／session 與既有 ports，驗證忙碌零預檢、相同 timestamp 釋放後派送、原 Farming 世代、UI／Farm-off 重新守門及設定 byte 不變；仍非整條原生任務鏈驗收。
+
+## 2026-10-29 — 完成工作優先、同次派送接續
+
+舊 Bridge 固定從 Pest 向後 tick。若 Greenhouse 或更後面的工作在該次 tick 完成，排在它前面的已到期工作早已因 root 忙碌讓路；直到下一個 END_CLIENT_TICK 才能接續，中間的既有 START／legacy Farming tick 可能先恢復輸入。新的真實方法回歸先重現 Greenhouse 完成後、Pest 已到期卻未接續的失敗。
+
+Bridge 現在先快照八個 gameplay service 的 active 狀態，優先 tick 原有工作，再依原核准順序檢查其他工作。每個 service 每次至多 tick 一次；完成者不在同次重新輪詢／開始。原有工作若仍占用 root，不會被搶走；若正常釋放，已到期工作可於同次 END callback 重新通過自己的守門並取得新固定 feature lease，避免僅由派送位置造成的下一個 legacy tick 空檔。
+
+沒有跨 tick 保存的強制鏈、額外 tick 迴圈、預先授權、計時變更、偏好寫入或重新開啟 Farm。未到期／未開啟仍跳過；單次手動意圖仍優先、Stash 仍避免干擾待辦。完成回呼若出錯，錯誤原樣外露、該次不再啟動後續；若回呼停止 Farm／開設定，後續仍重新守門。這只消除 dispatcher 自己的排序空檔，不承諾所有原生回呼永不產生輸入空檔。
+
+八種 incumbent 的實際 Bridge 方法＋真 Session／可控 Work actors 驗證：持有期間不搶占、完成後可向較前／較後的 due owner 接續、每個 service 恰 tick 一次、只有原 Farm enable 意圖且新 hold 有效；另涵蓋無後續、手動優先、設定切入、停止／世代失效及回呼錯誤。既有真正 Greenhouse／Composter／Visitor／Supercraft service 忙碌／同 timestamp 派送測試另行回歸。這仍不是完整原生 Pest → trap/bait → Greenhouse → Composter → Supercraft → Visitor 連服成功，也沒有補齊缺少的 trap／交易選單格式。

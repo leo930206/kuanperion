@@ -101,7 +101,16 @@ public final class AutomationClientBridge {
   if(Minecraft.getInstance().gui.screen()!=null)return false;if(session.active())return true;
   var requested=manualOwner();return requested==null||requested==feature;
  }
- public void tick(){long now=System.nanoTime();pest.tick(now);greenhouse.tick(now);composter.tick(now);supercraft.tick(now);visitor.tick(now);book.tick(now);if(manualOwner()==null)stash.tick(now);autoSell.tick(now);junk.tick(now);}
+ public void tick(){
+  long now=System.nanoTime();
+  // Finish the incumbent before checking due work, irrespective of its dispatch position.
+  // Snapshot once: a completed task must not start or tick again in this same pass.
+  boolean pestWasActive=pest.active(),greenhouseWasActive=greenhouse.active(),composterWasActive=composter.active(),supercraftWasActive=supercraft.active();
+  boolean visitorWasActive=visitor.active(),bookWasActive=book.active(),autoSellWasActive=autoSell.active(),junkWasActive=junk.active();
+  if(pestWasActive)pest.tick(now);if(greenhouseWasActive)greenhouse.tick(now);if(composterWasActive)composter.tick(now);if(supercraftWasActive)supercraft.tick(now);if(visitorWasActive)visitor.tick(now);if(bookWasActive)book.tick(now);if(autoSellWasActive)autoSell.tick(now);if(junkWasActive)junk.tick(now);
+  if(!pestWasActive)pest.tick(now);if(!greenhouseWasActive)greenhouse.tick(now);if(!composterWasActive)composter.tick(now);if(!supercraftWasActive)supercraft.tick(now);if(!visitorWasActive)visitor.tick(now);if(!bookWasActive)book.tick(now);
+  if(manualOwner()==null)stash.tick(now);if(!autoSellWasActive)autoSell.tick(now);if(!junkWasActive)junk.tick(now);
+ }
  public void beforeLegacyTick(){session.poll(System.nanoTime());}
  /** Local settings must not replace a leased task or an inventory/cursor still owned by the server. No queued replay. */
  public boolean canOpenSettings(){

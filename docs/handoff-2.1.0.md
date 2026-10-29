@@ -99,3 +99,5 @@ Stash 的 [讀取錯誤／run 世代檢查點](stash-observation-2.1.0.md) 補�
 Pet 的[單次成交驗證底層](pet-sale-attempt-2.1.0.md)只接受明確原pet／最低價及 declared quote/ack，再驗證成對伺服器物品／游標回條；不是 George 原生估價／賣出功能，不能將 typed notice 當成現有伺服器格式。
 
 Bazaar 的[整批商品出售規劃](bazaar-sale-plan-2.1.0.md)區分 API gross estimate 與明確最低實收設定，固定經批准的原生商品 exemplar／完整43格與整批上限。它仍無 native caller，不可用估價授權 Sell Inventory，也未切換原 NPC Auto Sell backend。
+
+Bridge 目前先 tick 原 active 工作、再派送其他 due 工作，每個 service 同次只 tick 一次，消除「後序工作完成卻要跨下一個 legacy tick 才能接到前序 due 工作」的派送排序空檔。詳見 [維護派送檢查點](maintenance-dispatch-2.1.0.md)；不能把這項離線 dispatcher 修正說成全部 Pest 後續任務已完成。

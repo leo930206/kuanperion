@@ -15,10 +15,10 @@ public final class DispatchPriorityTest {
  boolean farming=true;int pauses,stops;final List<AutomationFeature> starts=new ArrayList<>();final AutomationCoordinator coordinator=new AutomationCoordinator();
  AutomationContext context(){return new AutomationContext(1,farming,true,Set.of());}
  final AutomationSession session=new AutomationSession(coordinator,this::context,()->pauses++,()->{stops++;farming=false;});
- final class Work {final AutomationFeature feature;boolean pending,due=true,complete;int ticks;AutomationSession.Handle handle;
- Work(AutomationFeature f){feature=f;}boolean pending(){return pending;}
+ final class Work {final AutomationFeature feature;boolean pending,due=true,complete;int ticks;Runnable afterComplete=()->{};AutomationSession.Handle handle;
+ Work(AutomationFeature f){feature=f;}boolean pending(){return pending;}boolean active(){return handle!=null;}
  void tick(long now){ticks++;if(feature==AutomationFeature.STASH)return;
-  if(handle!=null){if(complete){session.finish(handle,true,now);handle=null;}return;}
+  if(handle!=null){if(complete){session.finish(handle,true,now);handle=null;afterComplete.run();}return;}
   if(pending){if(session.active()){pending=false;return;}if(!screenReady(feature))return;pending=false;start(now,true);return;}
   if(!due||!farming||!screenReady(feature))return;start(now,false);
  }
@@ -35,7 +35,27 @@ public final class DispatchPriorityTest {
   check(h.starts.equals(List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.SUPERCRAFT,AutomationFeature.VISITOR,AutomationFeature.BOOK_COMBINE,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK)),"due order honors approved maintenance/Supercraft before Visitor, single owner each step");check(h.pauses==8&&h.stops==0&&h.farming,"success keeps original user Farm flag without arming or cross-cancelling");
   h=new DispatchPriorityTest();h.book.pending=true;var original=h.session.begin(AutomationFeature.PEST,System.nanoTime(),60_000_000_000L);h.tick();check(h.session.isCurrent(original)&&h.starts.isEmpty()&&!h.book.pending&&h.pauses==1,"pending intent cannot preempt a live root; competing request invalidates without replay");
   h=new DispatchPriorityTest();h.tick();h.session.invalidate();h.farming=false;h.pest.complete=true;h.tick();check(h.starts.equals(List.of(AutomationFeature.PEST))&&h.pauses==1&&!h.farming,"invalidated original Farm cannot resume or launch automatic followups");
-  System.out.println("DispatchPriorityTest: PASS (actual bridge bodies, real exclusive session, idle manual priority/Stash isolation/approved due order; actors not native workflows)");
+  for(var feature:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.SUPERCRAFT,AutomationFeature.VISITOR,AutomationFeature.BOOK_COMBINE,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK)){
+   h=new DispatchPriorityTest();var jobs=List.of(h.pest,h.greenhouse,h.composter,h.supercraft,h.visitor,h.book,h.autoSell,h.junk);
+   var running=jobs.stream().filter(w->w.feature==feature).findFirst().orElseThrow();running.start(System.nanoTime(),false);h.starts.clear();
+   var next=feature==AutomationFeature.PEST?h.greenhouse:h.pest;for(var work:jobs)work.due=work==next;
+   h.tick();check(h.starts.isEmpty()&&h.session.isCurrent(running.handle)&&h.session.holdsFarming(),"live owner cannot be preempted by earlier due job: "+feature);check(jobs.stream().allMatch(w->w.ticks==1),"each service ticks exactly once while incumbent remains active: "+feature);
+   for(var work:jobs)work.ticks=0;running.complete=true;h.tick();
+   check(h.starts.equals(List.of(next.feature))&&h.session.isCurrent(next.handle)&&h.session.holdsFarming(),"completed owner must hand off to already-due job before returning to legacy tick: "+feature);
+   check(jobs.stream().allMatch(w->w.ticks==1)&&h.stash.ticks==2,"each service ticks exactly once even when owner completes: "+feature);
+   check(h.pauses==2&&h.stops==0&&h.farming&&running.handle==null,"original manual Farm remains armed and exclusively held without restart: "+feature);
+  }
+  h=new DispatchPriorityTest();h.visitor.start(System.nanoTime(),false);h.visitor.complete=true;h.autoSell.pending=true;h.starts.clear();h.tick();
+  check(h.starts.equals(List.of(AutomationFeature.AUTO_SELL))&&h.stash.ticks==0,"manual intent still beats all due timers after incumbent completes; Stash stays deferred");
+  h=new DispatchPriorityTest();h.visitor.start(System.nanoTime(),false);h.visitor.complete=true;for(var work:List.of(h.pest,h.greenhouse,h.composter,h.supercraft,h.book,h.autoSell,h.junk))work.due=false;h.starts.clear();h.tick();
+  check(h.starts.isEmpty()&&!h.session.active()&&!h.session.holdsFarming()&&h.farming&&h.pauses==1&&h.stops==0,"no due work releases original Farm, not a forced followup queue");
+  h=new DispatchPriorityTest();h.visitor.start(System.nanoTime(),false);h.visitor.complete=true;h.starts.clear();var stopped=h;h.visitor.afterComplete=()->{stopped.session.invalidate();stopped.farming=false;};h.tick();
+  check(h.starts.isEmpty()&&!h.session.active()&&!h.farming&&h.pauses==1,"stop or new Farm invalidation in completion feedback cannot replay old followups");
+  h=new DispatchPriorityTest();h.visitor.start(System.nanoTime(),false);h.visitor.complete=true;h.starts.clear();h.visitor.afterComplete=()->{Minecraft.I.gui.screen=new Object();};h.tick();
+  check(h.starts.isEmpty()&&!h.session.active()&&h.farming,"new settings screen in completion callback wins over due work");Minecraft.I.gui.screen=null;
+  h=new DispatchPriorityTest();h.visitor.start(System.nanoTime(),false);h.visitor.complete=true;h.starts.clear();var failure=new IllegalStateException("completion callback");h.visitor.afterComplete=()->{throw failure;};RuntimeException seen=null;try{h.tick();}catch(RuntimeException caught){seen=caught;}
+  check(seen==failure&&h.starts.isEmpty()&&h.pest.ticks==0,"failed incumbent callback stays visible and cannot launch another task in that pass");
+  System.out.println("DispatchPriorityTest: PASS (actual bridge bodies, real exclusive session, idle manual priority/Stash isolation/approved due order/eight-owner same-pass handoff; actors not native workflows)");
  }
 }'''.replace('METHODS',methods)
 jdk=Path.home()/'Library/Application Support/PrismLauncher/java/java-runtime-epsilon/jre.bundle/Contents/Home/bin'
