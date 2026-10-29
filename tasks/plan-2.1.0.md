@@ -11,3 +11,5 @@ Source of truth: docs/spec-2.1.0.md, approved user scope. Existing tasks/plan.md
 7. Full integration/release: Farming/Pest/Greenhouse/Visitor/Composter and Mining/Trade/Other navigation, task priorities/recovery/legacy pause interactions, all settings migration, dependency/network/secret audit, offline runtime and clearly identified live-test gaps, release/rollback proof, 2.1.0 publication only after functional completion.
 
 Checkpoint every tested vertical slice, not a giant unverified port. A decompiled class compiling is not proof of correct server behavior. Reuse only audited leaf functionality, replacing upstream global dependencies with local typed adapters. Early incomplete builds stay on feature/2.1.0; do not replace the user's installed version.
+
+2026-10-29 sequencing amendment: use the supplied upstream implementation as the provisional menu/workflow baseline and track exact unverified assumptions; no screenshot-first pauses. Complete requested implementation before one consolidated current-server evidence request. Keep implementation progress separate from live acceptance and do not publish/install unfinished work.

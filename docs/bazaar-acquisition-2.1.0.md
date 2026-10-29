@@ -1,4 +1,14 @@
-# Bazaar acquisition — offline parent-owned boundaries
+# Bazaar acquisition — parent-owned boundaries and provisional native terminal buyer
+
+## 2026-10-29 — implement first, deferred batch validation
+
+User approved using the supplied Aether behavior provisionally instead of waiting for screenshots. See [assumptions](upstream-compatibility-2.1.0.md), U-BZ-BUY/PRICE. `BazaarPurchaseView` recognizes original preset1/64 slots10/12 and final/custom13 roles, exact product/quantity, original Custom Amount activation and explicit local total-Price grammar. The numeric Price grammar is a marked additional local assumption, not a recovered original price parser or current-server proof. Unknown/missing/duplicate prices, extra charges, warning overrides, conflicting roles/native IDs and changed budget availability refuse; API estimates are never purchase totals.
+
+`BazaarPurchaseController` connects this view to the existing guarded native `AutomationMenuActions.purchaseClick` and original-parent `BazaarPurchaseAttempt`: exact request/plan/shared-budget identity, complete unchanged43 and menu aliases, complete newly applied external menu slots, physical and opening-scoped empty cursor, concrete client/level/menu identity, original lease/hold/world/lifetime and current player state. The structural native send re-reads the whole baseline/menu/quote/cursor/server facts. It sends once, retains possible spending on uncertainty, and requires actual GAME cost plus dual applied inventory aliases/fresh empty cursor to confirm. Child cancellation never closes, repairs, refunds unknown spending, releases the parent's root or restarts Farm. Replacement leases remain untouched.
+
+This is a real terminal native adapter, **not a complete purchasing workflow**: no production parent constructor caller, Bazaar opener/search/product navigation, custom-amount sign entry, native purse reader, source transitions/return or buying settings/UI are wired yet. The parent must provide its actual opening stamps and observed purse; the controller does not invent a balance. The current supported delivery is the original main-inventory/same-container route. Complete those remaining implementations using explicitly tracked legacy assumptions, without requesting per-feature screenshots now. Ask for all current-server checks once after implementation, then validate actual account/server behavior separately from offline completion.
+
+Original boundary checkpoint below records the earlier primitive scope; its screenshot-first implementation sequencing is superseded by the user amendment above.
 
 ## Scope, not a released buying feature
 

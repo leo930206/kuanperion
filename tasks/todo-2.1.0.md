@@ -1,5 +1,8 @@
 # 2.1.0 progress (truthful checkpoints)
 
+## Latest execution order — user amendment2026-10-29
+- [x] Continue from supplied Aether behavior with a portable per-workflow provisional compatibility register; no screenshot-first implementation pauses. Collect one evidence list after implementation is complete. Keep implementation and live acceptance distinct; all existing spending/item/manual/world/Farming protections remain.
+
 ## 0 — rollback and scope
 - [x] Existing clean 2.0.16 and origin confirmed; user-approved scope recorded.
 - [x] Source Git bundle + installed JAR backed up; backup/pre-2.1.0 pushed to GitHub.
@@ -22,6 +25,7 @@
 - [x] Protected inventory identities + exact allowlists + budgets/reservations/receipts (shared contracts; budget integration still required by buying workflows).
 - [x] Bazaar shared primitives: on-demand anonymous public book estimates, bounded exact menu transitions and dual-receipt spend ledger; not yet wired to a buying feature.
 - [x] Bazaar shared explicit deficit/native product/capacity/quote/run-budget planning and original-parent one-purchase attempt boundary: full43, both applied aliases, initial/post-send cursor, exact cost receipt, uncertain money hold/no replay. Offline declared-GUI models only; no native buyer or purchase toggle.
+- [x] Provisional Aether terminal purchase view/native controller: original quantity/custom/confirmation roles, explicitly marked total-Price grammar, exact original shared budget, protected43/server-menu/cursor/native/root proof, once-only guarded send and actual receipt ledger completion. No parent caller/opener/navigation/sign/current-balance reader or finished purchase UI; those remain below, no current/live acceptance claimed.
 - [ ] Bazaar acquisition actual GUI driver with title/identity/cost/amount proofs and caller wiring; confirm current server menu formats.
 - [x] Auto Sell NPC vertical slice: real typed command/menu driver, exact allowlist/protection, bounds, fresh server removal receipts, independent preferences/UI; offline tests only.
 - [ ] Auto Sell Bazaar path; validate current live NPC/Bazaar formats before release.

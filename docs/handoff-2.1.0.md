@@ -2,6 +2,8 @@
 
 更新日期：2026-10-29。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
 
+> 最新指示（2026-10-29）：先依 Aether 原流程完成實作，把所有未確認的相容性假設記入 [原版相容性清單](upstream-compatibility-2.1.0.md)。**不要逐項等待／重問截圖**；全數實作完成後再一次核對。保留物品／金額／手動停止保護，實作完成不等於連服驗收。
+
 ## 1. 哪份才是目前成果
 
 - Repository：<https://github.com/leo930206/kuanperion>，開發分支 `feature/2.1.0`。先讀 `git status`、`git log -5 --oneline`，不要假設 HEAD 就是穩定版。
@@ -46,6 +48,7 @@ Greenhouse／Composter 的已到期工作已補上「忙碌 root 讓路、釋放
 - `automation/AutomationSettingsStore.java`：`config/kuanperion/automation.json`。舊 properties／theme／Minecraft `options.txt` 不改位置；損壞／未來格式不可覆寫。
 - `mixin/AutomationReceiptMixin.java`：在真正 native inventory write **之後**記錄，而非整個 handler TAIL；被忽略的封包不能成為證據。
 - `automation/{pest,greenhouse,composter,visitor,supercraft,pets}/`：各自的純邏輯；根 package 的 `*GameView`／flight controller 為 Minecraft 邊界。
+- Bazaar：`automation/BazaarPurchaseView` → `BazaarPurchaseController` → 既有 `BazaarPurchaseAttempt`／ledger，為 provisional 終端購買 adapter；原生開啟／導航／sign 選量／當前餘額與 parent caller 還沒接線。
 - Book：`BookGameView` → `automation/BookInventorySnapshot`／`BookCombinePlanner` → `BookCombineTask` → `BookMenuController`；服務為 `BookService`、設定介面為 `ui/BookModuleSettings`；指定格取回由 `BookReturnTransfer` 逐步驗證，原生 carried deposit 僅允許自己的完整一本書放到明確空主背包格。
 
 ## 5. 怎麼驗證、證明到哪一層
@@ -72,7 +75,7 @@ git diff --check
 
 1. 先核對最新 Book 任務、指定格取回與原生操作的測試；新 `Port.progressReturn` 是明確推進點，禁止把原生操作藏到 getter／tick 以外的背景回呼。
 2. Book 的外部設定、單次／自動 service、Trade UI、全域停止與固定 `/anvil` 已接線。先讀 [目前 Anvil 證據](anvil-current-evidence-2.1.0.md)：Kuan 的截圖提供29/33/13/22角色候選及書＋書分行明確零費用格式；亦支援有新伺服器回條的合成直接游標結果。不假設按下後處置或所有帳號權限，維持當次費用及回條守門；不能改回 `/av`＋定時點22，不能把缺費用當免費。
-3. 依進度清單完成其他採購、Pet／Pest 及串接；必要的當前選單證據不足時，保持拒絕，不猜材料／金額／容量／按鈕角色。
+3. 依2026-10-29使用者修訂：先參照原 Aether 流程繼續採購、Pet／Pest 與串接，將原版角色／格位／格式假設記入 upstream-compatibility-2.1.0.md；不要逐項等截圖。保留預算、物品、手動停止等守門，不憑空編造來源沒有的事實。全部實作完成後再一次核對現行伺服器。
 4. 每次小步驟先 RED→GREEN，再跑相應完整回歸／原生編譯與稽核，檢查未完成模組未公開、設定未變、原模組未回歸。
 5. Git commit／push 至 `feature/2.1.0`。**整體完成且驗收後**才考慮 main／2.1.0 tag／正式安裝；不要把開發 JAR 複製到使用者 `mods/` 來冒充已完成。
 
@@ -82,7 +85,7 @@ Supercraft 的單次 UI 意圖已統一使用 ManualTaskRequest(false)，詳見 
 
 共用購料的缺量計畫／原root單次購買驗收見 [Bazaar 購料邊界](bazaar-acquisition-2.1.0.md)。估價不能傳成 GUI 證明；下一步是當前原生選單／數量／費用解析與 parent wiring，不是再新增購料分頁或開放未完成開關。
 
-尚缺的原生選單證據集中在 [當前伺服器證據清單](live-evidence-needed-2.1.0.md)。先補 Bazaar／George，已提供的 Anvil 書＋書圖不必重問；其他缺項不准用舊版定時點格位或連向原作者服務代替。
+尚缺的原生選單證據集中在 [當前伺服器證據清單](live-evidence-needed-2.1.0.md)。依最新使用者修訂延到全部實作完成後一次收集；現在先沿用有來源註記的原版流程，仍不能以盲點擊或原作者服務替代保護／驗證。已提供的 Anvil 書＋書圖不必重問。
 
 長模組介紹不再固定46px：MainGUITextLayout.groupHeaderHeight 同時供繪製、點擊與搜尋位移使用。勿只改畫面高度卻保留舊65px列偏移；GroupHeaderLayoutTest／shared-wiring guard／實際Book勾選smoke一起守住。原Setting偶發實跑失敗仍留在verification／待辦，未以重跑通過冒充根因修復。
 

@@ -28,7 +28,8 @@ for uid,v in [('net.minecraft','26.2'),('org.lwjgl3','3.4.1'),('net.fabricmc.fab
 cp.append(str(P/'libraries/com/mojang/minecraft/26.2/minecraft-26.2-client.jar'))
 cp=list(dict.fromkeys(cp));(R/'classpath.txt').write_text(':'.join(cp))
 compilecp=cp+[str(W/'build/classes')]+[str(p) for p in (W/'build/tmp/fabric-api').rglob('*.jar')]+[str(p) for p in (W/'src/main/resources/META-INF/jars').glob('*.jar')]
-subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/javac'),'--release','25','-encoding','UTF-8','-cp',':'.join(compilecp),'-d',str(R/'classes'),*[str(p) for p in (W/'src/smoke/java').rglob('*.java')]],check=True)
+fixture_sources=[W/'src/test/java/dev/kuan/kuanperion/automation/BazaarPurchaseViewTest.java']
+subprocess.run([str(P/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin/javac'),'--release','25','-encoding','UTF-8','-cp',':'.join(compilecp),'-d',str(R/'classes'),*[str(p) for p in (W/'src/smoke/java').rglob('*.java')],*map(str,fixture_sources)],check=True)
 (R/'classes/fabric.mod.json').write_text(json.dumps({'schemaVersion':1,'id':'kuanperion_ui_smoke','version':'1.0','name':'Isolated UI Smoke Test','environment':'client','entrypoints':{'client':['dev.kuan.kuanperion.ui.UiSmoke']},'depends':{'kuanperion':'2.1.0','fabric-api':'*'}}))
 if os.environ.get('KUANPERION_SMOKE_NAV_TRACE')=='1':
  metadata=R/'classes/fabric.mod.json';mod=json.loads(metadata.read_text());mod['mixins']=['ui-navigation-trace.mixins.json'];metadata.write_text(json.dumps(mod))

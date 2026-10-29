@@ -2,12 +2,12 @@
 
 This is the remaining native-adapter evidence list, **not** a request to complete transactions, share account access or turn off safety checks. Existing Anvil opening/book+book zero-Exp evidence is sufficient for the supported Book parser; do not ask Kuan for that same screenshot again. See [Anvil evidence](anvil-current-evidence-2.1.0.md).
 
-## Minimum next evidence (already asked)
+## Deferred batch evidence — do not ask item-by-item
 
 1. **Bazaar:** one ordinary material's product page, instant-buy quantity selection and final purchase confirmation, with the actual purchase button's complete tooltip visible. The exact selected product, amount and total/cost fields matter. Include any custom-amount dialog if used. No purchase is required.
 2. **George:** the current offer/valuation and final-confirmation button tooltips after selecting an eligible pet, plus the exact current way to open that menu. Do not confirm a sale. A name alone is not an item UUID, authorization, price or server receipt.
 
-These unblock current semantic/native menu adapters. Shared public estimates, frozen inventory plans and synthetic declared-GUI tests cannot substitute for them.
+User amendment2026-10-29: implement the original Aether workflows first using explicit provisional compatibility assumptions; do not block implementation or repeat these requests now. After all implementation is complete, assemble this list with upstream-compatibility-2.1.0.md and ask once. These screenshots remain current-server validation evidence, not a prerequisite to writing the adapters. Public estimates and synthetic tests still cannot be called live acceptance.
 
 ## Subsequent unresolved adapters
 

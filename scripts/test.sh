@@ -132,3 +132,5 @@ python3 "$ROOT/scripts/test-group-header-layout.py"
 python3 "$ROOT/scripts/test-pest-strategy-boundaries.py"
 
 python3 "$ROOT/scripts/test-bazaar-sale-boundaries.py"
+
+python3 "$ROOT/scripts/test-upstream-compatibility.py"

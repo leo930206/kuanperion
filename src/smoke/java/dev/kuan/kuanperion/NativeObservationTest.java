@@ -5,6 +5,7 @@ public final class NativeObservationTest {
   net.minecraft.SharedConstants.tryDetectVersion();
   net.minecraft.server.Bootstrap.bootStrap();
   AutomationGameViewTest.runFixtures();
+  BazaarPurchaseControllerTest.runNativeFixtures();
   System.out.println("NativeObservationTest: PASS (headless vanilla bootstrap; no Mixin/live-server claim)");
  }
 }

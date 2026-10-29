@@ -14,6 +14,8 @@ public final class BazaarAcquisitionPlan {
   private final String productId,displayName;private final int quantity;private final Material material;private final long estimate;private final SpendingBudget budget;
   private Request(String id,String name,int quantity,Material material,long estimate,SpendingBudget budget){this.budget=budget;this.productId=id;this.displayName=name;this.quantity=quantity;this.material=material;this.estimate=estimate;}
   public String productId(){return productId;}public String displayName(){return displayName;}public int quantity(){return quantity;}public Material material(){return material;}public long estimatedCoins(){return estimate;}
+  /** Exact original-run budget identity, not a new budget or permission to buy. */
+  public boolean usesBudget(SpendingBudget candidate){return budget==candidate;}
   /** Necessary configured bounds only: caller still needs actual title/container/button/native/cursor proof and shared budget reservation. */
   public boolean authorizes(String id,int amount,BigDecimal actualGuiCost){return productId.equals(id)&&quantity==amount&&actualGuiCost!=null&&actualGuiCost.signum()>0&&actualGuiCost.scale()<=2&&actualGuiCost.compareTo(BigDecimal.valueOf(Math.min(material.maximumCoins(),budget.available())))<=0;}
  }
