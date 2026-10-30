@@ -295,6 +295,9 @@ public final class KuanperionClient implements ClientModInitializer {
         automation.serverContainerCursor(packet);
     }
 
+    public static void observeAutomationSprayTab(net.minecraft.client.multiplayer.ClientPacketListener listener,net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket packet){
+        if(automation!=null)automation.serverSprayTab(listener,packet);
+    }
     public static void observeAutomationPosition(net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket packet){
         var mc=Minecraft.getInstance();if(automation==null||!mc.isSameThread()||mc.player==null||mc.level==null)return;
         automation.serverPosition(packet);

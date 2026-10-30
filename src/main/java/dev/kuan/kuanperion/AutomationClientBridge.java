@@ -24,6 +24,7 @@ public final class AutomationClientBridge {
  private PestTrapRelease.CloseTicket trapClose;private long trapCloseWorld;private int trapCloseId;
  private final CursorReceipts cursors=new CursorReceipts();
  private final PlayerPositionReceipts positions=new PlayerPositionReceipts();
+ private final PestSprayTabReceipts sprayTabs=new PestSprayTabReceipts();
  private final AutomationCoordinator coordinator=new AutomationCoordinator();private final AutomationSession session;
  private final SupercraftService supercraft;private final SupercraftMenuController supercraftMenu;
  private final VisitorService visitor;private final VisitorFlightController visitorFlight;
@@ -175,6 +176,11 @@ public final class AutomationClientBridge {
   if(ticket==null||packet==null||mc.player==null||mc.level==null||petCloseWorld!=currentWorldId()||petCloseId!=packet.getContainerId()||mc.gui.screen()!=null||mc.player.containerMenu!=mc.player.inventoryMenu)return;
   pets.afterServerClose(ticket,System.nanoTime());
  }
+ public PestSprayTabReceipts sprayTabReceipts(){return sprayTabs;}
+ public void serverSprayTab(net.minecraft.client.multiplayer.ClientPacketListener listener,net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket packet){
+  var mc=Minecraft.getInstance();if(!mc.isSameThread()||mc.player==null||mc.level==null)return;long world=currentWorldId(),now=System.nanoTime();
+  PestSprayTabView.applied(mc,listener,packet,world,positions.stamp(world,now),sprayTabs,now);
+ }
  public PlayerPositionReceipts positionReceipts(){return positions;}
  public void serverPosition(net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket packet){
   if(packet==null){positions.clear();return;}var point=AutomationPositionView.absolute(packet);
@@ -199,10 +205,10 @@ public final class AutomationClientBridge {
   long now=System.nanoTime();AutomationStops.run(()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->pets.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now));
  }
  public void shutdown(){
-  long now=System.nanoTime();AutomationStops.run(()->book.cancel(now),()->pets.cancel(now),()->supercraft.cancel(now),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->stash.cancel("關閉遊戲"),()->session.invalidate(),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->petClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->cursors.clear(),()->harvests.clear());
+  long now=System.nanoTime();AutomationStops.run(()->book.cancel(now),()->pets.cancel(now),()->supercraft.cancel(now),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->session.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->stash.cancel("關閉遊戲"),()->session.invalidate(),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->petClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->sprayTabs.clear(),()->cursors.clear(),()->harvests.clear());
  }
  public void worldChanged(){
-  long now=System.nanoTime();AutomationStops.run(()->stash.cancel("切換世界"),()->session.invalidate(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->pets.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->petClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->cursors.clear(),()->harvests.clear());
+  long now=System.nanoTime();AutomationStops.run(()->stash.cancel("切換世界"),()->session.invalidate(),()->pest.cancel(now),()->greenhouse.cancel(now),()->composter.cancel(now),()->visitor.cancel(now),()->supercraft.cancel(now),()->book.cancel(now),()->pets.cancel(now),()->autoSell.cancel(now),()->junk.cancel(now),()->visitorFlight.shutdownData(),()->supercraftMenu.shutdownData(),()->visitorClose=null,()->petClose=null,()->trapClose=null,()->receipts.clear(),()->positions.clear(),()->sprayTabs.clear(),()->cursors.clear(),()->harvests.clear());
  }
  private long currentWorldId(){var level=Minecraft.getInstance().level;if(level!=levelIdentity){levelIdentity=level;worldGeneration++;}return worldGeneration;}
  public AutomationContext observe(){

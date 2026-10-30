@@ -4,12 +4,16 @@ public final class PestSprayTaskTest {
  static final long S=1_000_000_000L;static void check(boolean b,String s){if(!b)throw new AssertionError(s);}
  static class Fixture implements PestSprayTask.Port {
   long now=S,positionEpoch=1,positionSequence;Object level=new Object(),player=new Object();AutomationContext context=new AutomationContext(1,true,true,Set.of());boolean manual,menu,using,acquireUnarmed;int selected=0,pauses,stops,equips,uses,restores;double x=0,y=72,z=-96,vx=0;float yaw=20,pitch=0;
-  Map<Integer,ItemSnapshot> inv=PestSprayPlanTest.inventory();PestSprayObservation spray=new PestSprayObservation(PestSprayObservation.State.NONE);final InventoryReceipts receipts=new InventoryReceipts();final AutomationCoordinator coordinator=new AutomationCoordinator();
+  Map<Integer,ItemSnapshot> inv=PestSprayPlanTest.inventory();PestSprayObservation spray=new PestSprayObservation(PestSprayObservation.State.NONE);final PestSprayTabReceipts tabs=new PestSprayTabReceipts();final Object tabRow=new Object();PestSprayTabReceipts.Proof tabProof;boolean refreshTab=true;
+  Fixture(){applyTab();}
+  List<String> tabEntries(){return List.of("Pests:","Spray: "+switch(spray.state()){case NONE->"None";case ACTIVE->"Test Material (29m)";case UNKNOWN->"Unknown";});}
+  void applyTab(){var entries=tabEntries();var scope=new PestSprayTabReceipts.Scope(1,level,player,1,positionEpoch,positionSequence);tabs.observe(scope,tabRow,entries,1,now);tabProof=tabs.current(scope,tabRow,entries,now).orElseThrow();}
+  final InventoryReceipts receipts=new InventoryReceipts();final AutomationCoordinator coordinator=new AutomationCoordinator();
   final AutomationSession session=new AutomationSession(coordinator,()->{if(acquireUnarmed){acquireUnarmed=false;return new AutomationContext(1,false,true,Set.of());}return context;},()->pauses++,()->{stops++;context=new AutomationContext(1,false,true,Set.of());});
   final PestSprayTask task=new PestSprayTask(session,coordinator,receipts,this);PestSprayTask.Action last;boolean claim=true,uncertain,earlyAck,afterClaimAck,reentrantCancel,catalogMissing,catalogWrong;int dataRequests,disposals,contextReads,hookAt;boolean revokeDemand;Runnable contextHook;Runnable beforeClaim,readHook;
   public void requestSprayData(AutomationSession.Handle h){check(session.isCurrent(h),"public data demand must belong to original root");dataRequests++;if(revokeDemand)session.invalidate();}public Optional<Map<String,String>> sprayCatalog(AutomationSession.Handle h){return catalogMissing?Optional.empty():Optional.of(Map.of("Test Material",catalogWrong?"DIFFERENT_ID":"TEST_MATERIAL"));}public void disposeSprayData(AutomationSession.Handle h){disposals++;}
   public AutomationContext context(){if(++contextReads==hookAt&&contextHook!=null){var r=contextHook;contextHook=null;r.run();}if(readHook!=null){var r=readHook;readHook=null;r.run();}return context;}public boolean manualInput(){return manual;}
-  public PestSprayTask.Frame sprayFrame(long at){return new PestSprayTask.Frame(1,at,level,player,inv,PestSprayPlanTest.AIR,selected,!menu,using,x,y,z,vx,0,0,yaw,pitch,spray,positionEpoch,positionSequence);}
+  public PestSprayTask.Frame sprayFrame(long at){return new PestSprayTask.Frame(1,at,level,player,inv,PestSprayPlanTest.AIR,selected,!menu,using,x,y,z,vx,0,0,yaw,pitch,spray,positionEpoch,positionSequence,tabProof);}
   public PestSprayTask.Effect sprayEffect(AutomationSession.Handle h,PestSprayTask.Action a,long at){
    last=a;if(earlyAck&&a.kind()==PestSprayTask.Kind.USE)task.onSystemMessage(1,"Sprayonator! You sprayed plot 1!",at);if(beforeClaim!=null){var r=beforeClaim;beforeClaim=null;r.run();}
    if(!claim||!a.claim(h,sprayFrame(at),at))return PestSprayTask.Effect.REJECTED;
@@ -17,9 +21,9 @@ public final class PestSprayTaskTest {
    return uncertain?PestSprayTask.Effect.UNCERTAIN:PestSprayTask.Effect.SENT;
   }
   void begin(){check(task.request(PestSprayPlanTest.policy(),now),"valid independent request should acquire root");}
-  void tick(){now+=200_000_000L;task.tick(now);}void readyUse(){begin();for(int i=0;i<8&&uses==0&&task.active();i++)tick();check(uses==1,"settle/equip/use path must actually send one use: "+task.state());}
+  void tick(){now+=200_000_000L;if(refreshTab&&spray.state()==PestSprayObservation.State.NONE)applyTab();task.tick(now);}void readyUse(){begin();for(int i=0;i<8&&uses==0&&task.active();i++)tick();check(uses==1,"settle/equip/use path must actually send one use: "+task.state());}
   void decrease(int n,boolean applied){inv=new HashMap<>(inv);inv.put(9,PestSprayPlanTest.material(12-n));if(applied)receipts.observe(1,0,9,PestSprayPlanTest.material(12-n));}
-  void acknowledge(){task.onSystemMessage(1,"Sprayonator! You sprayed plot 1!",now);spray=new PestSprayObservation(PestSprayObservation.State.ACTIVE);}
+  void acknowledge(){task.onSystemMessage(1,"Sprayonator! You sprayed plot 1!",now);spray=new PestSprayObservation(PestSprayObservation.State.ACTIVE);applyTab();}
  }
  public static void main(String[]args){
   check(!AutomationFeature.PEST_SPRAY.implemented()&&AutomationFeature.PEST_SPRAY.requiresGarden()&&AutomationFeature.PEST_SPRAY.resources().equals(Set.of(AutomationCoordinator.Resource.HOTBAR,AutomationCoordinator.Resource.USE)),"unexposed fixed Garden foundation declares only real effect resources, no false finished-module flag");
@@ -49,7 +53,7 @@ public final class PestSprayTaskTest {
   while(f.uses==0&&f.task.active())f.tick();check(f.uses==1,"snapshot equality permits same immutable data, not object identity guesses");
   f=new Fixture();f.catalogWrong=true;f.begin();while(f.task.active())f.tick();check(f.task.state()==PestSprayTask.State.FAILED&&f.equips+f.uses==0&&f.disposals==1,"same displayed name is not authority for an ID contradicted by official unique catalog");
   f=new Fixture();f.catalogMissing=true;f.begin();for(int i=0;i<70&&f.task.active();i++)f.tick();check(f.task.state()==PestSprayTask.State.TIMED_OUT&&f.equips+f.uses==0&&f.dataRequests==1&&f.disposals==1,"one demanded lookup, bounded wait, no blind use or retry when unavailable");
-  f=new Fixture();f.afterClaimAck=true;f.readyUse();f.decrease(1,true);f.spray=new PestSprayObservation(PestSprayObservation.State.ACTIVE);f.tick();f.tick();check(f.task.state()==PestSprayTask.State.COMPLETE,"post-claim in-flight GAME acknowledgement survives return from send");
+  f=new Fixture();f.afterClaimAck=true;f.readyUse();f.decrease(1,true);f.spray=new PestSprayObservation(PestSprayObservation.State.ACTIVE);f.applyTab();f.tick();f.tick();check(f.task.state()==PestSprayTask.State.COMPLETE,"post-claim in-flight GAME acknowledgement survives return from send");
   f=new Fixture();f.readyUse();f.selected=0;f.tick();check(f.task.state()==PestSprayTask.State.CANCELLED&&f.restores==0,"actual hotbar takeover cancels without restoring over user choice");
   f=new Fixture();f.readyUse();f.positionSequence++;f.tick();check(f.task.state()==PestSprayTask.State.CANCELLED,"even a relative/zero-distance server position correction invalidates in-place use");
   f=new Fixture();f.readyUse();f.positionEpoch++;f.tick();check(f.task.state()==PestSprayTask.State.CANCELLED,"cleared position receipt epoch cannot be mistaken for no movement");

@@ -37,7 +37,7 @@ public final class GlobalStopLifecycleTest {
  final Service pest=new Service("pest"),greenhouse=new Service("greenhouse"),composter=new Service("composter"),visitor=new Service("visitor"),supercraft=new Service("supercraft"),book=new Service("book"),pets=new Service("pets"),autoSell=new Service("autoSell"),junk=new Service("junk"),stash=new Service("stash");
  List<Service> services(){return List.of(pest,greenhouse,composter,visitor,supercraft,book,pets,autoSell,junk);}
  final class Data {final String name;boolean cleared;Data(String name){this.name=name;}void clear(){step(name,()->cleared=true);}void shutdownData(){clear();}}
- final Data visitorFlight=new Data("visitorData"),supercraftMenu=new Data("supercraftData"),receipts=new Data("items"),positions=new Data("positions"),cursors=new Data("cursor"),harvests=new Data("harvests");
+ final Data visitorFlight=new Data("visitorData"),supercraftMenu=new Data("supercraftData"),receipts=new Data("items"),positions=new Data("positions"),sprayTabs=new Data("sprayTabs"),cursors=new Data("cursor"),harvests=new Data("harvests");
  Object petClose,visitorClose=new Object(),trapClose=new Object();
  static final class Minecraft {static final Minecraft INSTANCE=new Minecraft();final Gui gui=new Gui();static Minecraft getInstance(){return INSTANCE;}}
  static final class Gui {Object screen;Object screen(){return screen;}}
@@ -49,8 +49,8 @@ public final class GlobalStopLifecycleTest {
    case "onManualLook","onManualInventoryInput","onManualWorldInput"->normal;
    case "onOutgoingCommand"->{normal.add(0,"stash.outgoing");yield normal;}
    case "invalidateFarmSession"->{var out=new ArrayList<String>();out.add("session.invalidate");out.addAll(JOBS);yield out;}
-   case "worldChanged"->{var out=new ArrayList<String>(List.of("stash","session.invalidate"));out.addAll(JOBS);out.addAll(List.of("visitorData","supercraftData","items","positions","cursor","harvests"));yield out;}
-   case "shutdown"->List.of("book","pets","supercraft","pest","greenhouse","composter","visitor","session.cancel","autoSell","junk","stash","session.invalidate","visitorData","supercraftData","items","positions","cursor","harvests");
+   case "worldChanged"->{var out=new ArrayList<String>(List.of("stash","session.invalidate"));out.addAll(JOBS);out.addAll(List.of("visitorData","supercraftData","items","positions","sprayTabs","cursor","harvests"));yield out;}
+   case "shutdown"->List.of("book","pets","supercraft","pest","greenhouse","composter","visitor","session.cancel","autoSell","junk","stash","session.invalidate","visitorData","supercraftData","items","positions","sprayTabs","cursor","harvests");
    default->throw new AssertionError(hook);
   };
  }
@@ -67,7 +67,7 @@ public final class GlobalStopLifecycleTest {
   if(!owner.isEmpty())check(stops==(hook.equals("worldChanged")||hook.equals("invalidateFarmSession")?0:1),"original stop invoked at most once; invalidation never rearms Farm");
   if(errors.isEmpty())check(seen==null,"healthy stop must not throw");else check(seen==errors.getFirst()&&Arrays.asList(seen.getSuppressed()).equals(errors.subList(1,errors.size())),"preserve exact first/later failures without swallowing or replacing");
   if(hook.equals("worldChanged")||hook.equals("shutdown")){
-   check(visitorFlight.cleared&&supercraftMenu.cleared&&receipts.cleared&&positions.cleared&&cursors.cleared&&harvests.cleared,"data/receipt clearing survives earlier failures");
+   check(visitorFlight.cleared&&supercraftMenu.cleared&&receipts.cleared&&positions.cleared&&sprayTabs.cleared&&cursors.cleared&&harvests.cleared,"data/receipt clearing survives earlier failures");
    check(visitorClose==null&&trapClose==null,"both stale close tickets cleared");
   }
  }

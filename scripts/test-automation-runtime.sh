@@ -201,3 +201,8 @@ TMP="$(mktemp -d)";trap 'rm -rf "$TMP"' EXIT
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestSprayTaskTest
 
 "$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestExchangeCanonicalReceiptTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestSprayTabReceiptsTest
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestSprayFreshTabTest
+
+"$JDK/bin/java" -cp "$TMP:$GSON" dev.kuan.kuanperion.automation.pest.PestSprayRestoreFreshTabTest

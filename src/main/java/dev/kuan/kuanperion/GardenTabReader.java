@@ -17,15 +17,14 @@ final class GardenTabReader {
             .thenComparing(info -> info.getTeam() == null ? "" : info.getTeam().getName())
             .thenComparing(info -> info.getProfile().name(), String.CASE_INSENSITIVE_ORDER);
 
-    static List<String> read(Minecraft mc) {
+    static List<PlayerInfo> players(Minecraft mc) {
         if (mc.player == null || mc.level == null) return List.of();
-        return mc.player.connection.getListedOnlinePlayers().stream()
-                .sorted(TAB_ORDER).limit(80)
-                .map(info -> {
-                    Component text = info.getTabListDisplayName();
-                    if (text == null) text = PlayerTeam.formatNameForTeam(info.getTeam(),
-                            Component.literal(info.getProfile().name()));
-                    return text.getString();
-                }).toList();
+        return mc.player.connection.getListedOnlinePlayers().stream().sorted(TAB_ORDER).limit(80).toList();
     }
+    static String text(PlayerInfo info) {
+        Component text = info.getTabListDisplayName();
+        if (text == null) text = PlayerTeam.formatNameForTeam(info.getTeam(), Component.literal(info.getProfile().name()));
+        return text.getString();
+    }
+    static List<String> read(Minecraft mc) { return players(mc).stream().map(GardenTabReader::text).toList(); }
 }

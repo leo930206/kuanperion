@@ -37,6 +37,8 @@ public abstract class AutomationReceiptMixin {
  private void kuanperion$harvestSection(ClientboundSectionBlocksUpdatePacket packet,CallbackInfo ci){KuanperionClient.observeAutomationHarvest(packet);}
  @Inject(method="handleSetCursorItem",at=@At("TAIL"))
  private void kuanperion$cursor(ClientboundSetCursorItemPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationCursor(packet);}
+ @Inject(method="handlePlayerInfoUpdate",at=@At("TAIL"))
+ private void kuanperion$sprayTab(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket packet,CallbackInfo ci){KuanperionClient.observeAutomationSprayTab((ClientPacketListener)(Object)this,packet);}
  @Inject(method="handleMovePlayer",at=@At("TAIL"))
  private void kuanperion$position(ClientboundPlayerPositionPacket packet,CallbackInfo ci){KuanperionClient.observeAutomationPosition(packet);}
  @Inject(method="handleContainerSetSlot",at={
