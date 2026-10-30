@@ -15,7 +15,7 @@ public final class BookWiringTest {
  boolean ownGameplayCommand,observedGameplayCommand;AutomationContext ctx=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return ctx;}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::observe,()->{},()->{});List<StashService.Notice> notices=new ArrayList<>();java.util.function.Consumer<StashService.Notice> feedback=notices::add;
  static class Service{int cancellations;void cancel(long n){cancellations++;}void onOutgoingCommand(){}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
+ Service stash=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
  static class Menu{Object carried;Object getCarried(){return carried;}}
  static class Minecraft{static Minecraft instance=new Minecraft();static Minecraft getInstance(){return instance;}Object level=new Object();Player player=new Player();Gui gui=new Gui();boolean same=true;boolean isSameThread(){return same;}}
  static class Gui{Object screen,overlay;Object screen(){return screen;}Object overlay(){return overlay;}}static class Stack{boolean empty=true;boolean isEmpty(){return empty;}}static class Container{Stack carried=new Stack();Stack getCarried(){return carried;}}static class Player{Connection connection=new Connection();Container inventoryMenu=new Container(),containerMenu=inventoryMenu;}

@@ -11,7 +11,7 @@ import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class MaintenanceInputPriorityTest {
  static class Service {boolean running,owned;int cancelled;boolean active(){return running;}boolean ownsMenu(){return owned;}void cancel(long now){if(running)cancelled++;running=false;}}
  static class Flight {boolean manual;boolean manualInput(){return manual;}}
- Service composter=new Service(),pest=new Service(),greenhouse=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();Flight composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight(),supercraftMenu=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
+ Service composter=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();Flight sprayController=new Flight(),composterFlight=new Flight(),flight=new Flight(),greenhouseFlight=new Flight(),visitorFlight=new Flight(),supercraftMenu=new Flight();AutomationContext context=new AutomationContext(1,true,true,Set.of());AutomationContext observe(){return context;}
  static class OwnMenu{}static class Gui{Object current;Object screen(){return current;}}static class Minecraft{static final Minecraft INSTANCE=new Minecraft();Gui gui=new Gui();static Minecraft getInstance(){return INSTANCE;}}
  METHOD
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}

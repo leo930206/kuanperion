@@ -154,3 +154,11 @@
 ## 2026-10-30 — canonical hotbar receipt correction
 - [x] Reproduce713ac98 production bytecode with correct native raw39 vs forged inventory-index3; correct the one window0 query to36+tool.slot(), preserving active alias, root, cursor, ownership, metadata and no-retry guards.
 - [x] All9 hotbar slots x4 dual-alias cases, all9 x3 actual client callback routes, and a separate pinned26.2 native hotbar-range assertion. This closes a model/native projection mismatch, not the still-open live-server acceptance.
+
+## 2026-10-30 — spray original-root stock buying (still unexposed)
+- [x] Independent default-zero target/Coins consent, safe shortage-only acquisition under one original root/budget, one attempt, bounded data/root lifetime, full43/protected/source validation and canonical exact-delivery proof before refreshed NONE/equip/selection/use. Native demand/poll/disposal and actual shared Bazaar navigation/terminal/ledger fixtures; no server success claim.
+- [ ] Independent persisted spray settings/service/UI and complete global dispatch/lifecycle matrices, grounded-physics audit, then one final current-server evidence batch.
+
+## 2026-10-30 — spray independent development runtime (verification in progress)
+- [ ] Final verify: strict independent settings/service/Farming UI, source cadence, same-root stock/selection/use/restore,10-owner dispatch/11-actor Jerry/all lifecycle matrices and read-only source-pinned grounded residual handling. Focused model success alone does not close this box.
+- [ ] Final current-server batch: base/all-nozzle cost, Sacks, exact titles/lore/metadata/air opener/close, fresh Tab cadence/plot attribution, applied Mixins, physical/manual/lifecycle/original Farming continuation; no release/install before acceptance.

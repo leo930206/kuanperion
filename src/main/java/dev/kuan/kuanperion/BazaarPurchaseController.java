@@ -11,7 +11,7 @@ public final class BazaarPurchaseController {
   boolean available();boolean safe();boolean cursorEmpty();Object level();Object menuIdentity();Map<Integer,ItemSnapshot> inventory();MenuSnapshot menu(long world);
   GuardedMenuAction.Result purchase(AutomationCoordinator coordinator,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,Supplier<AutomationContext> context,Supplier<MenuSnapshot> menus,long now);
  }
- private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT);
+ private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST_SPRAY,AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT);
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final InventoryReceipts items;private final CursorReceipts cursors;private final Purchase purchase;private final Game game;private final LongSupplier clock;private final Object level;private Object menuIdentity;
  private State state=State.READY;private BazaarPurchaseAttempt attempt;private boolean used;private BazaarPurchaseView.Quote quote;private InventoryReceipts.Stamp afterFirstSend;
  public record CompletionMenu(Object identity,int container){}

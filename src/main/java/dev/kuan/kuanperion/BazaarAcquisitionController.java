@@ -17,7 +17,7 @@ public final class BazaarAcquisitionController {
   boolean amount(Object screen,int quantity);boolean close(Object menu,int container);
   GuardedMenuAction.Result navigate(AutomationCoordinator c,AutomationCoordinator.Lease lease,MenuContract contract,MenuContract.Ticket ticket,Supplier<AutomationContext> context,Supplier<MenuSnapshot> menus,long now);
  }
- private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST,AutomationFeature.VISITOR,AutomationFeature.COMPOSTER,AutomationFeature.SUPERCRAFT);
+ private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST_SPRAY,AutomationFeature.PEST,AutomationFeature.VISITOR,AutomationFeature.COMPOSTER,AutomationFeature.SUPERCRAFT);
  private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final InventoryReceipts items;private final CursorReceipts cursors;
  private final AutomationSession.Handle parent;private final BazaarAcquisitionPlan.Plan plan;private final SpendingBudget budget;private final Game game;private final LongSupplier clock;private final Object level;
  private State state=State.IDLE;private long phaseStart;private InventoryReceipts.Stamp opening;private CursorReceipts.OpeningStamp cursorOpening;private MenuSnapshot origin;private Object originIdentity,signIdentity;private BazaarPurchaseController terminal;private BazaarAcquisitionPlan.Request request;

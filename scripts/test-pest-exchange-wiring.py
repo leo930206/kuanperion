@@ -16,7 +16,7 @@ public final class PestExchangeWiringTest {
  AutomationContext ctx=new AutomationContext(1,true,true,Set.of());Runnable onObserve=()->{};AutomationContext observe(){onObserve.run();return ctx;}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::observe,()->{},()->{});boolean ownGameplayCommand,observedGameplayCommand;
  static class Service{int cancellations;void cancel(long n){cancellations++;}void onOutgoingCommand(){}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
+ Service stash=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
  static PestExchangeWiringTest active;
  static class Stack{boolean empty=true;boolean isEmpty(){return empty;}}static class Container{final Stack carried=new Stack();Stack getCarried(){return carried;}}
  static class Connection{List<String> commands=new ArrayList<>();boolean observe=true,failure;void sendCommand(String value){commands.add(value);if(failure)throw new IllegalStateException("uncertain native command");if(observe)active.onOutgoingCommand();}}

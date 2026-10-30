@@ -45,8 +45,8 @@ public class JerryDetectionIntegrationTest {
   AutomationCoordinator coordinator=new AutomationCoordinator();
   AutomationSession session=new AutomationSession(coordinator,()->new AutomationContext(1,farmingEnabled,true,Set.of()),()->{},()->{farmingEnabled=false;});
   class Service {boolean suspended,active;void cancel(long n){}void onOutgoingCommand(){}void suspend(long n){suspended=true;if(active){active=false;session.cancel(n);}}void suspend(String reason){suspend(System.nanoTime());}}
-  Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();
-  List<Service> services(){return List.of(pest,greenhouse,composter,autoSell,junk,stash,visitor,supercraft,book);}
+  Service stash=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),composter=new Service(),autoSell=new Service(),junk=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();
+  List<Service> services(){return List.of(pest,spray,greenhouse,composter,autoSell,junk,stash,visitor,supercraft,book,pets);}
   // BRIDGE_METHODS
  }
  static AutomationClientBridge automation;
@@ -230,9 +230,9 @@ public class JerryDetectionIntegrationTest {
             check(farmingEnabled==!stop&&automation.session.active()==!stop&&farmingMarkersCreated==(stop?1:0),"trusted auto command must preserve independent legacy stop toggle, active root and beam ordering: "+owner+stop);
             if(!stop){mc.player.connection.sendCommand("warp garden");check(!farmingEnabled&&!automation.session.active(),"a real subsequent manual command still preempts held work");}
         }
-        for(boolean stop:new boolean[]{false,true})for(int actor=0;actor<8;actor++){
+        for(boolean stop:new boolean[]{false,true})for(int actor=0;actor<11;actor++){
             reset();jerryStopActionsEnabled=stop;automation=new AutomationClientBridge();var service=automation.services().get(actor);service.active=true;
-            var owner=List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.STASH,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT).get(actor);
+            var owner=List.of(AutomationFeature.PEST,AutomationFeature.PEST_SPRAY,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.STASH,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE,AutomationFeature.PET_SELL).get(actor);
             if(owner!=AutomationFeature.STASH)check(automation.session.begin(owner,System.nanoTime(),120_000_000_000L)!=null,"standalone task fixture");
             handleReceivedMessage(Component.literal(APPEARED));
             check(service.active==!stop&&automation.services().stream().allMatch(v->v.suspended==stop)&&(!automation.session.active()||!stop)&&farmingMarkersCreated==0,"Jerry global stop must include all standalone/manual roots and separate Stash even without Farming: "+owner+stop);

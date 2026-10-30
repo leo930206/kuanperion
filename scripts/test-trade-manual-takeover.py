@@ -15,7 +15,7 @@ import java.nio.file.*;import java.util.*;
 public final class TradeManualTakeoverTest {
  static final long S=1_000_000_000L;boolean ownGameplayCommand,observedGameplayCommand,closed,useJunk;int pauses,stops;
  static class Service {int calls;void cancel(long n){calls++;}void onOutgoingCommand(){calls++;}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();
+ Service stash=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service();
  static class Gui{Object current;Object screen(){return current;}}
  static class Minecraft{static final Minecraft I=new Minecraft();static Minecraft getInstance(){return I;}Gui gui=new Gui();}
  final AutoSellTaskTest.Fake sellFake=new AutoSellTaskTest.Fake();final JunkTaskTest.Fake junkFake=new JunkTaskTest.Fake();

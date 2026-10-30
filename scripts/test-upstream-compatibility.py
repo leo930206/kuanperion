@@ -21,7 +21,7 @@ composter=(m/'ComposterFlightController.java').read_text()
 assert 'new BazaarAcquisitionController(' in composter and 'acquisitionPolicy.buying().rules(' in composter
 assert 'composter.onSystemMessage(currentWorldId(),text)' in bridge
 callers={p.name for p in m.rglob('*.java') if p.name!='BazaarAcquisitionController.java' and 'new BazaarAcquisitionController(' in p.read_text()}
-assert callers=={'VisitorFlightController.java','ComposterFlightController.java','PestFlightController.java'},'Only implemented guarded original-parent workflows may navigate purchases'
+assert callers=={'VisitorFlightController.java','ComposterFlightController.java','PestFlightController.java','PestSprayController.java'},'Only implemented guarded original-parent workflows may navigate purchases'
 pest=(m/'PestFlightController.java').read_text()
 for required in ['baitAcquisitionCurrent(h)','budget.limit()!=policy.buying().maximumCoins()','baitBuyingPolicy.buying().rules(','baitBuyingBudget','baitAcquisition.onSystemMessage(world,text)']:assert required in pest,required
 assert 'pest.onSystemMessage(currentWorldId(),text)' in bridge
@@ -37,3 +37,6 @@ assert '904a32484806b4d19a605d9a21503b9188324a80cafcbbf4f82b8d39c3313868' in reg
 assert 'implement first, batch validation last' in spec and 'provisional' in registry
 assert 'additional provisional adapter assumption' in registry
 print('UpstreamCompatibility: PASS (user-approved implement-first/source-marked deferred batch evidence; source-marked guarded Visitor native acquisition route; no author services, default-off explicit budgets/materials, bounded original-root screen ownership)')
+
+spray=(m/'PestSprayController.java').read_text()
+for required in ['sprayAcquisitionCurrent(h,now)','budget.limit()!=purchase.maximumCoins()','buying.rules(buyPolicy)','buyBudget','acquisition.onSystemMessage(world,text)']:assert required in spray,required

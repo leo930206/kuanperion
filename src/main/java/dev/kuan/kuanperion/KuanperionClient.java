@@ -2920,7 +2920,7 @@ public final class KuanperionClient implements ClientModInitializer {
                     pestWebhookUrl=value;saveConfig();
                 }catch(IllegalArgumentException ex){uiInputError("Webhook 網址無效，原值未變更");}}).withFieldWidth(390));
         var webhookTab=new ModulesTab.SubTab("Discord Webhook", "現有共用 Webhook 設定；沒有遠端控制",List.of(webhook));
-        return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,dev.kuan.kuanperion.ui.GreenhouseModuleSettings.tab(automation.greenhouse()),visitorTab,dev.kuan.kuanperion.ui.ComposterModuleSettings.tab(automation.composter()))),
+        return List.of(new MainGUIRegistry.ModuleSection("farming","Farming",List.of(farmTab,pestTab,dev.kuan.kuanperion.ui.PestSprayModuleSettings.tab(automation.spray()),dev.kuan.kuanperion.ui.GreenhouseModuleSettings.tab(automation.greenhouse()),visitorTab,dev.kuan.kuanperion.ui.ComposterModuleSettings.tab(automation.composter()))),
             new MainGUIRegistry.ModuleSection("mining","Mining",List.of(mineTab)),
             new MainGUIRegistry.ModuleSection("trade","Trade",dev.kuan.kuanperion.ui.AutomationModuleSettings.trade(automation.stash(),automation.autoSell(),automation.junk(),automation.book(),automation.pets())),
             new MainGUIRegistry.ModuleSection("other","Other",List.of(jerryTab,webhookTab,dev.kuan.kuanperion.ui.SupercraftModuleSettings.tab(automation.supercraft()))));

@@ -10,7 +10,7 @@ public final class BazaarPurchaseAttempt {
  }
  public record Frame(long world,long observedAt,Map<Integer,ItemSnapshot> inventory,MenuSnapshot menu,boolean cursorEmpty){public Frame{inventory=Map.copyOf(inventory);}}
  private static final long SECOND=1_000_000_000L,DEADLINE=15*SECOND;
- private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT);
+ private static final Set<AutomationFeature> BUYERS=Set.of(AutomationFeature.PEST_SPRAY,AutomationFeature.PEST,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT);
  private final AutomationSession session;private final InventoryReceipts items;private final CursorReceipts cursors;private final SpendingBudget budget;private final Supplier<AutomationContext> observe;
  private State state=State.IDLE;private AutomationSession.Handle parent;private Offer offer;private MenuContract contract;private MenuContract.Ticket ticket;private Frame before;private long armedAt,sentAt;private InventoryReceipts.Stamp itemStamp;private CursorReceipts.Stamp cursorStamp;private CursorReceipts.OpeningStamp opening;private BazaarPurchaseLedger ledger;private boolean confirmationSent;private CursorReceipts.OpeningStamp afterSend;
  public BazaarPurchaseAttempt(AutomationSession session,InventoryReceipts items,CursorReceipts cursors,SpendingBudget budget,Supplier<AutomationContext> observe){this.session=Objects.requireNonNull(session);this.items=Objects.requireNonNull(items);this.cursors=Objects.requireNonNull(cursors);this.budget=Objects.requireNonNull(budget);this.observe=Objects.requireNonNull(observe);}

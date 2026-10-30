@@ -9,10 +9,12 @@ public final class PestSprayPlan {
  private PestSprayPlan(PestSprayPolicy p,PestSprayTool.Tool t,Map<Integer,ItemSnapshot> inv,Set<Integer> s){policy=p;tool=t;baseline=Map.copyOf(inv);sources=Set.copyOf(s);}
  public PestSprayTool.Tool tool(){return tool;}public Map<Integer,ItemSnapshot> baseline(){return baseline;}public int reservedItems(){return WORST_CASE_ITEMS;}
  public boolean stillMatches(Map<Integer,ItemSnapshot> inv){return complete(inv)&&baseline.equals(inv);}
- public static Optional<PestSprayPlan> select(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,true);}
+ public static Optional<PestSprayPlan> select(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,true,true);}
  /** Preparation permits only a guarded selection workflow, never USE before an exact selected plan is rebuilt. */
- public static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,false);}
- private static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv,boolean selectedOnly){
+ public static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,false,true);}
+ /** Insufficient authorized stock may authorize a bounded purchase preflight only, never USE. */
+ public static Optional<PestSprayPlan> prepareForBuying(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,false,false);}
+ private static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv,boolean selectedOnly,boolean requireStock){
   if(p==null||!p.configured()||!complete(inv))return Optional.empty();PestSprayTool.Tool tool=null;
   for(int i=0;i<9;i++){var match=PestSprayTool.read(i,inv.get(i));if(match.isPresent()&&(!selectedOnly||match.get().selectedMaterial().equals(p.materialName()))){if(tool!=null)return Optional.empty();tool=match.get();}}
   if(tool==null)return Optional.empty();var protection=new InventoryProtection(Set.of(p.materialId()),p.protectedUuids());var sources=new HashSet<Integer>();ItemSnapshot identity=null;int total=0;
@@ -22,7 +24,18 @@ public final class PestSprayPlan {
    if(i<9||i>=36||!protection.permits(x)||!x.uuid().isEmpty()||!x.minecraftId().equals(p.minecraftId())||!x.name().equals(p.materialName())||identity!=null&&!sameKind(identity,x))return Optional.empty();
    identity=x;sources.add(i);total+=x.count();
   }
-  return total<WORST_CASE_ITEMS?Optional.empty():Optional.of(new PestSprayPlan(p,tool,inv,sources));
+  return requireStock&&total<WORST_CASE_ITEMS?Optional.empty():Optional.of(new PestSprayPlan(p,tool,inv,sources));
+ }
+ /** Exact target delivery, no removal/rearrangement of existing stock or unrelated metadata changes. */
+ public boolean acquired(Map<Integer,ItemSnapshot> after,PestSprayBuying buying,InventoryReceipts receipts,InventoryReceipts.Stamp stamp){
+  if(buying==null||!buying.configured()||receipts==null||stamp==null||prepare(policy,after).isEmpty())return false;
+  int beforeCount=0,afterCount=0;
+  for(int i=0;i<43;i++){
+   var old=baseline.get(i);var next=after.get(i);if(old.skyblockId().equals(policy.materialId()))beforeCount+=old.count();if(next.skyblockId().equals(policy.materialId()))afterCount+=next.count();
+   if(old.equals(next))continue;
+   if(i<9||i>=36||!next.skyblockId().equals(policy.materialId())||next.count()<=old.count()||!(air(old)||sameKind(old,next))||!raw(next,receipts.after(stamp,0,i)))return false;
+  }
+  return beforeCount<WORST_CASE_ITEMS&&afterCount==buying.targetCount()&&afterCount>beforeCount;
  }
  /** A pending prediction may be observed, but cannot complete without the independent receipt check. */
  public boolean possibleAfter(Map<Integer,ItemSnapshot> after){return delta(after)>=0;}

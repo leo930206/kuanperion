@@ -2,7 +2,7 @@ package dev.kuan.kuanperion.automation.pest;
 import dev.kuan.kuanperion.automation.*;import java.util.*;
 public final class PestSpraySelectionIntegrationTest {
  static void check(boolean b,String s){if(!b)throw new AssertionError(s);}
- static final class P extends PestSpraySelectionTaskTest.F implements PestSprayTask.Port {
+ static class P extends PestSpraySelectionTaskTest.F implements PestSprayTask.Port {
   final PestSprayTask parent=new PestSprayTask(session,coordinator,items,cursors,this);final PestSprayTabReceipts tabs=new PestSprayTabReceipts();final Object tabRow=new Object();PestSprayTabReceipts.Proof tab;PestSprayObservation spray=new PestSprayObservation(PestSprayObservation.State.NONE);int uses,equips,restores,demands,disposals;boolean selectedUpdate,failSelection,deferTab,tickDuringStart,rearmDuringStart;int waitingTab;AutomationSession.Handle actualRoot;
   P(){super(false);selected=0;applyTab();}
   void applyTab(){var scope=new PestSprayTabReceipts.Scope(1,level,player,1,positionEpoch,positionSequence);var entries=List.of("Pests:","Spray: "+(spray.state()==PestSprayObservation.State.NONE?"None":"Test Material (29m)"));tabs.observe(scope,tabRow,entries,1,now);tab=tabs.current(scope,tabRow,entries,now).orElseThrow();}

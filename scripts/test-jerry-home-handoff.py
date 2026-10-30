@@ -17,7 +17,7 @@ public final class JerryHomeHandoffTest {
  AutomationContext observe(){return new AutomationContext(1,farming,true,Set.of());}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::observe,()->paused++,()->{stopped++;farming=false;});
  static class Service {int calls;void cancel(long now){calls++;}void onOutgoingCommand(){calls++;}}
- Service stash=new Service(),pest=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
+ Service stash=new Service(),pest=new Service(),spray=new Service(),greenhouse=new Service(),composter=new Service(),visitor=new Service(),supercraft=new Service(),book=new Service(),pets=new Service(),autoSell=new Service(),junk=new Service();
  static JerryHomeHandoffTest current;
  static class Connection {boolean observed=true,throwing;List<String> commands=new ArrayList<>();void sendCommand(String command){commands.add(command);if(throwing)throw new IllegalStateException("fixture send error");if(observed)current.onOutgoingCommand();}}
  static class Player {Connection connection=new Connection();}
@@ -26,16 +26,16 @@ public final class JerryHomeHandoffTest {
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  void start(AutomationFeature feature){check(session.begin(feature,System.nanoTime(),120_000_000_000L)!=null,"fixture root hold");}
  public static void main(String[]args){
-  for(var feature:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT)){
+  for(var feature:List.of(AutomationFeature.PEST,AutomationFeature.PEST_SPRAY,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.SUPERCRAFT)){
    var h=new JerryHomeHandoffTest();current=h;var mc=Minecraft.getInstance();mc.player=new Player();h.start(feature);
    check(h.sendAutomaticJerryHome()&&mc.player.connection.commands.equals(List.of("sethome")),"one observed literal record-only command");
-   check(h.session.active()&&h.session.holdsFarming()&&h.farming&&h.stopped==0&&h.pest.calls==0&&h.greenhouse.calls==0&&h.composter.calls==0&&h.visitor.calls==0&&h.supercraft.calls==0,"Jerry auto home must not preempt "+feature+" or prematurely clear legacy Farming before its own stop-toggle/beam handler");
+   check(h.session.active()&&h.session.holdsFarming()&&h.farming&&h.stopped==0&&h.pest.calls==0&&h.spray.calls==0&&h.greenhouse.calls==0&&h.composter.calls==0&&h.visitor.calls==0&&h.supercraft.calls==0,"Jerry auto home must not preempt "+feature+" or prematurely clear legacy Farming before its own stop-toggle/beam handler");
    check(!h.ownGameplayCommand&&!h.observedGameplayCommand,"no trusted flag leaks after normal send");h.onOutgoingCommand();check(!h.session.active()&&!h.farming&&h.stopped==1,"subsequent ordinary manual commands retain takeover priority");
   }
   var h=new JerryHomeHandoffTest();current=h;var mc=Minecraft.getInstance();mc.player=new Player();h.start(AutomationFeature.PEST);mc.player.connection.throwing=true;check(!h.sendAutomaticJerryHome()&&!h.ownGameplayCommand&&!h.observedGameplayCommand&&h.session.active(),"native send failure scopes flags and does not invent a manual stop");mc.player.connection.throwing=false;
   h.ownGameplayCommand=true;h.observedGameplayCommand=false;check(h.sendAutomaticJerryHome()&&h.ownGameplayCommand&&!h.observedGameplayCommand,"nested record-only send must not forge or erase outer owner's dispatch acknowledgement");h.ownGameplayCommand=false;
   mc.player.connection.observed=false;check(!h.sendAutomaticJerryHome()&&h.session.active()&&!h.ownGameplayCommand,"blocked/unobserved send not falsely announced as sent");mc.same=false;int count=mc.player.connection.commands.size();check(!h.sendAutomaticJerryHome()&&mc.player.connection.commands.size()==count,"client-thread guard before native effect");mc.same=true;mc.player=null;check(!h.sendAutomaticJerryHome(),"no player, no record-only command");
-  System.out.println("JerryHomeHandoffTest: PASS (actual typed sender/event bodies, original held Farm intact for all four flight owners, literal command only, manual priority, failure/blocked/nested cleanup)");
+  System.out.println("JerryHomeHandoffTest: PASS (actual typed sender/event bodies, original held Farm intact for all guarded gameplay owners, literal command only, manual priority, failure/blocked/nested cleanup)");
  }
 }'''.replace('METHODS',methods)
 prism=Path.home()/'Library/Application Support/PrismLauncher';jdk=prism/'java/java-runtime-epsilon/jre.bundle/Contents/Home/bin';gson=prism/'libraries/com/google/code/gson/gson/2.14.0/gson-2.14.0.jar'

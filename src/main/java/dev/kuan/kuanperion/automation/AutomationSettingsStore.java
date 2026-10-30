@@ -27,7 +27,7 @@ public final class AutomationSettingsStore {
    if(version==null||!version.isJsonPrimitive()||!version.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Missing schema");
    int schema=version.getAsBigDecimal().intValueExact();
    if(schema!=SCHEMA){writable=false;issue="設定格式版本不相容，未啟用自動化或覆寫檔案";return;}
-   for(String name:new String[]{"features","stash","autoSell","junk","pest","greenhouse","composter","visitor","supercraft","bookCombine"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
+   for(String name:new String[]{"features","stash","autoSell","junk","pest","pestSpray","greenhouse","composter","visitor","supercraft","bookCombine"})if(candidate.has(name)&&!candidate.get(name).isJsonObject())throw new IllegalArgumentException("Invalid settings section");
    root=candidate;
   }catch(IOException|RuntimeException invalid){writable=false;issue="自動化設定無法讀取，原檔保留且自動化停用";}
  }
@@ -69,6 +69,18 @@ public final class AutomationSettingsStore {
   return new dev.kuan.kuanperion.automation.pest.PestBaitBuying(b.has("minecraftId")?strictString(b,"minecraftId"):"",strictInteger(b,"stackLimit",64,1,64),strictInteger(b,"targetCount",0,0,64),visitorLong(b,"maximumCoins",0));
  }
  public void setPestPolicy(dev.kuan.kuanperion.automation.pest.PestPolicy p)throws IOException{update(copy->{var s=object(copy,"pest");s.addProperty("threshold",p.threshold());s.addProperty("timeoutSeconds",p.timeoutSeconds());s.addProperty("captureSeconds",p.captureSeconds());s.addProperty("maxTargets",p.maxTargets());s.addProperty("radius",p.radius());s.addProperty("cooldownSeconds",p.cooldownSeconds());s.addProperty("onlyWhileFarming",p.onlyWhileFarming());s.addProperty("sweep",p.sweep());s.addProperty("travelPlots",p.travelPlots());s.addProperty("clearTraps",p.clearTraps());s.addProperty("trapPlot",p.trapPlot());s.addProperty("exchangeAfterCleanup",p.exchangeAfterCleanup());var b=object(s,"bait");b.addProperty("enabled",p.bait().enabled());b.addProperty("baitId",p.bait().rules().baitId());b.addProperty("maximumPerTrap",p.bait().rules().maximumPerTrap());b.addProperty("maximumRunItems",p.bait().rules().maximumRunItems());b.add("protectedUuids",JSON.toJsonTree(new java.util.TreeSet<>(p.bait().rules().protectedUuids())));var buying=object(b,"buying");buying.addProperty("minecraftId",p.bait().buying().minecraftId());buying.addProperty("stackLimit",p.bait().buying().stackLimit());buying.addProperty("targetCount",p.bait().buying().targetCount());buying.addProperty("maximumCoins",p.bait().buying().maximumCoins());});}
+ public boolean pestSprayPolicyValid(){try{readPestSprayPolicy();readPestSprayBuying();return writable;}catch(RuntimeException invalid){return false;}}
+ public dev.kuan.kuanperion.automation.pest.PestSprayPolicy pestSprayPolicy(){try{readPestSprayBuying();return readPestSprayPolicy();}catch(RuntimeException invalid){return dev.kuan.kuanperion.automation.pest.PestSprayPolicy.defaults();}}
+ public dev.kuan.kuanperion.automation.pest.PestSprayBuying pestSprayBuying(){try{readPestSprayPolicy();return readPestSprayBuying();}catch(RuntimeException invalid){return dev.kuan.kuanperion.automation.pest.PestSprayBuying.defaults();}}
+ private dev.kuan.kuanperion.automation.pest.PestSprayPolicy readPestSprayPolicy(){
+  var s=section(root,"pestSpray");return new dev.kuan.kuanperion.automation.pest.PestSprayPolicy(s.has("materialId")?strictString(s,"materialId"):"",s.has("minecraftId")?strictString(s,"minecraftId"):"",s.has("materialName")?strictString(s,"materialName"):"",strictInteger(s,"maximumUseItems",0,0,64),strictBoolean(s,"acknowledgeSacks",false),visitorStrings(s,"protectedUuids",128));
+ }
+ private dev.kuan.kuanperion.automation.pest.PestSprayBuying readPestSprayBuying(){
+  var s=section(root,"pestSpray");if(s.has("buying")&&!s.get("buying").isJsonObject())throw new IllegalArgumentException("Invalid spray buying consent");var b=section(s,"buying");return new dev.kuan.kuanperion.automation.pest.PestSprayBuying(strictInteger(b,"targetCount",0,0,64),visitorLong(b,"maximumCoins",0));
+ }
+ public void setPestSprayPolicy(dev.kuan.kuanperion.automation.pest.PestSprayPolicy p,dev.kuan.kuanperion.automation.pest.PestSprayBuying buying)throws IOException{
+  java.util.Objects.requireNonNull(p);java.util.Objects.requireNonNull(buying);update(copy->{var s=object(copy,"pestSpray");s.addProperty("materialId",p.materialId());s.addProperty("minecraftId",p.minecraftId());s.addProperty("materialName",p.materialName());s.addProperty("maximumUseItems",p.maximumUseItems());s.addProperty("acknowledgeSacks",p.acknowledgeSacks());s.add("protectedUuids",JSON.toJsonTree(new java.util.TreeSet<>(p.protectedUuids())));var b=object(s,"buying");b.addProperty("targetCount",buying.targetCount());b.addProperty("maximumCoins",buying.maximumCoins());});
+ }
  public boolean greenhousePolicyValid(){try{readGreenhousePolicy();return writable;}catch(RuntimeException invalid){return false;}}
  public dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy greenhousePolicy(){try{return readGreenhousePolicy();}catch(RuntimeException invalid){return dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy.defaults();}}
  private dev.kuan.kuanperion.automation.greenhouse.GreenhousePolicy readGreenhousePolicy(){

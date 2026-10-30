@@ -59,7 +59,7 @@ public final class SettingsTaskGateTest {
   check(a.canOpenSettings(),"ordinary manually armed Farming is not blocked");
   a.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MINING));check(a.canOpenSettings(),"existing Mining settings behavior is unchanged");
   a.context=new AutomationContext(1,true,true,Set.of());
-  for(var feature:List.of(AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE)){
+  for(var feature:List.of(AutomationFeature.PEST_SPRAY,AutomationFeature.PET_SELL,AutomationFeature.PEST,AutomationFeature.GREENHOUSE,AutomationFeature.COMPOSTER,AutomationFeature.VISITOR,AutomationFeature.AUTO_SELL,AutomationFeature.JUNK,AutomationFeature.SUPERCRAFT,AutomationFeature.BOOK_COMBINE)){
    var h=a.session.begin(feature,1,1000);check(h!=null&&!a.canOpenSettings()&&a.session.isCurrent(h)&&a.session.holdsFarming()&&a.stops==0,"read-only gate preserves original root/hold: "+feature);
    check(a.session.finish(h,true,2)&&a.canOpenSettings(),"no queued settings replay after root completes: "+feature);
   }
@@ -69,7 +69,7 @@ public final class SettingsTaskGateTest {
   mc.same=false;check(!a.canOpenSettings(),"off-thread gate denies");mc.same=true;
   mc.player=null;mc.level=null;check(a.canOpenSettings(),"title screen still permits local configuration");
   check(a.stops==0&&!a.session.active(),"checking settings never stops/restarts Farm or acquires a lease");
-  System.out.println("SettingsTaskGateTest: PASS (actual read-only native gate, all eight gameplay roots, cursor/container/overlay/thread, legacy Farm/Mining/title preserved)");
+  System.out.println("SettingsTaskGateTest: PASS (actual read-only native gate, all ten gameplay roots, cursor/container/overlay/thread, legacy Farm/Mining/title preserved)");
  }
 }'''.replace('METHODS',gate),files)
 tick=body(client,'tick')

@@ -153,3 +153,10 @@ python3 "$ROOT/scripts/test-pest-exchange-canonical-native.py"
 python3 "$ROOT/scripts/test-pest-spray-tab-native.py"
 
 python3 "$ROOT/scripts/test-pest-spray-selection-native.py"
+
+python3 "$ROOT/scripts/test-pest-spray-buying-native.py"
+
+python3 "$ROOT/scripts/test-pest-spray-runtime-wiring.py"
+python3 "$ROOT/scripts/test-pest-spray-ground-native.py"
+
+python3 "$ROOT/scripts/test-pest-spray-movement-guard.py"

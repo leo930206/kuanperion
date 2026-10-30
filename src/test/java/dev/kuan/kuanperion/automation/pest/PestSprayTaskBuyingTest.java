@@ -1,0 +1,25 @@
+package dev.kuan.kuanperion.automation.pest;
+import dev.kuan.kuanperion.automation.*;import java.util.*;
+public final class PestSprayTaskBuyingTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ static class F extends PestSprayTaskTest.Fixture {
+  final PestSprayTask parent=new PestSprayTask(session,coordinator,receipts,this);AutomationSession.Handle root;SpendingBudget budget;int begins,polls,cancels,messages;boolean throwBegin,reject,delivery,receipt=true,drift,cancelBegin,reenterBegin,staleTab;PestSprayTask.Acquisition result=PestSprayTask.Acquisition.RUNNING;
+  F(){inv=new HashMap<>(inv);inv.put(9,PestSprayPlanTest.AIR);}
+  @Override public void requestSprayData(AutomationSession.Handle h){super.requestSprayData(h);root=h;}
+  public boolean beginSprayAcquisition(AutomationSession.Handle h,PestSprayPolicy p,PestSprayBuying buying,SpendingBudget cap,long at){check(h.equals(root)&&session.isCurrent(h)&&session.holdsFarming(),"same original Farm root");begins++;if(throwBegin)throw new IllegalStateException("begin acquisition fault");budget=cap;check(cap.limit()==1000&&cap.available()==1000,"independent unchanged shared cap");if(reenterBegin)parent.tick(at);if(cancelBegin)parent.cancel(at);return !reject;}
+  public PestSprayTask.Acquisition pollSprayAcquisition(AutomationSession.Handle h,long at){check(h.equals(root),"same root poll");polls++;if(delivery){menu=false;inv=new HashMap<>(inv);inv.put(9,PestSprayPlanTest.material(drift?15:16));if(receipt)receipts.observe(1,0,9,inv.get(9));delivery=false;result=PestSprayTask.Acquisition.COMPLETE;}return result;}
+  public boolean ownsSprayAcquisitionScreen(){return menu;}public void cancelSprayAcquisition(){cancels++;}public void sprayAcquisitionMessage(long w,String t){messages++;}
+  @Override public PestSprayTask.Effect sprayEffect(AutomationSession.Handle h,PestSprayTask.Action a,long at){if(!a.claim(h,sprayFrame(at),at))return PestSprayTask.Effect.REJECTED;switch(a.kind()){case EQUIP->{selected=4;equips++;}case RESTORE->{selected=0;restores++;}case USE->{uses++;inv=new HashMap<>(inv);inv.put(9,PestSprayPlanTest.material(13));receipts.observe(1,0,9,inv.get(9));parent.onSystemMessage(1,"Sprayonator! You sprayed plot 1!",at);spray=new PestSprayObservation(PestSprayObservation.State.ACTIVE);applyTab();}}return PestSprayTask.Effect.SENT;}
+  @Override void tick(){now+=200_000_000L;if(!staleTab&&spray.state()==PestSprayObservation.State.NONE)applyTab();parent.tick(now);}
+  void beginBuy(){check(parent.request(PestSprayPlanTest.policy(),new PestSprayBuying(16,1000),now),"separately authorized deficit can acquire original root");for(int i=0;i<12&&parent.active()&&begins==0;i++)tick();}
+ }
+ public static void main(String[]args){
+  var f=new F();check(!f.parent.request(PestSprayPlanTest.policy(),f.now)&&f.pauses==0&&f.begins==0,"material-use consent alone cannot buy");
+  f=new F();f.reenterBegin=true;f.beginBuy();check(f.parent.state()==PestSprayTask.State.ACQUIRING_STOCK&&f.begins==1,"startup reentrant tick cannot mistake inactive child or repeat begin");f.menu=true;f.context=new AutomationContext(1,true,true,Set.of(AutomationContext.Blocker.MENU));f.parent.onSystemMessage(1,"[Bazaar] Bought",f.now);f.tick();check(f.parent.active()&&f.parent.ownsMenu()&&f.messages==1&&f.equips+f.uses==0,"only original buyer owns temporary screen; GAME forwarded during acquisition only");f.context=new AutomationContext(1,true,true,Set.of());f.delivery=true;for(int i=0;i<40&&f.parent.active();i++)f.tick();check(f.parent.state()==PestSprayTask.State.COMPLETE&&f.begins==1&&f.uses==1&&f.restores==1&&f.pauses==1&&f.stops==0&&f.disposals==1,"one acquisition, canonical delivery, fresh None, one spray, exact restore and original hold resume "+f.parent.state());
+  for(int mode=0;mode<6;mode++){f=new F();if(mode==0)f.reject=true;if(mode==1)f.cancelBegin=true;f.beginBuy();if(mode==2){f.result=PestSprayTask.Acquisition.UNCERTAIN;}if(mode==3){f.receipt=false;f.delivery=true;}if(mode==4){f.drift=true;f.delivery=true;}if(mode==5){f.manual=true;}for(int i=0;i<10&&f.parent.active();i++)f.tick();check(!f.parent.active()&&f.begins==1&&f.uses+f.restores==0&&f.stops==1&&!f.session.active(),"rejected/reentrant-cancel/uncertain/predicted/wrong-target/manual never retries or rearms "+mode+" "+f.parent.state());}
+  f=new F();f.beginBuy();f.staleTab=true;f.delivery=true;f.tabProof=null;for(int i=0;i<30&&f.parent.active();i++)f.tick();check(f.parent.state()==PestSprayTask.State.TIMED_OUT&&f.uses==0&&f.begins==1,"delivered stock alone cannot use without fresh post-GUI scoped None");
+  f=new F();f.throwBegin=true;f.beginBuy();check(!f.parent.active()&&f.parent.state()==PestSprayTask.State.FAILED&&f.stops==1,"throwing child startup cannot leave untickable STARTING_ACQUISITION");
+  f=new F();f.beginBuy();f.now+=121*PestSprayTaskTest.S;f.parent.tick(f.now);check(!f.parent.active()&&f.begins==1&&f.stops==1,"whole acquisition root remains bounded with no renewed lifetime");
+  System.out.println("PestSprayTaskBuyingTest: PASS");
+ }
+}
