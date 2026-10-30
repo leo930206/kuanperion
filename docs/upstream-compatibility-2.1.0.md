@@ -49,3 +49,7 @@ U-BAIT purchase continuation: explicitly configured native-ID/whole-stack stock 
 
 ### U-SPRAY-FOUNDATION — 2026-10-30 (unexposed)
 The selected-material execution foundation and actual native-body fixtures exist, but are not a service/UI workflow. See [spray foundation](pest-spray-2.1.0.md) for static source/bootstrap facts and current evidence boundaries. Local exact grammar, possible Sacks fallback and a provisional five-item nozzle bound are not current-server guarantees. Required before exposure: establish base quantity/all-mode consumption bounds; source-style material GUI and original-root buyer; independent persisted consent and all lifecycle/dispatch cases; then one batched live-evidence audit. No current-server screenshots are required piecemeal while implementing these stages.
+
+
+### U-EXCHANGE canonical native projection correction
+The local metadata-update proof now queries window0 raw36+hotbarIndex, matching the actual client callback and pinned26.2 hotbar range. The previous mocked index0..8 assumption was incorrect and is covered by explicit refusal regressions. Active-menu alias, title/role/cost grammar, original-root scope and no retry remain unchanged. This native-local correction does not close the current-server evidence requirements.

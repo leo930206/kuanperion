@@ -149,3 +149,8 @@
 - [x] Narrow 26.2 controller with no motion/look/flight/key writes, root-bound demand-only existing official catalog, exact-owner disposal; deliberately not instantiated by Bridge and implemented() false.
 - [ ] Actual complete spray vertical slice: source material-selection GUI, same-root stock buying, persisted independent default-off service/UI, refreshed plot/Tab facts and every global lifecycle/dispatch matrix.
 - [ ] Confirm provisional base quantity/nozzle ceiling, Sacks source semantics, plot/title/lore/message grammar and complete current-server batch acceptance before exposure/release. Pure models and native fixtures are not fulfillment of these boxes.
+
+
+## 2026-10-30 — canonical hotbar receipt correction
+- [x] Reproduce713ac98 production bytecode with correct native raw39 vs forged inventory-index3; correct the one window0 query to36+tool.slot(), preserving active alias, root, cursor, ownership, metadata and no-retry guards.
+- [x] All9 hotbar slots x4 dual-alias cases, all9 x3 actual client callback routes, and a separate pinned26.2 native hotbar-range assertion. This closes a model/native projection mismatch, not the still-open live-server acceptance.
