@@ -194,3 +194,6 @@ Farming／Mining 已啟動時，開啟 Kuanperion 的 `'` 選單會繼續移動�
 2.1.0 開發補充：Pest 的非空 Trap Bait 按鈕已新增背包來源接線，需獨立啟用、精確餌料 ID 與非零整疊提取上限；缺料採購需另設原生 ID、庫存與整次預算，零預算不購買。詳見 [補餌邊界](docs/pest-bait-button-2.1.0.md)，此為未發佈／未連服驗收功能，正式 2.0.17 不受影響。
 
 Pest 另有預設關閉的「清理後透過 Abiphone 兌換整袋 Pest」：需已具備 Phillip 聯絡人，只在原清理／補餌完成後呼叫一次；以新的角色／空游標與原 Vacuum 證據確認，再返回。未知費用／回條即停止，不盲重試。詳見 [兌換邊界](docs/pest-exchange-2.1.0.md)；Barn 實體路線與實服驗收尚未完成。
+
+
+噴灑目前僅有[未接入的執行基礎與原生邊界](docs/pest-spray-2.1.0.md)，不是可用的 AutoSprayonator：沒有 service／UI／選料／採購／連續更新，耗材與 Sacks 相容性仍待批次核對。未替換正式遊戲 JAR，也未把未完成開關放入介面。

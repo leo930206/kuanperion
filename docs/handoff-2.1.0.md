@@ -4,6 +4,10 @@
 
 > 最新指示（2026-10-29）：先依 Aether 原流程完成實作，把所有未確認的相容性假設記入 [原版相容性清單](upstream-compatibility-2.1.0.md)。**不要逐項等待／重問截圖**；全數實作完成後再一次核對。保留物品／金額／手動停止保護，實作完成不等於連服驗收。
 
+> 2026-10-30 後續：噴灑已有[未接入的執行基礎](pest-spray-2.1.0.md)，含原生操作／回條模型，但沒有 service、持久化設定、UI、選料、採購或連續更新；仍屬待完成。`PEST_SPRAY.implemented()` 保持 false，不能把測試通過當成功能交付。整體仍採約70%粗估，不是實服驗收率。
+
+> 原生回條稽核另已重現兌換的 canonical 快捷列索引錯誤（inventory index3 被誤作 window0 raw3，而非 raw39）；修正正在獨立下一階段回歸。舊離線 PASS 不表示已連服或沒有後續缺陷；最新提交與驗證補記為準。
+
 ## 1. 哪份才是目前成果
 
 - Repository：<https://github.com/leo930206/kuanperion>，開發分支 `feature/2.1.0`。先讀 `git status`、`git log -5 --oneline`，不要假設 HEAD 就是穩定版。

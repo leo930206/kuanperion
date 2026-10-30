@@ -7,6 +7,7 @@ import static dev.kuan.kuanperion.automation.AutomationCoordinator.Resource.*;
 /** Stable persisted IDs; declaring a feature does not make an unfinished workflow executable. */
 public enum AutomationFeature {
  PEST("pest","Farming",true,Set.of(COMMAND,MOVEMENT,LOOK,HOTBAR,SCREEN,USE)),
+ PEST_SPRAY("pestSpray","Farming",true,Set.of(HOTBAR,USE)),
  GREENHOUSE("greenhouse","Farming",true,Set.of(COMMAND,MOVEMENT,LOOK,HOTBAR,ATTACK)),
  VISITOR("visitor","Farming",true,Set.of(COMMAND,MOVEMENT,LOOK,HOTBAR,SCREEN,USE)),
  COMPOSTER("composter","Farming",true,Set.of(COMMAND,MOVEMENT,LOOK,HOTBAR,SCREEN,ATTACK)),

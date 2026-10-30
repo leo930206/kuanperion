@@ -27,3 +27,7 @@ User amendment2026-10-29: implement the original Aether workflows first using ex
 - A screenshot establishes the displayed format and role candidates, not that an automated click succeeded or that every account has permission. Actual actions still require the current root/world/menu/slot/native item/quantity/cost/cursor and fresh server receipts.
 - Unknown formats remain a refusal. No historical upstream runtime/client is executed, no Aether/author service is contacted, and no telemetry/account fetch is introduced to obtain missing facts.
 - Parent acquisition wiring, caller budgets, safe return, UI opt-in and live acceptance remain implementation/release work even after images arrive; do not relabel them complete merely because a parser fixture passes.
+
+
+### Spray foundation follow-up (unexposed, 2026-10-30)
+Batch evidence must prove base per-plot quantity and every supported nozzle multiplier; the five-item preflight bound is provisional, not inferred authorization for arbitrary server behavior. Include exact selected-material name/native ID, selection GUI and cost roles, applied inventory vs Sacks source behavior, same-plot GAME acknowledgement and a genuinely refreshed active/expired Tab cycle. No native retry, complete UI toggle or live success is currently claimed by this foundation.

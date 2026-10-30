@@ -141,3 +141,11 @@
 - [x] Recovered four Trap Bait button proof failures and added source-style inventory-only native/task/parent/settings/UI wiring: original root/Farming hold, distinct bait trap IDs, exact own remainder return, per-trap/original-run whole-withdrawal ceilings and narrow private native action. No empty-slot/capacity fabrication. Pure/composed/actual-native-body fixtures pass; material purchasing and live format acceptance remain unchecked.
 
 - [x] Trap Bait optional exact stock purchase: separate strict native-ID/count/run-budget consent, same original PEST root and budget identity, at most one acquisition request per trap, guarded delivered-stock revalidation, native GAME route, demand-only official data and all-child/physical cleanup on faults. Actual native-demand/disposal bodies and composed parent buy/refill/return/manual/uncertain cases pass offline; current server acceptance remains unchecked.
+
+
+## 2026-10-30 — unexposed selected-spray execution foundation
+- [x] Source-ID tool/selection facts, explicit material/native-ID/possible-Sacks consent, full43 uniform unprotected commodity preflight, exact catalog name-to-ID binding and provisional worst-case reservation.
+- [x] Independent original-Farm root, bounded natural settling, immutable identities/pose/position-receipt epoch, private one-use equip/use/restore and applied inventory + post-claim same-plot GAME + ACTIVE proofs. Includes reentrant post-acquire/new-generation, cancelled demand, no-op restoration and late native identity regressions.
+- [x] Narrow 26.2 controller with no motion/look/flight/key writes, root-bound demand-only existing official catalog, exact-owner disposal; deliberately not instantiated by Bridge and implemented() false.
+- [ ] Actual complete spray vertical slice: source material-selection GUI, same-root stock buying, persisted independent default-off service/UI, refreshed plot/Tab facts and every global lifecycle/dispatch matrix.
+- [ ] Confirm provisional base quantity/nozzle ceiling, Sacks source semantics, plot/title/lore/message grammar and complete current-server batch acceptance before exposure/release. Pure models and native fixtures are not fulfillment of these boxes.

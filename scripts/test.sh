@@ -145,3 +145,5 @@ python3 "$ROOT/scripts/test-pest-bait-buying-data.py"
 
 python3 "$ROOT/scripts/test-pest-exchange-native.py"
 python3 "$ROOT/scripts/test-pest-exchange-wiring.py"
+
+python3 "$ROOT/scripts/test-pest-spray-native.py"
