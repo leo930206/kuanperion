@@ -15,6 +15,7 @@ public final class NativeObservationTest {
   var lookalike=net.minecraft.network.chat.Component.literal("Spray: None").withStyle(net.minecraft.ChatFormatting.RED);
   if(java.util.Objects.equals(lookalike,info.getTabListDisplayName())||!lookalike.getString().equals(info.getTabListDisplayName().getString()))throw new AssertionError("Equal-looking text is not full Component equality");
   System.out.println("NativeSprayTabDisplayContract: PASS real26.2 PlayerInfo/Entry/Component, no client/account/skin lookup or handler/Mixin claim");
+  PestSpraySelectionGameViewTest.runFixtures();
   AutomationGameViewTest.runFixtures();
   BazaarPurchaseControllerTest.runNativeFixtures();
   System.out.println("NativeObservationTest: PASS (headless vanilla bootstrap; no Mixin/live-server claim)");

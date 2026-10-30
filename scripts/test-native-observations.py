@@ -32,7 +32,7 @@ assert (root/'build/classes/dev/kuan/kuanperion/PestGameView.class').is_file(),'
 classpath=':'.join(dict.fromkeys(cp))
 with tempfile.TemporaryDirectory(prefix='kuanperion-native-') as directory:
     tmp=Path(directory)
-    sources=[root/'src/smoke/java/dev/kuan/kuanperion'/name for name in ['AutomationGameViewTest.java','AutomationPositionViewTest.java','AutomationCursorViewTest.java','AutomationGreenhouseViewTest.java','AutomationComposterViewTest.java','AutomationVisitorViewTest.java','NativeObservationTest.java','SupercraftMenuControllerTest.java','PetGameViewTest.java','BookGameViewTest.java','BookMenuControllerTest.java','BazaarPurchaseControllerTest.java','BazaarAcquisitionControllerTest.java']]
+    sources=[root/'src/smoke/java/dev/kuan/kuanperion'/name for name in ['AutomationGameViewTest.java','AutomationPositionViewTest.java','AutomationCursorViewTest.java','AutomationGreenhouseViewTest.java','AutomationComposterViewTest.java','AutomationVisitorViewTest.java','NativeObservationTest.java','PestSpraySelectionGameViewTest.java','SupercraftMenuControllerTest.java','PetGameViewTest.java','BookGameViewTest.java','BookMenuControllerTest.java','BazaarPurchaseControllerTest.java','BazaarAcquisitionControllerTest.java']]
     sources.append(root/'src/test/java/dev/kuan/kuanperion/automation/BazaarPurchaseViewTest.java')
     subprocess.run([str(java/'javac'),'--release','25','-encoding','UTF-8','-cp',classpath,'-d',str(tmp),*map(str,sources)],check=True,timeout=90)
     subprocess.run([str(java/'java'),'-Xmx512M','-Djava.awt.headless=true','-cp',str(tmp)+':'+classpath,'dev.kuan.kuanperion.BookMenuControllerTest'],cwd=tmp,check=True,timeout=90)

@@ -84,6 +84,24 @@ public final class AutomationMenuActions {
   for(int i=0;i<43;i++)if(!frame.inventory().get(i).equals(AutomationGameView.item(player.getInventory().getItem(i),i<9||i>=36)))return false;
   ownedInput=true;try{player.closeContainer();return player.containerMenu==player.inventoryMenu&&mc.gui.screen()==null&&player.containerMenu.getCarried().isEmpty();}finally{ownedInput=false;}
  }
+ /** Only a private original-root spray selection action may enter this no-carried-item native path. */
+ static dev.kuan.kuanperion.automation.pest.PestSprayTask.Effect sendPestSpraySelectionNative(AutomationSession.Handle h,dev.kuan.kuanperion.automation.pest.PestSpraySelectionTask.Action action,long now,java.util.function.Supplier<dev.kuan.kuanperion.automation.pest.PestSpraySelectionTask.Frame> frames,java.util.function.BooleanSupplier allowed){
+  var rejected=dev.kuan.kuanperion.automation.pest.PestSprayTask.Effect.REJECTED;var mc=Minecraft.getInstance();
+  if(ownedInput||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gameMode==null||h==null||h.lease().owner()!=AutomationFeature.PEST_SPRAY||action==null||!h.equals(action.owner())||action.kind()==dev.kuan.kuanperion.automation.pest.PestSpraySelectionTask.Kind.OPEN)return rejected;
+  var player=mc.player;var level=mc.level;var mode=mc.gameMode;var menu=player.containerMenu;var screen=mc.gui.screen();boolean started=false;
+  try{
+   if(!allowed.getAsBoolean())return rejected;var before=frames.get();
+   if(!(screen instanceof AbstractContainerScreen<?> containerScreen)||containerScreen.getMenu()!=menu||before==null||before.menu()==null||before.menuIdentity()!=menu||!action.claim(h,before,now)||!allowed.getAsBoolean())return rejected;
+   var physical=frames.get();
+   if(ownedInput||mc.player!=player||mc.level!=level||mc.gameMode!=mode||player.containerMenu!=menu||mc.gui.screen()!=screen||mc.gui.overlay()!=null||!menu.getCarried().isEmpty()||!action.matchesSnapshot(physical)||!physical.usable()||!physical.menu().equals(AutomationGameView.menu(mc,h.lease().worldId())))return rejected;
+   if(action.kind()==dev.kuan.kuanperion.automation.pest.PestSpraySelectionTask.Kind.CLICK){
+    var ticket=action.ticket();if(ticket==null||ticket.click()!=MenuContract.Click.PICKUP||ticket.slot()<0||ticket.slot()>=physical.menu().containerSlots()||physical.menu().slot(ticket.slot()).playerInventory())return rejected;
+    var slot=menu.slots.get(ticket.slot());if(slot.index!=ticket.slot()||slot.container==player.getInventory()||slot.isFake()||!slot.isActive()||!slot.mayPickup(player)||!physical.menu().item(ticket.slot()).equals(AutomationGameView.item(slot.getItem(),false)))return rejected;
+    ownedInput=true;started=true;mode.handleContainerInput(menu.containerId,ticket.slot(),0,ContainerInput.PICKUP,player);
+   }else{ownedInput=true;started=true;player.closeContainer();if(player.containerMenu!=player.inventoryMenu||mc.gui.screen()!=null||!player.containerMenu.getCarried().isEmpty())return dev.kuan.kuanperion.automation.pest.PestSprayTask.Effect.UNCERTAIN;}
+   return dev.kuan.kuanperion.automation.pest.PestSprayTask.Effect.SENT;
+  }catch(RuntimeException ambiguous){return started?dev.kuan.kuanperion.automation.pest.PestSprayTask.Effect.UNCERTAIN:rejected;}finally{if(started)ownedInput=false;}
+ }
  /** Exact native sign identity after owned Custom Amount; only decimal quantities, no clipboard/raw commands. */
  static net.minecraft.client.input.KeyEvent bazaarSelectAllKey(){return new net.minecraft.client.input.KeyEvent(65,0,net.minecraft.client.input.InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER);}
  static boolean enterBazaarAmountNative(Object expected,int quantity){

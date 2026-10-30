@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion.automation.pest;
 import dev.kuan.kuanperion.automation.*;import java.util.*;
-/** Selected-material path. No implicit selection, purchasing, stack moves or guessed Sacks receipt. */
+/** Prepared or selected-material path. No implicit selection, purchasing, stack moves or guessed Sacks receipt. */
 public final class PestSprayPlan {
  /** PROVISIONAL five-item bound from x3/x5 modes; verify base/all-mode cost before enabling this foundation. */
  public static final int WORST_CASE_ITEMS=5;
@@ -9,9 +9,12 @@ public final class PestSprayPlan {
  private PestSprayPlan(PestSprayPolicy p,PestSprayTool.Tool t,Map<Integer,ItemSnapshot> inv,Set<Integer> s){policy=p;tool=t;baseline=Map.copyOf(inv);sources=Set.copyOf(s);}
  public PestSprayTool.Tool tool(){return tool;}public Map<Integer,ItemSnapshot> baseline(){return baseline;}public int reservedItems(){return WORST_CASE_ITEMS;}
  public boolean stillMatches(Map<Integer,ItemSnapshot> inv){return complete(inv)&&baseline.equals(inv);}
- public static Optional<PestSprayPlan> select(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){
+ public static Optional<PestSprayPlan> select(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,true);}
+ /** Preparation permits only a guarded selection workflow, never USE before an exact selected plan is rebuilt. */
+ public static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv){return prepare(p,inv,false);}
+ private static Optional<PestSprayPlan> prepare(PestSprayPolicy p,Map<Integer,ItemSnapshot> inv,boolean selectedOnly){
   if(p==null||!p.configured()||!complete(inv))return Optional.empty();PestSprayTool.Tool tool=null;
-  for(int i=0;i<9;i++){var match=PestSprayTool.read(i,inv.get(i));if(match.isPresent()&&match.get().selectedMaterial().equals(p.materialName())){if(tool!=null)return Optional.empty();tool=match.get();}}
+  for(int i=0;i<9;i++){var match=PestSprayTool.read(i,inv.get(i));if(match.isPresent()&&(!selectedOnly||match.get().selectedMaterial().equals(p.materialName()))){if(tool!=null)return Optional.empty();tool=match.get();}}
   if(tool==null)return Optional.empty();var protection=new InventoryProtection(Set.of(p.materialId()),p.protectedUuids());var sources=new HashSet<Integer>();ItemSnapshot identity=null;int total=0;
   for(int i=0;i<43;i++){
    var x=inv.get(i);if(!x.skyblockId().equals(p.materialId()))continue;

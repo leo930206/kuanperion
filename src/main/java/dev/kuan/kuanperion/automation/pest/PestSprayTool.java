@@ -22,6 +22,7 @@ public final class PestSprayTool {
   }
   return selected==null?Optional.empty():Optional.of(new Tool(slot,item,selected));
  }
+ public static boolean isSelectionLine(String raw){return raw!=null&&MATERIAL.matcher(clean(raw)).matches();}
  private static String clean(String raw){return raw.replaceAll("(?i)§[0-9a-fk-orx]","").replaceAll("\\s+"," ").strip();}
  private static String name(String raw){if(raw==null||raw.length()>256||raw.codePoints().anyMatch(Character::isISOControl))return null;var value=clean(raw);return value.matches("[\\p{L}\\p{N}][\\p{L}\\p{N} _'()\\-]{0,63}")?value:null;}
 }

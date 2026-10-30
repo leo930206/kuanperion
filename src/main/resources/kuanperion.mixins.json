@@ -12,7 +12,8 @@
     "AutomationInventoryInputMixin",
     "AutomationWorldInputMixin",
     "AutomationSignInputMixin",
-    "AutomationContainerCloseMixin"
+    "AutomationContainerCloseMixin",
+    "SprayCarriedItemAccess"
   ],
   "injectors": {
     "defaultRequire": 1
