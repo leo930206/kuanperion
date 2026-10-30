@@ -56,7 +56,8 @@
 - [x] Delayed applied server trap-close observation retains the original hold; local/manual/ignored/stale close remains cancellation.
 - [x] Bait declared direct-item transfer protocol/subtask: explicit protected43 material/count/capacity preflight, fresh pickup/deposit/owned remainder-return/cursor/NoBait receipts, same original Pest/Farm root and exact owned close; no native caller or live layout claim.
 - [ ] Bait current-server role/Tab/cursor/delivery format and complete live trap acceptance. Source-style button native/parent/navigation/settings/UI and optional original-root acquisition are wired in the latest checkpoints; the old direct-item/capacity model remains unsupported.
-- [ ] Exchange/spray.
+- [x] Source-style Abiphone exchange after completed cleanup/bait: independent default-false consent, one fixed typed call under the original root, private native one-use click/close, fresh applied role/cursor/owned-Vacuum proof, strict settings/UI and failure cleanup (offline focused tests).
+- [ ] Exchange Barn/physical-NPC route, spray, and full current-server exchange semantics/receipt acceptance.
 - [x] Read-only explicit Feast/Jacob/Jacob-then-Feast target selection: independent exact priorities/profiles, fresh world-bound known facts, inactive-only explicit fallback, no first-crop guess or copied event feed. No runtime caller/action/UI or current mapping claim.
 - [ ] Event/crop strategies and due-task scheduling.
 

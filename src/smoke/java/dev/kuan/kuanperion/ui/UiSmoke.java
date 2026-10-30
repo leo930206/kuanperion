@@ -48,12 +48,13 @@ public final class UiSmoke implements ClientModInitializer {
             if(expanded && ui.context().animation.sidebarAnim<.95f && ticks<140)return;
             if(phase==30&&ticks<105)return; // Enter collapsed rail, let it expand, then probe its covered card for 35 frames.
             ticks=0;
-            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine","40-pest-bait"};
+            String[] names={"01-overview","02-farming","03-mining","04-jerry","05-colors","06-auto-persistence","07-keybinds","08-settings","09-search","10-reopened","11-pest-inline","12-selected-targets","13-color-presets","14-farming-sidebar","15-mining-sidebar","16-other-sidebar","17-setting-sidebar","18-setting-colors","19-setting-interface-route","20-setting-keybinds","21-setting-interface","22-about-sidebar","23-resize-small","24-resize-restored","25-resize-large","26-webhook-wide","27-jerry-row","28-visitor-help","29-search-caret","30-hover-no-tooltip","31-sidebar-hover","32-module-hover","33-mining-full","34-mining-seven-slots","35-trade","36-stash","37-npc-sell","38-junk","39-book-combine","40-pest-bait","41-pest-exchange"};
             if(phase>=names.length){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;}
             System.out.println("UI_SMOKE_STATE "+phase+" main="+ui.getActiveMainTab()+" module="+(ui.getActiveModuleSubTab()==null?"none":ui.getActiveModuleSubTab().name())+" filter="+ui.context().navigation.activeFilter+" live="+(mc.gui.screen()==ui));
             if(!phaseValidated) {
             if(phase==0) { testChatBodyStyles(); testSettingsCommand(mc); testSidebarRouting(); testStashUi(mc); testAutoSellUi(); testJunkUi(); testPestUi(); testGreenhouseUi(); testComposterUi(); testVisitorUi(); testSupercraftUi(); testBookUi(); testPetUi(); testJerryHomeGuard(mc); testSettingsAutomation(mc); testModIcon(); testSafety(mc); dev.kuan.kuanperion.AutomationGameViewTest.main(new String[0]); testTheme(mc); testPreferenceReload(mc); testNewUiFeatures(mc); testSelectedModels(); if(Boolean.getBoolean("kuanperion.smoke.chatOnly")){completed=true;System.out.println("UI_SMOKE_PASS");mc.stop();return;} }
             if(phase==34)assertGroup(2);
+            if(phase==40)testPestExchangeHit();
             if(phase==39){if(!ui.getActiveModuleSubTab().name().equals("Pest"))throw new AssertionError("bait detail route");var note=(dev.kuan.kuanperion.ui.settings.InfoSetting)ui.getActiveModuleSubTab().groups().getFirst().getSettings().stream().filter(v->v.getName().equals("補餌限制")).findFirst().orElseThrow();if(!note.isMultiline())throw new AssertionError("long bait explanation must wrap, not overflow");}
             if(phase==38){if(!ui.getActiveModuleSubTab().name().equals("Book Combine"))throw new AssertionError("Book detail route");testBookHeaderLayout();}
             if(phase==35 && !ui.getActiveModuleSubTab().name().equals("Stash"))throw new AssertionError("Stash detail route");
@@ -157,6 +158,7 @@ public final class UiSmoke implements ClientModInitializer {
                 case 32 -> {setCapacityFixture(true);}
                 case 33 -> {setCapacityFixture(false);}
                 case 34 -> clickSidebar(2);
+                case 40 -> {var tab=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow();var group=tab.groups().getFirst();var setting=group.getSettings().stream().filter(v->v.getName().equals("清理後透過 Abiphone 兌換整袋 Pest")).findFirst().orElseThrow();ui.openSearchResult(0,tab,group,setting);}
                 case 39 -> {dev.kuan.kuanperion.ui.theme.Theme.TEXT_SCALE=bookHeaderTextScale;var tab=MainGUIRegistry.MODULE_SUBTABS.stream().filter(t->t.name().equals("Pest")).findFirst().orElseThrow();var group=tab.groups().getFirst();var setting=group.getSettings().stream().filter(v->v.getName().equals("餌料物品 ID")).findFirst().orElseThrow();ui.openSearchResult(0,tab,group,setting);}
                 case 38 -> {
                     // Exercise the wrapped real header at a supported text size, not an assumed HiDPI viewport.
@@ -285,7 +287,8 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)rows.get(10)).setValue(true);
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(11)).setValue(0);
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(2)).setValue(3);
-        if(pest.policy().bait().enabled()||pest.policy().bait().canBuy())throw new AssertionError("old flags grant no bait or purchase consent");
+        if(pest.policy().bait().enabled()||pest.policy().bait().canBuy()||pest.policy().exchangeAfterCleanup())throw new AssertionError("old flags grant no bait/purchase/exchange consent");
+        ((dev.kuan.kuanperion.ui.settings.ToggleSetting)named.apply("清理後透過 Abiphone 兌換整袋 Pest")).setValue(true);
         ((dev.kuan.kuanperion.ui.settings.ToggleSetting)named.apply("處理缺餌陷阱（獨立授權）")).setValue(true);
         ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("餌料物品 ID")).setValue("TASTY_CHEESE");
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)named.apply("每個陷阱最多提取餌料（0 停用）")).setValue(16);
@@ -293,15 +296,27 @@ public final class UiSmoke implements ClientModInitializer {
         ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("購料原生物品 ID")).setValue("minecraft:paper");
         ((dev.kuan.kuanperion.ui.settings.SliderSetting)named.apply("缺料時補到此庫存（0 不購料）")).setValue(16);
         ((dev.kuan.kuanperion.ui.settings.TextSetting)named.apply("整次補餌購料預算（Coins，0 關閉）")).setValue("1000");
+        ((dev.kuan.kuanperion.ui.settings.SliderSetting)rows.get(2)).setValue(3);
+        if(!pest.policy().exchangeAfterCleanup())throw new AssertionError("unrelated threshold edit dropped explicit exchange consent");
         ((dev.kuan.kuanperion.ui.settings.ActionSetting)named.apply("關閉選單後清理 Pest")).execute();
         if(pest.active()||named.apply("停止本次除蟲").isVisible())throw new AssertionError("offline Pest request must not fly/use tools");
         var path=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kuanperion/automation.json");var saved=dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path);
         if(!saved.enabled(dev.kuan.kuanperion.automation.AutomationFeature.PEST)||saved.pestPolicy().threshold()!=3||!saved.pestPolicy().sweep()||saved.pestPolicy().travelPlots()!=2||!saved.pestPolicy().clearTraps()||saved.pestPolicy().trapPlot()!=0||bridge.autoSell().autoEnabled()||bridge.junk().autoEnabled())throw new AssertionError("Pest settings not independent/external/persistent");
         if(!saved.pestPolicy().equals(pest.policy())||!saved.pestPolicy().bait().canBuy()||saved.pestPolicy().bait().rules().maximumPerTrap()!=16||saved.pestPolicy().bait().buying().maximumCoins()!=1000)throw new AssertionError("bait native ID/whole-run caps must persist independently");
         var flightField=bridge.getClass().getDeclaredField("flight");flightField.setAccessible(true);var flight=flightField.get(bridge);var catalogField=flight.getClass().getDeclaredField("baitCatalog");catalogField.setAccessible(true);if(catalogField.get(flight)!=null)throw new AssertionError("settings/offline request cannot create buyer transport");
+        if(!saved.pestPolicy().exchangeAfterCleanup()||bridge.session().active())throw new AssertionError("independent exchange consent must persist without offline command/root");
+        System.out.println("UI_SMOKE_PEST_EXCHANGE_PASS real independent default-false consent/callback/persistence, preserved across threshold/bait edits, no offline command/root");
         System.out.println("UI_SMOKE_PEST_BAIT_PASS real named setting callbacks, independent default-off bait/buy consent, exact ID/withdrawal/coin caps/external persistence; no offline HTTP/gameplay");
         pest.setEnabled(false);pest.setPolicy(dev.kuan.kuanperion.automation.pest.PestPolicy.defaults());notify.setValue(old);clickSidebar(0);assertGroup(0);
         System.out.println("UI_SMOKE_PEST_PASS real page/callbacks, independent notification and automation flags, external policy, no offline flight/use, safe default restoration");
+    }
+    private void testPestExchangeHit() throws Exception {
+        var tab=ui.getActiveModuleSubTab();if(!tab.name().equals("Pest"))throw new AssertionError("exchange detail route");var group=tab.groups().getFirst();
+        var toggle=(dev.kuan.kuanperion.ui.settings.ToggleSetting)group.getSettings().stream().filter(v->v.getName().equals("清理後透過 Abiphone 兌換整袋 Pest")).findFirst().orElseThrow();
+        var note=(dev.kuan.kuanperion.ui.settings.InfoSetting)group.getSettings().stream().filter(v->v.getName().equals("兌換限制")).findFirst().orElseThrow();if(!note.isMultiline()||toggle.getValue())throw new AssertionError("exchange safe default/wrappable limits");
+        var row=rowFor(toggle);if(row[1]<ui.contentScrollTop()||row[1]+row[3]>ui.context().layout.py+ui.context().layout.ph-10)throw new AssertionError("exchange toggle must be visible for an actual hit");
+        float x=row[0]+row[2]-31,y=row[1]+(row[3]-5)/2;click(x,y);if(!toggle.getValue())throw new AssertionError("exchange native checkbox click missed");click(x,y);if(toggle.getValue())throw new AssertionError("exchange second click must restore false");
+        System.out.println("UI_SMOKE_PEST_EXCHANGE_HIT_PASS actual checkbox hit and restored default; no live Phillip interaction");
     }
     private void testGreenhouseUi() throws Exception {
         var field=dev.kuan.kuanperion.KuanperionClient.class.getDeclaredField("automation");field.setAccessible(true);

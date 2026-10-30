@@ -12,14 +12,16 @@ import net.minecraft.world.phys.*;
 
 /** Pest-specific observations/use/traps; primitive flight remains one separately leased fixed-feature core. */
 public final class PestFlightController implements PestTask.Port {
+ public interface ExchangeOpener {boolean open(AutomationSession.Handle handle,long now);}
  public interface Travel {boolean send(AutomationSession.Handle handle,PestPlot plot,long now);}
  private final Travel travel;private final AutomationCoordinator coordinator;private final AutomationSession session;private final Supplier<AutomationContext> observe;private final GardenFlightCore flight;
- private final InventoryReceipts baitItems;private final CursorReceipts baitCursors;private final BazaarAcquisitionController.Opener baitOpener;private final java.util.function.LongSupplier baitPurse;
+ private final InventoryReceipts baitItems;private final CursorReceipts baitCursors;private final BazaarAcquisitionController.Opener baitOpener;private final java.util.function.LongSupplier baitPurse;private final ExchangeOpener exchangeOpener;
  private HypixelItemCatalogClient baitCatalog;private HypixelMarketClient baitPrices;private AutomationSession.Handle baitDataOwner,baitBuyingOwner;private Object baitDataLevel;private long baitDataRequestedAt;private PestBaitPolicy baitBuyingPolicy;private SpendingBudget baitBuyingBudget;private int baitBuyingRemaining;private BazaarAcquisitionController baitAcquisition;
  private PestGameView.Snapshot latestFacts;private PestIdentity.Vacuum preparedTool;private long lastUse;private boolean used;
  public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe){this(coordinator,session,observe,(h,p,n)->false);}
  public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel){this(coordinator,session,observe,travel,null,null,null,null);}
- public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse){this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;this.baitItems=items;this.baitCursors=cursors;this.baitOpener=opener;this.baitPurse=purse;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.PEST);}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse){this(coordinator,session,observe,travel,items,cursors,opener,purse,(h,n)->false);}
+ public PestFlightController(AutomationCoordinator coordinator,AutomationSession session,Supplier<AutomationContext> observe,Travel travel,InventoryReceipts items,CursorReceipts cursors,BazaarAcquisitionController.Opener opener,java.util.function.LongSupplier purse,ExchangeOpener exchangeOpener){this.exchangeOpener=Objects.requireNonNull(exchangeOpener);this.coordinator=coordinator;this.session=session;this.observe=observe;this.travel=travel;this.baitItems=items;this.baitCursors=cursors;this.baitOpener=opener;this.baitPurse=purse;flight=new GardenFlightCore(coordinator,session,observe,AutomationFeature.PEST);}
  private boolean allowed(AutomationSession.Handle h,long now,AutomationCoordinator.Resource... resources){return flight.allowed(h,now,resources);}
  public boolean manualInput(){return flight.manualInput();}
  static FlightAnchor flightAnchor(PestTask.Anchor anchor){return new FlightAnchor(anchor.position(),anchor.yaw(),anchor.pitch(),anchor.slot(),anchor.item(),anchor.flying());}
@@ -65,6 +67,20 @@ public PestTargets.Point position(){return mc().player==null?null:point(mc().pla
   if(h==null||h.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(h)||flight.owner()==null||!flight.owner().equals(h)||flight.levelIdentity()!=mc.level||!mc.isSameThread()||mc.player==null||mc.gameMode==null||mc.gui.overlay()!=null||manualInput()||!mc.player.isAlive()||mc.player.isSpectator()||mc.player.isPassenger()||mc.player.isSleeping()||mc.player.isUsingItem()||!mc.player.getAbilities().mayfly||preparedTool==null||mc.player.getInventory().getSelectedSlot()!=preparedTool.slot()||!PestIdentity.sameVacuum(preparedTool,AutomationGameView.item(mc.player.getMainHandItem(),true)))return GuardedMenuAction.Result.REJECTED;
   return AutomationMenuActions.sendPestBaitNative(h,action,baitFrame(now),now)?GuardedMenuAction.Result.SENT:GuardedMenuAction.Result.REJECTED;
  }
+ public PestExchangeTask.Frame exchangeFrame(long now){
+  var mc=mc();var c=context();var player=mc.player;var cursor=player==null?new ItemSnapshot("","minecraft:air","","","",0,List.of(),true):AutomationGameView.item(player.containerMenu.getCarried(),false);
+  return new PestExchangeTask.Frame(c.worldId(),now,mc.level,player==null?null:player.containerMenu,AutomationGameView.menu(mc,c.worldId()),VisitorGameView.inventory(mc),cursor,player==null?-1:player.getInventory().getSelectedSlot());
+ }
+ private boolean exchangeNativeAllowed(AutomationSession.Handle h){
+  var c=context();var mc=mc();var player=mc.player;
+  return h!=null&&h.lease().owner()==AutomationFeature.PEST&&session.isCurrent(h)&&coordinator.holdsIdentity(h.lease())&&h.equals(flight.owner())&&flight.levelIdentity()==mc.level&&mc.isSameThread()&&player!=null&&mc.gameMode!=null&&mc.gui.overlay()==null&&!manualInput()&&player.isAlive()&&!player.isSpectator()&&!player.isPassenger()&&!player.isSleeping()&&!player.isUsingItem()&&player.getAbilities().mayfly&&preparedTool!=null&&player.getInventory().getSelectedSlot()==preparedTool.slot()&&PestIdentity.sameVacuum(preparedTool,AutomationGameView.item(player.getMainHandItem(),true))&&c.worldId()==h.lease().worldId()&&c.garden()&&(h.hold()==null||c.farmingActive())&&c.blockers().stream().allMatch(b->b==AutomationContext.Blocker.MENU);
+ }
+ public boolean openExchange(AutomationSession.Handle h,long now){return exchangeNativeAllowed(h)&&allowed(h,now,AutomationCoordinator.Resource.COMMAND)&&exchangeOpener.open(h,now);}
+ public GuardedMenuAction.Result exchangeClick(AutomationSession.Handle h,PestExchangeTask.Action action,long now){
+  if(!exchangeNativeAllowed(h))return GuardedMenuAction.Result.REJECTED;
+  try{return AutomationMenuActions.sendPestExchangeNative(h,action,exchangeFrame(now),now)?GuardedMenuAction.Result.SENT:GuardedMenuAction.Result.REJECTED;}catch(RuntimeException ambiguous){return GuardedMenuAction.Result.UNCERTAIN;}
+ }
+ public boolean closeExchange(AutomationSession.Handle h,PestExchangeTask.Action action,long now){return exchangeNativeAllowed(h)&&AutomationMenuActions.closePestExchangeNative(h,action,exchangeFrame(now),now);}
  /** Demand-only official data; a pre-existing root and explicit native product/count/whole-run budget are mandatory. */
  public boolean beginBaitAcquisition(AutomationSession.Handle h,PestBaitPolicy policy,SpendingBudget budget,int remaining,long now){
   if(!mc().isSameThread()||baitBuyingOwner!=null||baitItems==null||baitCursors==null||baitOpener==null||baitPurse==null||h==null||h.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(h)||!h.equals(flight.owner())||flight.levelIdentity()!=mc().level||!flight.allowed(h,now,AutomationCoordinator.Resource.COMMAND)||policy==null||!policy.canBuy()||budget==null||budget.limit()!=policy.buying().maximumCoins()||budget.available()<=0||remaining<policy.buying().targetCount()||remaining>policy.rules().maximumRunItems()||baitDataOwner!=null&&!baitDataOwner.equals(h))return false;

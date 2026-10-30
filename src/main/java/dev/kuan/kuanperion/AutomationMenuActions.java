@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package dev.kuan.kuanperion;
 import dev.kuan.kuanperion.automation.*;
+import dev.kuan.kuanperion.automation.pest.PestExchangeTask;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.inventory.ContainerInput;
@@ -59,6 +61,28 @@ public final class AutomationMenuActions {
   }
   for(int i=0;i<43;i++)if(!frame.inventory().get(i).equals(AutomationGameView.item(mc.player.getInventory().getItem(i),i<9||i>=36)))return false;
   ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,request.slot(),0,ContainerInput.PICKUP,mc.player);return true;}finally{ownedInput=false;}
+ }
+ /** Narrow source-role exchange only; carried items remain rejected by the generic sender. */
+ static boolean sendPestExchangeNative(AutomationSession.Handle owner,PestExchangeTask.Action action,PestExchangeTask.Frame frame,long now){
+  var mc=Minecraft.getInstance();
+  if(ownedInput||mc==null||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gameMode==null||mc.gui.overlay()!=null||owner==null||owner.lease().owner()!=AutomationFeature.PEST||action==null||action.kind()!=PestExchangeTask.Kind.CLICK||frame==null||frame.menu()==null||frame.world()!=owner.lease().worldId()||mc.level!=frame.level()||frame.cursor().count()!=0)return false;
+  var player=mc.player;var menu=player.containerMenu;var screen=mc.gui.screen();var ticket=action.ticket();
+  if(!(screen instanceof AbstractContainerScreen<?> containerScreen)||containerScreen.getMenu()!=menu||menu!=frame.menuIdentity()||menu.containerId!=frame.menu().containerId()||ticket==null||ticket.click()!=MenuContract.Click.PICKUP||!frame.menu().equals(ticket.observed())||!frame.menu().equals(AutomationGameView.menu(mc,frame.world()))||menu.slots.size()!=frame.menu().slots().size()||ticket.slot()<0||ticket.slot()>=frame.menu().containerSlots()||frame.menu().slot(ticket.slot()).playerInventory()||player.getInventory().getContainerSize()!=43)return false;
+  if(!action.claim(owner,frame,now)||ownedInput||mc.level!=frame.level()||mc.player!=player||player.containerMenu!=menu||mc.gui.screen()!=screen||mc.gui.overlay()!=null||!player.isAlive()||player.isSpectator()||player.isPassenger()||player.isSleeping()||player.isUsingItem()||!player.getAbilities().mayfly||player.getInventory().getSelectedSlot()!=frame.selected()||!menu.getCarried().isEmpty()||!frame.menu().equals(AutomationGameView.menu(mc,frame.world())))return false;
+  var slot=menu.slots.get(ticket.slot());
+  if(slot.index!=ticket.slot()||slot.container==player.getInventory()||slot.isFake()||!slot.isActive()||!slot.mayPickup(player)||!frame.menu().item(ticket.slot()).equals(AutomationGameView.item(slot.getItem(),false)))return false;
+  for(int i=0;i<43;i++)if(!frame.inventory().get(i).equals(AutomationGameView.item(player.getInventory().getItem(i),i<9||i>=36)))return false;
+  ownedInput=true;try{mc.gameMode.handleContainerInput(menu.containerId,ticket.slot(),0,ContainerInput.PICKUP,player);return true;}finally{ownedInput=false;}
+ }
+ /** One-use close of the exact acknowledged menu; never closes an unknown or taken-over screen. */
+ static boolean closePestExchangeNative(AutomationSession.Handle owner,PestExchangeTask.Action action,PestExchangeTask.Frame frame,long now){
+  var mc=Minecraft.getInstance();
+  if(ownedInput||mc==null||!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.overlay()!=null||owner==null||owner.lease().owner()!=AutomationFeature.PEST||action==null||action.kind()!=PestExchangeTask.Kind.CLOSE||frame==null||frame.menu()==null||frame.world()!=owner.lease().worldId()||mc.level!=frame.level()||frame.cursor().count()!=0)return false;
+  var player=mc.player;var menu=player.containerMenu;var screen=mc.gui.screen();
+  if(!(screen instanceof AbstractContainerScreen<?> containerScreen)||containerScreen.getMenu()!=menu||menu!=frame.menuIdentity()||menu.containerId!=frame.menu().containerId()||player.getInventory().getContainerSize()!=43||!frame.menu().equals(AutomationGameView.menu(mc,frame.world())))return false;
+  if(!action.claim(owner,frame,now)||ownedInput||mc.level!=frame.level()||mc.player!=player||player.containerMenu!=menu||mc.gui.screen()!=screen||mc.gui.overlay()!=null||!player.isAlive()||player.isSpectator()||player.isPassenger()||player.isSleeping()||player.isUsingItem()||!player.getAbilities().mayfly||player.getInventory().getSelectedSlot()!=frame.selected()||!menu.getCarried().isEmpty()||!frame.menu().equals(AutomationGameView.menu(mc,frame.world())))return false;
+  for(int i=0;i<43;i++)if(!frame.inventory().get(i).equals(AutomationGameView.item(player.getInventory().getItem(i),i<9||i>=36)))return false;
+  ownedInput=true;try{player.closeContainer();return player.containerMenu==player.inventoryMenu&&mc.gui.screen()==null&&player.containerMenu.getCarried().isEmpty();}finally{ownedInput=false;}
  }
  /** Exact native sign identity after owned Custom Amount; only decimal quantities, no clipboard/raw commands. */
  static net.minecraft.client.input.KeyEvent bazaarSelectAllKey(){return new net.minecraft.client.input.KeyEvent(65,0,net.minecraft.client.input.InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER);}

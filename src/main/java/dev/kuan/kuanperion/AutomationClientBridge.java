@@ -40,7 +40,7 @@ public final class AutomationClientBridge {
   var settings=AutomationSettingsStore.load(configDir.resolve("kuanperion/automation.json"));
   stash=new StashService(settings,coordinator,this::observe,this::send,feedback);
   session=new AutomationSession(coordinator,this::observe,pauseFarm,safeStopFarm);
-  flight=new PestFlightController(coordinator,session,this::observe,this::sendPestTravel,receipts,cursors,this::sendBazaarAcquisition,()->BazaarPurse.read(sidebar.apply(Minecraft.getInstance())).orElse(-1));
+  flight=new PestFlightController(coordinator,session,this::observe,this::sendPestTravel,receipts,cursors,this::sendBazaarAcquisition,()->BazaarPurse.read(sidebar.apply(Minecraft.getInstance())).orElse(-1),this::sendPestExchange);
   pest=new PestService(settings,session,flight,positions,coordinator,receipts,cursors,()->screenReady(AutomationFeature.PEST),feedback);
   greenhouseFlight=new GreenhouseFlightController(coordinator,session,this::observe,this::sendGreenhouseTravel);
   greenhouse=new GreenhouseService(settings,session,positions,harvests,greenhouseFlight,()->screenReady(AutomationFeature.GREENHOUSE),feedback);
@@ -285,6 +285,14 @@ public final class AutomationClientBridge {
   if(!mc.isSameThread()||mc.player==null||mc.level==null||mc.gui.screen()!=null||mc.gui.overlay()!=null||mc.player.containerMenu!=mc.player.inventoryMenu||!mc.player.containerMenu.getCarried().isEmpty()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
   ownGameplayCommand=true;observedGameplayCommand=false;
   try{mc.player.connection.sendCommand("anvil");if(!observedGameplayCommand)return false;feedback.accept(new StashService.Notice("已發送 /anvil",false,"Book Combine"));return true;}finally{ownGameplayCommand=false;}
+ }
+ /** Supplied source's Abiphone alternative, fixed /call phillip once under the existing Pest root. */
+ private boolean sendPestExchange(AutomationSession.Handle handle,long now){
+  if(handle==null||handle.lease().owner()!=AutomationFeature.PEST||!session.isCurrent(handle))return false;
+  var mc=Minecraft.getInstance();var level=mc.level;var player=mc.player;var context=observe();
+  if(!mc.isSameThread()||mc.player==null||mc.level==null||mc.level!=level||mc.player!=player||!context.garden()||mc.gui.screen()!=null||mc.gui.overlay()!=null||mc.player.containerMenu!=mc.player.inventoryMenu||!mc.player.containerMenu.getCarried().isEmpty()||!coordinator.permits(handle.lease(),AutomationCoordinator.Resource.COMMAND,context,now))return false;
+  boolean previousOwn=ownGameplayCommand,previousObserved=observedGameplayCommand;ownGameplayCommand=true;observedGameplayCommand=false;
+  try{mc.player.connection.sendCommand("call phillip");return observedGameplayCommand;}finally{ownGameplayCommand=previousOwn;observedGameplayCommand=previousObserved;}
  }
  /** Source-marked fixed /call george only; no arbitrary command or author service. */
  private boolean sendPetGeorge(AutomationSession.Handle handle,long now){

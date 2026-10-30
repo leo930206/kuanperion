@@ -142,3 +142,6 @@ python3 "$ROOT/scripts/test-upstream-compatibility.py"
 python3 "$ROOT/scripts/test-pest-bait-native.py" "$JAVA_HOME"
 
 python3 "$ROOT/scripts/test-pest-bait-buying-data.py"
+
+python3 "$ROOT/scripts/test-pest-exchange-native.py"
+python3 "$ROOT/scripts/test-pest-exchange-wiring.py"

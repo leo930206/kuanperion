@@ -49,7 +49,7 @@ public final class PestService {
   var state=task.state();if(state==reported||task.active()||state==PestTask.State.IDLE)return;reported=state;
   boolean success=state==PestTask.State.COMPLETE;
   if(!success){suspended=true;try{settings.setEnabled(AutomationFeature.PEST,false);}catch(IOException ignored){}}
-  String text=success?"已確認 Pest 數量減少 "+task.confirmedDecreases()+" 次"+(task.confirmedBaits()>0?"，已完成補餌 "+task.confirmedBaits()+" 個陷阱":"")+"，已返回原位。":switch(state){
+  String text=success?"已確認 Pest 數量減少 "+task.confirmedDecreases()+" 次"+(task.confirmedBaits()>0?"，已完成補餌 "+task.confirmedBaits()+" 個陷阱":"")+(task.confirmedExchanges()>0?"，已確認兌換 "+task.confirmedExchanges()+" 次":"")+"，已返回原位。":switch(state){
    case INCOMPLETE->"已返回原位，但仍有未完成的 Pest／陷阱工作或補餌條件不符，已停用自動除蟲，等待操作。";
    case CANCELLED->"Pest 已停止，等待操作。";
    case TIMED_OUT->"Pest 逾時，已停止並停用自動除蟲，等待操作。";

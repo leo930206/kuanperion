@@ -1,6 +1,6 @@
 # 2.1.0 交接總覽（先讀這份）
 
-更新日期：2026-10-29。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
+更新日期：2026-10-30。此為未發佈開發線，不是完整升級驗收，也不是安裝說明。
 
 > 最新指示（2026-10-29）：先依 Aether 原流程完成實作，把所有未確認的相容性假設記入 [原版相容性清單](upstream-compatibility-2.1.0.md)。**不要逐項等待／重問截圖**；全數實作完成後再一次核對。保留物品／金額／手動停止保護，實作完成不等於連服驗收。
 
@@ -29,7 +29,7 @@
 | 區塊 | 目前開發線 | 尚未完成／驗收 |
 | --- | --- | --- |
 | 共用底層 | 單一可撤銷 root、原 Farming hold、世界／選單／物品／游標回條、外部設定及停用保護 | 後續新模組全生命週期與跨任務接續矩陣、連服驗收 |
-| Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回及原通知 | 新增非空 Trap Bait 補餌／原 root 限額採購接線；當前角色／語法／回條及連服驗收、兌換／噴灑、完整活動／作物策略 |
+| Pest | 已載入目標、可選地塊搜尋、陷阱釋放／捕捉／返回、非空按鈕補餌／原 root 限額購料及獨立通知；新增清理後 Abiphone 兌換接線 | 當前角色／語法／回條及連服驗收、Barn 實體 NPC 兌換路線／噴灑、完整活動／作物策略 |
 | Greenhouse | 設定地塊／工具／作物、收割回條、返回、service／UI | 即時伺服器驗收 |
 | Composter | 背包既有材料補充、回條、返回、service／UI | 已新增指定庫存採購／重新開啟機器與獨立上限 Sacks；當前選單、Sacks 格式與連服驗收尚缺 |
 | Visitor | 明確對象／接單估價、背包材料提交、返回、service／UI | 已新增明確預算／材料原生 ID 的 custom-amount 採購及重新確認接單；單次額外確認已接線；當前連服格式／結果仍待驗收 |
@@ -116,3 +116,5 @@ George 目前接線見 [Pet Sell 流程](george-sale-2.1.0.md)。舊的單次成
 2026-10-29 resumed bait acquisition: the inventory-source button route now also supports independently configured exact native bait stock purchases under the SAME original Pest root and SpendingBudget. Zero budget never purchases; each trap can request acquisition once, with current eligible delivered stock rechecked before any pickup. Native demand-only transport disposal, GAME-result routing, UI consent persistence and parent buy/refill/return/cancel are covered by focused regressions. Current server assumptions still require the final batch acceptance; do not interpret this as completion of exchange/spray/strategy, Bazaar Sell, Supercraft expansion or the whole2.1.0.
 
 Final resumed bait checkpoint: full regression/build/native/UI-model/migration gates pass; an isolated offline40-state/40-image GUI run and native shutdown also pass. Responsive palette/Book smoke assumptions were corrected without changing production palette/header code. Old gear/phase33 causes remain unresolved. See the latest verification section; this is not a2.1.0 release or live transaction pass.
+
+2026-10-30 Pest [Abiphone 兌換](pest-exchange-2.1.0.md)已接原 task／native／外部設定／UI：獨立預設關閉，在原清理／補餌完成後固定 `/call phillip` 一次；原 root／Farm hold 不換。已兌換狀態只略過，不增加成交次數；新確認須新的角色／空游標回條，原 Vacuum 更新還需雙格位證據。未知／手動／錯誤不關使用者畫面、不重試、不回程或續耕。Barn 實體路線、噴灑／策略及當前伺服器驗收仍未完成；不要把先前 exchange 全未接線的歷史描述當最新狀態，也不要把這個 Abiphone 分支說成全部 Pest 已完成。
