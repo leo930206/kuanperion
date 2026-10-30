@@ -1,0 +1,18 @@
+package dev.kuan.kuanperion.automation.pest;
+import dev.kuan.kuanperion.automation.*;import java.util.*;
+public final class PestBarnInteractionTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ static class F implements PestBarnInteraction.Port {
+  long now=1_000_000_000L;boolean allowed=true,usable=true,hit=true,cancelEffect,uncertain;Object level=new Object(),player=new Object(),mode=new Object(),entity=new Object();float yaw,pitch;int rotations,interactions;final AutomationCoordinator c=new AutomationCoordinator();final AutomationSession s=new AutomationSession(c,()->new AutomationContext(1,true,true,Set.of()),()->{},()->{});final AutomationSession.Handle h=s.begin(AutomationFeature.PEST,now,60_000_000_000L);final PestBarnTarget target=new PestBarnTarget(88,UUID.randomUUID(),new PestTargets.Point(.5,71.62,2.5));final PestBarnInteraction task=new PestBarnInteraction(s,c,this);PestBarnInteraction.Action last;
+  public boolean allowed(AutomationSession.Handle h,long n){return allowed;}
+  public PestBarnInteraction.Frame frame(AutomationSession.Handle h,PestBarnTarget t,long n){return new PestBarnInteraction.Frame(1,n,level,player,mode,entity,new PestTargets.Point(.5,70,.5),new PestTargets.Point(.5,71.62,.5),t.aim(),yaw,pitch,3,PestTaskTest.TOOL,usable,hit);}
+  public PestBarnInteraction.Effect effect(AutomationSession.Handle h,PestBarnInteraction.Action a,long n){last=a;var f=frame(h,target,n);if(!a.claim(h,f,n))return PestBarnInteraction.Effect.REJECTED;if(cancelEffect)task.dispose(h);if(!a.matchesSnapshot(frame(h,target,n)))return PestBarnInteraction.Effect.REJECTED;if(a.kind()==PestBarnInteraction.Kind.ROTATE){rotations++;yaw=a.yaw();pitch=a.pitch();}else interactions++;return uncertain?PestBarnInteraction.Effect.UNCERTAIN:PestBarnInteraction.Effect.SENT;}
+  void ready(){check(task.bind(h,target,now)==PestTask.BarnReady.AIMING,"first sample cannot be stable pose proof");now+=200_000_000L;check(task.bind(h,target,now)==PestTask.BarnReady.READY,"stable pose and exact native entity/ray may bind");}
+ }
+ public static void main(String[]args){
+  var f=new F();f.ready();check(f.task.uses(f.h)&&f.task.open(f.h,f.now)&&f.interactions==1&&f.rotations==0&&f.s.isCurrent(f.h)&&f.s.holdsFarming(),"one bound NPC interaction, never acquire/release/rearm parent");check(!f.task.open(f.h,f.now)&&f.interactions==1&&!f.last.claim(f.h,f.frame(f.h,f.target,f.now),f.now),"private action/open cannot replay");f.task.dispose(f.h);check(f.task.uses(f.h)&&!f.task.open(f.h,f.now),"disposed Barn route stays a lease-only tombstone, never falls back to Abiphone");
+  f=new F();f.yaw=90;for(int i=0;i<30;i++){f.task.bind(f.h,f.target,f.now);f.now+=200_000_000L;}check(f.rotations>0&&f.rotations<=8&&f.task.open(f.h,f.now)&&f.interactions==1,"bounded look then natural stability, no movement/key/teleport action");
+  for(String mode:List.of("manual","world","player","game-mode","npc","pose-look","ray","cancel","uncertain","stale-root")){f=new F();f.ready();switch(mode){case "manual"->f.allowed=false;case "world"->f.level=new Object();case "player"->f.player=new Object();case "game-mode"->f.mode=new Object();case "npc"->f.entity=new Object();case "pose-look"->f.yaw++;case "ray"->f.hit=false;case "cancel"->f.cancelEffect=true;case "uncertain"->f.uncertain=true;case "stale-root"->f.s.invalidate();}boolean sent=f.task.open(f.h,f.now);check(!sent&&f.interactions==(mode.equals("uncertain")?1:0)&&!f.task.open(f.h,f.now),"late mismatch/unknown/cancellation never interacts or repeats "+mode);}
+  System.out.println("PestBarnInteractionTest: PASS actual binder/private capability/root models, controlled native edge; not current NPC proof");
+ }
+}

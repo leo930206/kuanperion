@@ -53,3 +53,9 @@ The selected-material execution foundation and actual native-body fixtures exist
 
 ### U-EXCHANGE canonical native projection correction
 The local metadata-update proof now queries window0 raw36+hotbarIndex, matching the actual client callback and pinned26.2 hotbar range. The previous mocked index0..8 assumption was incorrect and is covered by explicit refusal regressions. Active-menu alias, title/role/cost grammar, original-root scope and no retry remain unchanged. This native-local correction does not close the current-server evidence requirements.
+
+
+### U-SPRAY-RUNTIME / U-BARN — current2026-10-30 continuation
+Spray now has independent persisted opt-in/service/Farming UI, bounded source cadence, separately capped original-root stock buying, source-style material selection and guarded use/restore. The earlier unexposed/no-service paragraphs are historical; e279178 completed the coherent offline regression/build/native/UI/migration checkpoint, **not** current-server or applied-Mixin acceptance. Base/nozzle/Sacks/GUI/Tab/cost assumptions remain provisional for the final batch.
+
+Barn physical exchange now has its own explicit default-off route and finite configured desk, reuses the original Pest root/remaining travel bound/applied absolute arrival, unique loaded target/private one-use interaction and unchanged exchange menu/receipt/return path. See [Barn contract](pest-barn-exchange-2.1.0.md). Supplied source proves desk coordinates/name search/aim/use and optional Barn travel, **not** actual RemotePlayer type/name equivalence or current geometry/no-fee behavior. Exact RemotePlayer Phillip,6block desk search,2.75block ray and150ms scene stability are **additional provisional adapter assumption** restrictions. No ArmorStand use, author service, implicit setspawn, unconditional Farm restart, Abiphone fallback or retry. Final NPC/menu/cursor/Vacuum/return compatibility remains ONE deferred batch, not this offline proof.

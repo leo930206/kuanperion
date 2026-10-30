@@ -160,3 +160,5 @@ python3 "$ROOT/scripts/test-pest-spray-runtime-wiring.py"
 python3 "$ROOT/scripts/test-pest-spray-ground-native.py"
 
 python3 "$ROOT/scripts/test-pest-spray-movement-guard.py"
+
+python3 "$ROOT/scripts/test-pest-barn-native.py"

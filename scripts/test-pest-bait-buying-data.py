@@ -18,6 +18,7 @@ public class PestBaitPurchaseDataTest {
  AutomationContext ctx=new AutomationContext(1,true,true,Set.of());AutomationContext context(){return ctx;}
  AutomationCoordinator coordinator=new AutomationCoordinator();AutomationSession session=new AutomationSession(coordinator,this::context,()->{},()->{});
  class Flight{AutomationSession.Handle owner;boolean fail;AutomationSession.Handle owner(){return owner;}Object levelIdentity(){return game.level;}boolean allowed(AutomationSession.Handle h,long now,AutomationCoordinator.Resource r){return game.same&&session.isCurrent(h)&&coordinator.permits(h.lease(),r,ctx,now);}void dispose(AutomationSession.Handle h){if(Objects.equals(h,owner)){owner=null;if(fail)throw new IllegalStateException("physical cleanup");}}}Flight flight=new Flight();Object latestFacts,preparedTool;
+ static class Barn{void dispose(AutomationSession.Handle h){}}Barn barn=new Barn(); // Barn native capability disposal is separately exercised by test-pest-barn-native.py.
  static class HypixelItemCatalogClient{static int made;int refreshes;boolean closed;HypixelItemCatalogClient(){made++;}void refresh(){refreshes++;}void close(){closed=true;}}
  static class HypixelMarketClient{static int made;int refreshes;boolean closed;HypixelMarketClient(){made++;}void refresh(){refreshes++;}void close(){closed=true;}}
  static class BazaarAcquisitionController{boolean cancelled;void cancel(){cancelled=true;}}

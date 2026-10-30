@@ -1,5 +1,7 @@
 # Pest exchange continuation — source-marked Abiphone route
 
+> Current development extension: [separately opted-in Barn physical route](pest-barn-exchange-2.1.0.md). Earlier "Barn unfinished" paragraphs below describe the original Abiphone checkpoint; live exchange acceptance remains open.
+
 ## Increment scope / assumptions
 
 The already approved2.1.0 Pest exchange is implemented first via the supplied PestExchangeManager alternative `/call phillip`. Default-off explicit consent means exchanging the captured bag, at most once after the original Pest cleanup/bait pass, not creating a new Farming session. Barn/physical-NPC routing, spray and event strategy are separate unfinished increments. No historical3-call retry or timed-success inference is transplanted.

@@ -202,7 +202,17 @@ public final class UiModelTest {
             require(actions.size()==2&&!actions.get(1).isVisible(),"no phantom Pest stop action");actions.getFirst().execute();
             require(service.pending()&&actions.get(1).isVisible()&&!service.active()&&!session.active()&&service.status().contains("30"),"real Pest UI queues without effects and exposes stop/status");
             actions.get(1).execute();require(!service.pending()&&!actions.get(1).isVisible()&&!service.autoEnabled()&&!java.nio.file.Files.exists(path.resolve("automation.json")),"actual stop callback cancels queue without persisted runtime intent");
-        } finally {java.nio.file.Files.delete(path);}
+            var settings=tab.groups().getFirst().getSettings();
+            var barnToggle=settings.stream().filter(ToggleSetting.class::isInstance).map(ToggleSetting.class::cast).filter(v->v.getRawName().startsWith("改用 Barn")).findFirst().orElseThrow();
+            var exchangeToggle=settings.stream().filter(ToggleSetting.class::isInstance).map(ToggleSetting.class::cast).filter(v->v.getRawName().startsWith("清理後兌換")).findFirst().orElseThrow();
+            var desk=settings.stream().filter(TextSetting.class::isInstance).map(TextSetting.class::cast).filter(v->v.getRawName().startsWith("Barn 兌換桌")).findFirst().orElseThrow();
+            require(!service.policy().barn().enabled()&&desk.getValue().isEmpty()&&!service.policy().exchangeAfterCleanup(),"old exchange/UI/defaults never authorize Barn or guess a desk");
+            barnToggle.toggle();desk.setValue("12.5 72 -10.25");require(service.policy().barn().configured()&&!service.policy().exchangeAfterCleanup()&&!service.autoEnabled()&&!session.active(),"real Barn callbacks persist separate consent/desk without starting gameplay or consenting to bag exchange");
+            exchangeToggle.toggle();var expected=service.policy().barn();
+            for(var setting:settings)if(setting instanceof SliderSetting slider&&!slider.getRawName().startsWith("購料"))slider.setValue(slider.getValue());
+            require(service.policy().barn().equals(expected)&&service.policy().exchangeAfterCleanup()&&dev.kuan.kuanperion.automation.AutomationSettingsStore.load(path.resolve("automation.json")).pestPolicy().barn().equals(expected),"all existing Pest sliders preserve explicit Barn authority and roundtrip settings");
+            desk.setValue("");require(service.policy().barn().enabled()&&!service.policy().barn().configured()&&!session.active(),"clearing coordinates never invents a fallback desk/call");
+        } finally {java.nio.file.Files.deleteIfExists(path.resolve("automation.json"));java.nio.file.Files.delete(path);}
     }
     private static <P> P contextOnlyPort(Class<P> type,AutomationContext context){
         return type.cast(java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),new Class<?>[]{type},(proxy,method,args)->{if(method.getName().equals("context"))return context;throw new AssertionError("settings invoked native port: "+method.getName());}));

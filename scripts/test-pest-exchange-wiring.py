@@ -54,5 +54,7 @@ for marker in ['State.EXCHANGING','!exchangeAttempted','exchange.begin(original,
 assert 'policy.exchangeAfterCleanup()' in task and 'f.alive()==0&&f.targets().isEmpty()' in task
 for text in [(m/'automation/pest/PestExchangeTask.java').read_text(),(m/'automation/pest/PestExchangeView.java').read_text(),ui]:
  for forbidden in ['sendCommand(','HttpClient','URLConnection','Thread.sleep(','.setCarried(','.handleContainerInput(']:assert forbidden not in text,forbidden
-assert '清理後透過 Abiphone 兌換整袋 Pest' in ui and '目前不含 Barn 實體 NPC 路線' in ui
+assert '清理後兌換整袋 Pest（獨立授權）' in ui and '改用 Barn 實體 Phillip（獨立授權）' in ui
+assert 'Barn 兌換桌座標 X Y Z（留空未設定）' in ui and '.withDeskText(value)' in ui
+assert 'Abiphone' in ui and '暫定' in ui and '不會改設出生點' in ui
 print('PestExchangeLifecycleWiring: PASS actual original-root parent/return, strict UI consent and existing manual/Jerry/world/shutdown hooks; no new network or idle service')

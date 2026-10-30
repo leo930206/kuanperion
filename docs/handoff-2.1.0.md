@@ -4,7 +4,7 @@
 
 > 最新指示（2026-10-29）：先依 Aether 原流程完成實作，把所有未確認的相容性假設記入 [原版相容性清單](upstream-compatibility-2.1.0.md)。**不要逐項等待／重問截圖**；全數實作完成後再一次核對。保留物品／金額／手動停止保護，實作完成不等於連服驗收。
 
-> 2026-10-30 後續：噴灑已有[未接入的執行基礎](pest-spray-2.1.0.md)，含原生操作／回條模型，但沒有 service、持久化設定、UI、選料、採購或連續更新；仍屬待完成。`PEST_SPRAY.implemented()` 保持 false，不能把測試通過當成功能交付。整體仍採約70%粗估，不是實服驗收率。
+> **目前優先狀態（2026-10-30）**：噴灑獨立設定／service／Farming UI、缺料採購／選料／使用／原位還原與全域停止已接入開發分支（`e279178`，完整離線 gates 通過；未實服／未安裝）。原先「implemented=false／尚無 service」段落僅是歷史。整體約75%開發粗估，非驗收率。另正完成 [Barn 實體兌換](pest-barn-exchange-2.1.0.md)：獨立預設關閉／明確座標／原 root／現有傳送額度／私有原生互動；該輪 stage／實際 repository 完整離線驗證已通過（47built models、655payload、UI／migration／headless）；未實服／未安裝，詳見最新 verification。Bazaar Sell、Supercraft 擴充、活動策略與最終批次實服仍是實質缺項。
 
 > 原生回條稽核另已重現兌換的 canonical 快捷列索引錯誤（inventory index3 被誤作 window0 raw3，而非 raw39）；開發程式已改為36+slot，並新增全部9格的真實 callback／原生範圍／雙回條回歸；完整回歸及提交以驗證補記為準。舊離線 PASS 不表示已連服或沒有後續缺陷；最新提交與驗證補記為準。
 

@@ -4,7 +4,8 @@ import dev.kuan.kuanperion.automation.*;
 import java.util.*;
 /** Bounded local cleanup and optional explicit search. A disappearance is not a kill: require a coupled server Tab decrease. */
 public final class PestTask {
- public enum State {IDLE,PREPARING,SEEKING,SWEEPING,TRAP_APPROACH,TRAP_MENU,BAIT_APPROACH,BAIT_MENU,BAIT_ACQUIRING,EXCHANGING,TRAVEL_OUT,TRAVEL_BACK,CAPTURING,RETURNING,RESTORING,COMPLETE,INCOMPLETE,CANCELLED,TIMED_OUT,FAILED}
+ public enum State {IDLE,PREPARING,SEEKING,SWEEPING,TRAP_APPROACH,TRAP_MENU,BAIT_APPROACH,BAIT_MENU,BAIT_ACQUIRING,BARN_DESK,BARN_APPROACH,EXCHANGING,TRAVEL_BARN,TRAVEL_OUT,TRAVEL_BACK,CAPTURING,RETURNING,RESTORING,COMPLETE,INCOMPLETE,CANCELLED,TIMED_OUT,FAILED}
+ public enum BarnReady {AIMING,READY,REJECTED}
  public enum Acquisition {RUNNING,COMPLETE,FAILED,UNCERTAIN}
  public enum Motion {MOVING,ARRIVED,BLOCKED}
  public enum Capture {AIMING,USING,REJECTED}
@@ -16,6 +17,8 @@ public final class PestTask {
   public boolean fresh(long world,long now){long age=now-observedAt;return complete&&this.world==world&&world>0&&age>=0&&age<=1_000_000_000L&&alive>=0&&alive<=1000&&slot>=0&&slot<9&&Float.isFinite(yaw)&&Float.isFinite(pitch)&&Math.abs(pitch)<=90&&targets.size()<=256&&tools.size()<=9;}
  }
  public interface Port extends PestPlotTravel.Port,PestTrapRelease.Port,PestBaitButtonTask.Port,PestExchangeTask.Port {
+  default PestBarnTarget.Facts barnTargets(long now){return new PestBarnTarget.Facts(0,now,false,List.of());}
+  default BarnReady bindBarnExchange(AutomationSession.Handle h,PestBarnTarget target,long now){return BarnReady.REJECTED;}
   default PestExchangeTask.Frame exchangeFrame(long now){return null;}
   default boolean openExchange(AutomationSession.Handle h,long now){return false;}
   default GuardedMenuAction.Result exchangeClick(AutomationSession.Handle h,PestExchangeTask.Action action,long now){return GuardedMenuAction.Result.REJECTED;}
@@ -49,7 +52,7 @@ public final class PestTask {
  }
  private static final long SECOND=1_000_000_000L;
  private final AutomationSession session;private final Port port;private State state=State.IDLE;private AutomationSession.Handle handle;
- private final PestExchangeTask exchange;private boolean exchangeAttempted;private int exchangeCompleted;
+ private final PestExchangeTask exchange;private boolean exchangeAttempted;private int exchangeCompleted;private PestBarnTarget barnTarget;
  private final PestBaitButtonTask bait;private final Set<Integer> baitedTraps=new HashSet<>();private int baitWithdrawn,baitCompleted;private SpendingBudget baitBudget;private final Set<Integer> baitBoughtTraps=new HashSet<>();
  private final PestTrapRelease trap;private PestTrapTarget trapTarget;private final Set<Integer> handledTraps=new HashSet<>();
  private final PestPlotTravel travel;private PestPolicy policy;private Anchor anchor,region;private PestPlot homePlot;private boolean traveled;private int returnLegs;private PestTargets.Point returnGoal;private final Set<Integer> visited=new HashSet<>();private PestIdentity.Vacuum tool;private PestTargets.Target target;
@@ -62,13 +65,14 @@ public final class PestTask {
  public PestTask(AutomationSession session,Port port,PlayerPositionReceipts positions,AutomationCoordinator coordinator,InventoryReceipts items,CursorReceipts cursors){this.session=session;this.port=port;travel=new PestPlotTravel(session,positions,port);trap=new PestTrapRelease(session,port);bait=coordinator==null?null:new PestBaitButtonTask(session,coordinator,items,cursors,port);exchange=coordinator==null?null:new PestExchangeTask(session,coordinator,items,cursors,port);}
  public boolean ownsMenu(){try{return state==State.TRAP_MENU&&trap.ownsMenu()||state==State.BAIT_MENU&&bait!=null&&bait.ownsMenu()||state==State.BAIT_ACQUIRING&&port.ownsBaitAcquisitionScreen()||state==State.EXCHANGING&&exchange!=null&&exchange.ownsMenu();}catch(RuntimeException invalid){return false;}}
  public State state(){return state;}public int confirmedDecreases(){return confirmed;}public int confirmedBaits(){return baitCompleted;}public int confirmedExchanges(){return exchangeCompleted;}
- public boolean active(){return switch(state){case PREPARING,SEEKING,SWEEPING,TRAP_APPROACH,TRAP_MENU,BAIT_APPROACH,BAIT_MENU,BAIT_ACQUIRING,EXCHANGING,TRAVEL_OUT,TRAVEL_BACK,CAPTURING,RETURNING,RESTORING->true;default->false;};}
+ public boolean active(){return switch(state){case PREPARING,SEEKING,SWEEPING,TRAP_APPROACH,TRAP_MENU,BAIT_APPROACH,BAIT_MENU,BAIT_ACQUIRING,BARN_DESK,BARN_APPROACH,EXCHANGING,TRAVEL_BARN,TRAVEL_OUT,TRAVEL_BACK,CAPTURING,RETURNING,RESTORING->true;default->false;};}
  public boolean request(PestPolicy policy,boolean manual,long now){
   if(active())return false;
   try{
    var context=port.context();var f=port.frame(now);
    boolean trapReady=policy.clearTraps()&&trapCandidates(port.facts(now),f.position(),policy.radius(),now,context.worldId()).size()>0;
    var trapFacts=port.facts(now);boolean trapTravel=policy.clearTraps()&&policy.trapPlot()>=0&&policy.travelPlots()>0&&trapFacts.fresh(context.worldId(),now)&&trapFacts.traps().fullKnown()&&!trapFacts.traps().full().isEmpty()&&PestPlot.at(f.position().x(),f.position().z()).isPresent();
+   if(policy.exchangeAfterCleanup()&&policy.barn().enabled()&&(!policy.barn().configured()||PestPlot.at(f.position().x(),f.position().z()).isEmpty()||PestPlot.at(f.position().x(),f.position().z()).orElseThrow().id()!=0&&policy.travelPlots()==0))return false;
    if(policy.bait().configured()&&bait==null||policy.exchangeAfterCleanup()&&exchange==null)return false;
    var baitFrame=policy.bait().configured()?port.baitFrame(now):null;
    boolean baitStock=baitFrame!=null&&(PestBaitButtonPlan.select(policy.bait().rules(),baitFrame.inventory(),policy.bait().rules().maximumRunItems()).isPresent()||policy.bait().canBuy());
@@ -79,7 +83,7 @@ public final class PestTask {
    var best=f.tools().stream().filter(t->PestIdentity.vacuum(t.slot(),t.item()).filter(v->v.equals(t)).isPresent()).max(Comparator.comparingDouble(PestIdentity.Vacuum::range).thenComparingInt(t->-t.slot())).orElse(null);
    if(best==null||!policy.sweep()&&!plotTravel&&!trapReady&&!baitReady&&f.targets().stream().noneMatch(t->f.position().distanceSquared(t.position())<=policy.radius()*policy.radius()))return false;
    var next=session.begin(AutomationFeature.PEST,now,policy.timeoutSeconds()*SECOND);if(next==null)return false;
-   handle=next;this.policy=policy;tool=best;anchor=new Anchor(f.position(),f.yaw(),f.pitch(),f.slot(),f.item(),f.flying());region=anchor;homePlot=PestPlot.at(f.position().x(),f.position().z()).orElse(null);traveled=false;visited.clear();handledTraps.clear();baitedTraps.clear();baitBoughtTraps.clear();baitBudget=new SpendingBudget(policy.bait().buying().maximumCoins());baitWithdrawn=baitCompleted=exchangeCompleted=0;exchangeAttempted=false;trapTarget=null;travel.reset();returnLegs=0;returnGoal=null;world=context.worldId();started=phaseStart=now;confirmed=0;sweepIndex=0;incomplete=false;sweepArrived=false;used=false;target=null;state=State.PREPARING;return true;
+   handle=next;this.policy=policy;tool=best;anchor=new Anchor(f.position(),f.yaw(),f.pitch(),f.slot(),f.item(),f.flying());region=anchor;homePlot=PestPlot.at(f.position().x(),f.position().z()).orElse(null);traveled=false;visited.clear();handledTraps.clear();baitedTraps.clear();baitBoughtTraps.clear();baitBudget=new SpendingBudget(policy.bait().buying().maximumCoins());baitWithdrawn=baitCompleted=exchangeCompleted=0;exchangeAttempted=false;barnTarget=null;trapTarget=null;travel.reset();returnLegs=0;returnGoal=null;world=context.worldId();started=phaseStart=now;confirmed=0;sweepIndex=0;incomplete=false;sweepArrived=false;used=false;target=null;state=State.PREPARING;return true;
   }catch(RuntimeException invalid){return false;}
  }
  public void tick(long now){
@@ -91,12 +95,12 @@ public final class PestTask {
   if(!session.isCurrent(handle)||!context.canIssueCommand()&&!(context.blockers().equals(Set.of(AutomationContext.Blocker.MENU))&&ownsMenu())||!context.garden()||handle.hold()!=null&&!context.farmingActive()||context.worldId()!=world||!f.fresh(world,now)||f.manualInput()||!f.mayFly()){finish(State.CANCELLED,now);return;}
   if(now-started<0||now-started>=policy.timeoutSeconds()*SECOND){finish(State.TIMED_OUT,now);return;}
   if(state!=State.PREPARING&&(f.slot()!=tool.slot()||!PestIdentity.sameVacuum(tool,f.item()))){finish(State.CANCELLED,now);return;}
-  if(state==State.TRAVEL_OUT||state==State.TRAVEL_BACK){
+  if(state==State.TRAVEL_OUT||state==State.TRAVEL_BACK||state==State.TRAVEL_BARN){
    travel.tick(now);var arrived=travel.arrival(handle,now);
    if(arrived.isPresent()){
     region=new Anchor(f.position(),f.yaw(),f.pitch(),f.slot(),f.item(),f.flying());
     if(!port.prepare(handle,tool,region,policy.radius(),now)){finish(State.FAILED,now);return;}
-    boolean returning=state==State.TRAVEL_BACK;travel.reset();state=returning?State.RETURNING:State.SEEKING;sweepIndex=0;phaseStart=now;return;
+    boolean returning=state==State.TRAVEL_BACK,barn=state==State.TRAVEL_BARN;travel.reset();state=returning?State.RETURNING:barn?State.BARN_DESK:State.SEEKING;sweepIndex=0;phaseStart=now;return;
    }
    switch(travel.state()){case TIMED_OUT->finish(State.TIMED_OUT,now);case CANCELLED->finish(State.CANCELLED,now);case FAILED->finish(State.FAILED,now);default->{}}return;
   }
@@ -110,6 +114,7 @@ public final class PestTask {
     case CANCELLED->finish(State.CANCELLED,now);case TIMED_OUT->finish(State.TIMED_OUT,now);default->finish(State.FAILED,now);
    }return;
   }
+  if(state==State.BARN_DESK||state==State.BARN_APPROACH){barn(f,now);return;}
   if(state==State.EXCHANGING){
    var original=handle;port.release(original);if(handle!=original||state!=State.EXCHANGING||!session.isCurrent(original))return;
    exchange.tick(now);if(handle!=original||state!=State.EXCHANGING||!session.isCurrent(original))return;
@@ -170,9 +175,8 @@ public final class PestTask {
     if(f.alive()==0&&f.targets().isEmpty()&&policy.bait().configured()&&beginBait(f,now))return;
     incomplete=f.alive()>0;if(policy.clearTraps()){var facts=port.facts(now);incomplete|=!facts.fresh(world,now)||!facts.traps().fullKnown()||!facts.traps().full().isEmpty();}
     if(!incomplete&&f.alive()==0&&f.targets().isEmpty()&&policy.exchangeAfterCleanup()&&!exchangeAttempted){
-     if(state!=State.SEEKING||!session.isCurrent(handle))return;exchangeAttempted=true;state=State.EXCHANGING;phaseStart=now;var original=handle;port.release(original);
-     if(handle!=original||state!=State.EXCHANGING||!session.isCurrent(original))return;
-     if(!exchange.begin(original,true,tool,now))finish(State.FAILED,now);return;
+     if(state!=State.SEEKING||!session.isCurrent(handle))return;exchangeAttempted=true;
+     if(policy.barn().enabled())beginBarn(f,now);else startExchange(now);return;
     }
     beginReturn(now);return;
    }
@@ -207,6 +211,43 @@ public final class PestTask {
    }
    if(now-phaseStart>=policy.captureSeconds()*SECOND)finish(State.TIMED_OUT,now);
   }
+ }
+ private void startExchange(long now){
+  state=State.EXCHANGING;phaseStart=now;var original=handle;
+  try{
+   port.release(original);if(handle!=original||state!=State.EXCHANGING)return;
+   if(!session.isCurrent(original)){finish(State.CANCELLED,now);return;}
+   if(!exchange.begin(original,true,tool,now)&&handle==original&&state==State.EXCHANGING)finish(State.FAILED,now);
+  }catch(RuntimeException unavailable){if(handle==original&&state==State.EXCHANGING)finish(State.FAILED,now);}
+ }
+ private void beginBarn(Frame f,long now){
+  if(!policy.barn().configured()||homePlot==null){finish(State.FAILED,now);return;}
+  if(PestPlot.of(0).contains(f.position().x(),f.position().z())){state=State.BARN_DESK;phaseStart=now;return;}
+  if(policy.travelPlots()==0||visited.size()>=policy.travelPlots()){incomplete=true;beginReturn(now);return;}
+  var original=handle;state=State.TRAVEL_BARN;phaseStart=now;travel.reset();boolean begun=travel.begin(original,PestPlot.of(0),now);
+  if(handle!=original||state!=State.TRAVEL_BARN||!session.isCurrent(original))return;if(!begun){finish(State.FAILED,now);return;}visited.add(0);traveled=true;
+ }
+ private void barn(Frame f,long now){
+  var original=handle;State phase=state;
+  try{
+   if(now-phaseStart<0||now-phaseStart>=20*SECOND){finish(State.TIMED_OUT,now);return;}
+   var desk=policy.barn().desk();if(desk==null||!PestPlot.of(0).contains(f.position().x(),f.position().z())||desk.distanceSquared(region.position())>policy.radius()*policy.radius()){finish(State.FAILED,now);return;}
+   port.release(original);if(handle!=original||state!=phase||!session.isCurrent(original))return;
+   if(state==State.BARN_DESK){
+    if(f.position().distanceSquared(desk)>.16){var result=port.move(original,desk,.4,now);if(handle!=original||state!=phase||!session.isCurrent(original))return;if(result==Motion.BLOCKED)finish(State.FAILED,now);return;}
+    state=State.BARN_APPROACH;return;
+   }
+   var facts=port.barnTargets(now);if(handle!=original||state!=phase||!session.isCurrent(original))return;
+   if(facts==null||!facts.fresh(world,now)){if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;}
+   var found=PestBarnTarget.select(facts.targets(),desk);if(found.isEmpty()){if(now-phaseStart>=5*SECOND)finish(State.FAILED,now);return;}
+   var next=found.get();if(barnTarget!=null&&(barnTarget.entityId()!=next.entityId()||!barnTarget.uuid().equals(next.uuid()))){finish(State.FAILED,now);return;}barnTarget=next;
+   double distance=Math.sqrt(f.eye().distanceSquared(next.aim()));
+   if(distance>2.75){double ratio=1-2.25/distance;var a=next.aim();var e=f.eye();var q=f.position();var goal=new PestTargets.Point(q.x()+(a.x()-e.x())*ratio,q.y()+(a.y()-e.y())*ratio,q.z()+(a.z()-e.z())*ratio);
+    if(!PestPlot.of(0).contains(goal.x(),goal.z())||goal.distanceSquared(region.position())>policy.radius()*policy.radius()){finish(State.FAILED,now);return;}var result=port.move(original,goal,.4,now);if(handle!=original||state!=phase||!session.isCurrent(original))return;if(result==Motion.BLOCKED)finish(State.FAILED,now);return;
+   }
+   var ready=port.bindBarnExchange(original,next,now);if(handle!=original||state!=phase||!session.isCurrent(original))return;
+   if(ready==BarnReady.REJECTED){finish(State.FAILED,now);return;}if(ready==BarnReady.READY)startExchange(now);
+  }catch(RuntimeException unavailable){if(handle==original&&state==phase)finish(State.FAILED,now);}
  }
  private static List<PestTrapTarget> trapCandidates(PestTrapRelease.Facts facts,PestTargets.Point center,int radius,long now,long world){
   if(!facts.fresh(world,now)||!facts.traps().fullKnown())return List.of();
